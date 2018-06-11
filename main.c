@@ -130,25 +130,47 @@ static const char *symbol_str(enum symbol_name sym) {
 }
 
 struct parser_state {
-	const char *buf;
+	FILE *f;
+	char *buf;
+	size_t buf_len, buf_cap;
+
 	struct symbol sym;
 };
 
-static void parser_init(struct parser_state *state, const char *buf) {
-	state->buf = buf;
+static void parser_init(struct parser_state *state, FILE *f) {
+	state->f = f;
+	state->buf = NULL;
+	state->buf_len = state->buf_cap = 0;
+
 	state->sym.str = malloc(256); // TODO
 	state->sym.str[0] = '\0';
 }
 
 static size_t parser_peek(struct parser_state *state, char *buf, size_t size) {
-	if (state->buf == NULL) {
-		return 0;
+	if (size > state->buf_len) {
+		if (size > state->buf_cap) {
+			state->buf = realloc(state->buf, size);
+			if (state->buf == NULL) {
+				state->buf_cap = 0;
+				return 0;
+			}
+			state->buf_cap = size;
+		}
+
+		size_t n_more = size - state->buf_len;
+		size_t n_read = fread(state->buf + state->buf_len, 1, n_more, state->f);
+		state->buf_len += n_read;
+		if (n_read < n_more) {
+			if (feof(state->f)) {
+				state->buf[state->buf_len] = '\0';
+				state->buf_len++;
+				size = state->buf_len;
+			} else {
+				return 0;
+			}
+		}
 	}
 
-	size_t max_size = strlen(buf) + 1;
-	if (size > max_size) {
-		size = max_size;
-	}
 	if (buf != NULL) {
 		memcpy(buf, state->buf, size);
 	}
@@ -156,27 +178,22 @@ static size_t parser_peek(struct parser_state *state, char *buf, size_t size) {
 }
 
 static char parser_peek_char(struct parser_state *state) {
-	char c;
+	char c = '\0';
 	parser_peek(state, &c, sizeof(char));
 	return c;
 }
 
 static size_t parser_read(struct parser_state *state, char *buf, size_t size) {
-	if (state->buf == NULL) {
-		return 0;
-	}
-
 	size_t n = parser_peek(state, buf, size);
-	if (state->buf[n] == '\0') {
-		state->buf = NULL;
-	} else {
-		state->buf += n;
+	if (n > 0) {
+		memmove(state->buf, state->buf + n, state->buf_len - n);
+		state->buf_len -= n;
 	}
 	return n;
 }
 
 static char parser_read_char(struct parser_state *state) {
-	char c;
+	char c = '\0';
 	parser_read(state, &c, sizeof(char));
 	return c;
 }
@@ -626,12 +643,9 @@ static void program(struct parser_state *state) {
 	expect(state, EOF_TOKEN);
 }
 
-static const char test_program[] =
-	"# abc\na b  c 'de f' \"lol \\a \\\"xd \" && def if 2>&1 >/dev/null\n";
-
 int main(int argc, char *argv[]) {
 	struct parser_state state = {0};
-	parser_init(&state, test_program);
+	parser_init(&state, stdin);
 	next_sym(&state);
 	program(&state);
 	return 0;

@@ -131,40 +131,47 @@ static const char *symbol_str(enum symbol_name sym) {
 
 struct parser_state {
 	FILE *f;
-	char *buf;
-	size_t buf_len, buf_cap;
+
+	char *peek;
+	size_t peek_len, peek_cap;
 
 	struct symbol sym;
+	size_t sym_str_len, sym_str_cap;
 };
 
 static void parser_init(struct parser_state *state, FILE *f) {
 	state->f = f;
-	state->buf = NULL;
-	state->buf_len = state->buf_cap = 0;
 
-	state->sym.str = malloc(256); // TODO
+	state->peek_cap = 128;
+	state->peek = malloc(state->peek_cap);
+	state->peek_len = 0;
+
+	state->sym_str_cap = 128;
+	state->sym.str = malloc(state->sym_str_cap);
 	state->sym.str[0] = '\0';
+	state->sym_str_len = 0;
 }
 
 static size_t parser_peek(struct parser_state *state, char *buf, size_t size) {
-	if (size > state->buf_len) {
-		if (size > state->buf_cap) {
-			state->buf = realloc(state->buf, size);
-			if (state->buf == NULL) {
-				state->buf_cap = 0;
+	if (size > state->peek_len) {
+		if (size > state->peek_cap) {
+			state->peek = realloc(state->peek, size);
+			if (state->peek == NULL) {
+				state->peek_cap = 0;
 				return 0;
 			}
-			state->buf_cap = size;
+			state->peek_cap = size;
 		}
 
-		size_t n_more = size - state->buf_len;
-		size_t n_read = fread(state->buf + state->buf_len, 1, n_more, state->f);
-		state->buf_len += n_read;
+		size_t n_more = size - state->peek_len;
+		size_t n_read =
+			fread(state->peek + state->peek_len, 1, n_more, state->f);
+		state->peek_len += n_read;
 		if (n_read < n_more) {
 			if (feof(state->f)) {
-				state->buf[state->buf_len] = '\0';
-				state->buf_len++;
-				size = state->buf_len;
+				state->peek[state->peek_len] = '\0';
+				state->peek_len++;
+				size = state->peek_len;
 			} else {
 				return 0;
 			}
@@ -172,7 +179,7 @@ static size_t parser_peek(struct parser_state *state, char *buf, size_t size) {
 	}
 
 	if (buf != NULL) {
-		memcpy(buf, state->buf, size);
+		memcpy(buf, state->peek, size);
 	}
 	return size;
 }
@@ -186,8 +193,8 @@ static char parser_peek_char(struct parser_state *state) {
 static size_t parser_read(struct parser_state *state, char *buf, size_t size) {
 	size_t n = parser_peek(state, buf, size);
 	if (n > 0) {
-		memmove(state->buf, state->buf + n, state->buf_len - n);
-		state->buf_len -= n;
+		memmove(state->peek, state->peek + n, state->peek_len - n);
+		state->peek_len -= n;
 	}
 	return n;
 }
@@ -218,6 +225,38 @@ static bool accept_str(struct parser_state *state, const char *str) {
 	return false;
 }
 
+static void parser_sym_reset(struct parser_state *state) {
+	if (state->sym_str_cap > 0) {
+		state->sym.str[0] = '\0';
+	}
+	state->sym_str_len = 0;
+}
+
+static void parser_sym_begin(struct parser_state *state, enum symbol_name sym) {
+	parser_sym_reset(state);
+	state->sym.name = sym;
+}
+
+static void parser_sym_append_char(struct parser_state *state, char c) {
+	size_t min_cap = state->sym_str_len + 2; // new char + NULL char
+	if (min_cap > state->sym_str_cap) {
+		size_t new_cap = state->sym_str_cap * 2;
+		if (new_cap < min_cap) {
+			new_cap = min_cap;
+		}
+		state->sym.str = realloc(state->sym.str, new_cap);
+		if (state->sym.str == NULL) {
+			state->sym_str_cap = 0;
+			return;
+		}
+		state->sym_str_cap = new_cap;
+	}
+
+	state->sym.str[state->sym_str_len] = c;
+	state->sym.str[state->sym_str_len + 1] = '\0';
+	state->sym_str_len++;
+}
+
 static bool is_operator_start(char c) {
 	switch (c) {
 	case '&':
@@ -226,11 +265,12 @@ static bool is_operator_start(char c) {
 	case '<':
 	case '>':
 		return true;
+	default:
+		return false;
 	}
-	return false;
 }
 
-static char *single_quotes(struct parser_state *state, char *str) {
+static void single_quotes(struct parser_state *state) {
 	char c = parser_read_char(state);
 	assert(c == '\'');
 
@@ -245,16 +285,12 @@ static char *single_quotes(struct parser_state *state, char *str) {
 			break;
 		}
 
-		str[0] = c;
-		str++;
+		parser_sym_append_char(state, c);
 		parser_read_char(state);
 	}
-
-	str[0] = '\0';
-	return str;
 }
 
-static char *double_quotes(struct parser_state *state, char *str) {
+static void double_quotes(struct parser_state *state) {
 	char c = parser_read_char(state);
 	assert(c == '"');
 
@@ -295,16 +331,12 @@ static char *double_quotes(struct parser_state *state, char *str) {
 			}
 		}
 
-		str[0] = c;
-		str++;
+		parser_sym_append_char(state, c);
 		parser_read_char(state);
 	}
-
-	str[0] = '\0';
-	return str;
 }
 
-static void word(struct parser_state *state, char *str) {
+static void word(struct parser_state *state) {
 	bool first = true;
 	while (true) {
 		char c = parser_peek_char(state);
@@ -320,11 +352,11 @@ static void word(struct parser_state *state, char *str) {
 
 		// Quoting
 		if (c == '\'') {
-			str = single_quotes(state, str);
+			single_quotes(state);
 			continue;
 		}
 		if (c == '"') {
-			str = double_quotes(state, str);
+			double_quotes(state);
 			continue;
 		}
 		if (c == '\\') {
@@ -345,47 +377,42 @@ static void word(struct parser_state *state, char *str) {
 			break;
 		}
 
-		str[0] = c;
-		str++;
+		parser_sym_append_char(state, c);
 		parser_read_char(state);
 		first = false;
 	}
-
-	str[0] = '\0';
 }
 
 // See section 2.3 Token Recognition
-static void token(struct parser_state *state, struct symbol *sym) {
+static void token(struct parser_state *state) {
 	char c = parser_peek_char(state);
 
-	sym->str[0] = c;
-	sym->str[1] = '\0';
-
 	if (accept_char(state, '\0')) {
-		sym->name = EOF_TOKEN;
+		parser_sym_begin(state, EOF_TOKEN);
 		return;
 	}
 	if (accept_char(state, '\n')) {
-		sym->name = NEWLINE;
+		parser_sym_begin(state, NEWLINE);
 		return;
 	}
 
 	if (is_operator_start(c)) {
 		for (size_t i = 0; i < sizeof(operators)/sizeof(operators[0]); ++i) {
 			if (accept_str(state, operators[i].str)) {
-				sym->name = operators[i].name;
+				parser_sym_begin(state, operators[i].name);
 				return;
 			}
 		}
 
-		sym->name = TOKEN;
+		parser_sym_begin(state, TOKEN);
+		parser_sym_append_char(state, c);
 		parser_read_char(state);
 		return;
 	}
 
 	if (isblank(c)) {
 		parser_read_char(state);
-		token(state, sym);
+		token(state);
 		return;
 	}
 
@@ -397,34 +424,35 @@ static void token(struct parser_state *state, struct symbol *sym) {
 			}
 			parser_read_char(state);
 		}
-		token(state, sym);
+		token(state);
 		return;
 	}
 
-	sym->name = TOKEN;
-	word(state, sym->str);
+	parser_sym_begin(state, TOKEN);
+	word(state);
 }
 
-static void symbol(struct parser_state *state, struct symbol *sym) {
-	token(state, sym);
+static void symbol(struct parser_state *state) {
+	token(state);
 
-	if (sym->name == TOKEN) {
+	if (state->sym.name == TOKEN) {
 		char next = parser_peek_char(state);
-		if (strlen(sym->str) == 1 && isdigit(sym->str[0]) &&
+		if (strlen(state->sym.str) == 1 && isdigit(state->sym.str[0]) &&
 				(next == '<' || next == '>')) {
-			sym->name = IO_NUMBER;
+			state->sym.name = IO_NUMBER;
 		}
 	}
 }
 
 static void next_sym(struct parser_state *state) {
-	state->sym.str[0] = '\0';
-	symbol(state, &state->sym);
+	parser_sym_reset(state);
+	symbol(state);
 	if (state->sym.name == EOF_TOKEN) {
 		return;
 	}
 
-	fprintf(stderr, "symbol: %s \"%s\"\n", symbol_str(state->sym.name), state->sym.str);
+	fprintf(stderr, "symbol: %s \"%s\"\n",
+		symbol_str(state->sym.name), state->sym.str);
 }
 
 static bool accept(struct parser_state *state, enum symbol_name sym) {
@@ -503,26 +531,21 @@ static bool cmd_prefix(struct parser_state *state) {
 	while (io_redirect(state) || accept(state, ASSIGNMENT_WORD)) {
 		// This space is intentionally left blank
 	}
-	fprintf(stderr, "cmd_prefix\n");
 	return true;
 }
 
-static void rule1(struct parser_state *state, struct symbol *sym) {
+static void rule1(struct parser_state *state) {
 	// Apply rule 1
 	assert(state->sym.name == TOKEN);
 
 	for (size_t i = 0; i < sizeof(keywords)/sizeof(keywords[0]); ++i) {
 		if (strcmp(state->sym.str, keywords[i].str) == 0) {
 			state->sym.name = keywords[i].name;
-			*sym = state->sym;
-			next_sym(state);
 			return;
 		}
 	}
 
 	state->sym.name = WORD;
-	*sym = state->sym;
-	next_sym(state);
 }
 
 static bool cmd_word(struct parser_state *state) {
@@ -532,9 +555,9 @@ static bool cmd_word(struct parser_state *state) {
 	//const char *pos = strchr(state->sym.str, '=');
 	// TODO: handle pos
 
-	struct symbol sym;
-	rule1(state, &sym);
-	fprintf(stderr, "cmd_word: %s\n", sym.str);
+	rule1(state);
+	fprintf(stderr, "cmd_word: %s\n", state->sym.str);
+	next_sym(state);
 	return true;
 }
 
@@ -542,9 +565,9 @@ static void cmd_name(struct parser_state *state) {
 	// Apply rule 7a
 	if (strchr(state->sym.str, '=') == NULL) {
 		// Apply rule 1
-		struct symbol sym;
-		rule1(state, &sym);
-		fprintf(stderr, "cmd_name: %s\n", sym.str);
+		rule1(state);
+		fprintf(stderr, "cmd_name: %s\n", state->sym.str);
+		next_sym(state);
 	} else {
 		// Apply rule 7b
 		if (!cmd_word(state)) {

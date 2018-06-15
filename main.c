@@ -18,8 +18,19 @@ size_t make_sub_prefix(const char *prefix, bool last, char *buf) {
 	return strlen(prefix) + strlen(L_LINE) + 1;
 }
 
-static void print_command(struct mrsh_command *cmd) {
+static void print_io_redirect(struct mrsh_io_redirect *redir) {
+	printf("io_redirect %d %s %s\n", redir->io_number, redir->op, redir->filename);
+}
+
+static void print_command(struct mrsh_command *cmd, const char *prefix) {
 	printf("command %s\n", cmd->name);
+
+	for (size_t i = 0; i < cmd->io_redirects.len; ++i) {
+		struct mrsh_io_redirect *redir = cmd->io_redirects.data[i];
+		bool last = i == cmd->io_redirects.len - 1;
+		printf("%s%s", prefix, last ? L_LAST : L_VAL);
+		print_io_redirect(redir);
+	}
 }
 
 static void print_pipeline(struct mrsh_pipeline *pipeline,
@@ -29,8 +40,12 @@ static void print_pipeline(struct mrsh_pipeline *pipeline,
 	for (size_t i = 0; i < pipeline->commands.len; ++i) {
 		struct mrsh_command *cmd = pipeline->commands.data[i];
 		bool last = i == pipeline->commands.len - 1;
+
+		char sub_prefix[make_sub_prefix(prefix, last, NULL)];
+		make_sub_prefix(prefix, last, sub_prefix);
+
 		printf("%s%s", prefix, last ? L_LAST : L_VAL);
-		print_command(cmd);
+		print_command(cmd, sub_prefix);
 	}
 }
 

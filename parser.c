@@ -396,39 +396,73 @@ static bool separator_op(struct parser_state *state) {
 	return accept_token(state, "&") || accept_token(state, ";");
 }
 
-static bool io_file(struct parser_state *state) {
+static bool io_here(struct parser_state *state) {
 	return false; // TODO
 }
 
-static bool filename(struct parser_state *state) {
+static char *filename(struct parser_state *state) {
 	// TODO: Apply rule 2
-	return accept(state, TOKEN);
+	if (state->sym.name != TOKEN) {
+		return NULL;
+	}
+	char *str = strdup(state->sym.str);
+	accept(state, TOKEN);
+	return str;
 }
 
-static bool io_here(struct parser_state *state) {
-	return (accept_token(state, "<")
-			|| accept(state, LESSAND)
-			|| accept_token(state, ">")
+static bool io_file(struct parser_state *state,
+		struct mrsh_io_redirect *redir) {
+	char *str = strdup(state->sym.str);
+	enum symbol_name name = state->sym.name;
+	if (accept_token(state, "<") || accept_token(state, ">")) {
+		redir->op = str;
+	} else if (accept(state, LESSAND)
 			|| accept(state, GREATAND)
 			|| accept(state, DGREAT)
 			|| accept(state, CLOBBER)
-			|| accept(state, LESSGREAT))
-		&& filename(state);
-}
-
-static bool io_redirect(struct parser_state *state) {
-	if (accept(state, IO_NUMBER)) {
-		// TODO
-	}
-
-	return io_file(state) || io_here(state);
-}
-
-static bool cmd_prefix(struct parser_state *state) {
-	if (!io_redirect(state) && !accept(state, ASSIGNMENT_WORD)) {
+			|| accept(state, LESSGREAT)) {
+		redir->op = strdup(symbol_str(name));
+		free(str);
+	} else {
 		return false;
 	}
-	return true;
+
+	redir->filename = filename(state);
+	return (redir->filename != NULL);
+}
+
+static struct mrsh_io_redirect *io_redirect(struct parser_state *state) {
+	struct mrsh_io_redirect redir = {
+		.io_number = -1,
+	};
+
+	if (state->sym.name == IO_NUMBER) {
+		redir.io_number = strtol(state->sym.str, NULL, 10);
+		accept(state, IO_NUMBER);
+	}
+
+	if (io_file(state, &redir)) {
+		struct mrsh_io_redirect *redir_ptr =
+			calloc(1, sizeof(struct mrsh_io_redirect));
+		memcpy(redir_ptr, &redir, sizeof(struct mrsh_io_redirect));
+		return redir_ptr;
+	}
+
+	if (io_here(state)) {
+		return NULL; // TODO
+	}
+
+	return NULL;
+}
+
+static bool cmd_prefix(struct parser_state *state, struct mrsh_command *cmd) {
+	struct mrsh_io_redirect *redir = io_redirect(state);
+	if (redir != NULL) {
+		mrsh_array_add(&cmd->io_redirects, redir);
+		return true;
+	}
+
+	return accept(state, ASSIGNMENT_WORD);
 }
 
 static void transform_rule1(struct parser_state *state) {
@@ -471,32 +505,35 @@ static void transform_cmd_name(struct parser_state *state) {
 	}
 }
 
-static bool cmd_suffix(struct parser_state *state) {
+static bool cmd_suffix(struct parser_state *state, struct mrsh_command *cmd) {
 	// TODO
 	if (strcmp(state->sym.str, "|") == 0) {
 		return false;
 	}
 
-	// TODO: s/TOKEN/WORD/, with rule 1?
-	if (!io_redirect(state) && !accept(state, TOKEN)) {
-		return false;
+	struct mrsh_io_redirect *redir = io_redirect(state);
+	if (redir != NULL) {
+		mrsh_array_add(&cmd->io_redirects, redir);
+		return true;
 	}
 
-	return true;
+	// TODO: s/TOKEN/WORD/, with rule 1?
+	return accept(state, TOKEN);
 }
 
 static struct mrsh_command *simple_command(struct parser_state *state) {
 	struct mrsh_command *cmd = calloc(1, sizeof(struct mrsh_command));
+	mrsh_array_init(&cmd->io_redirects);
 
 	do {
 		transform_cmd_name(state);
-	} while (cmd_prefix(state));
+	} while (cmd_prefix(state, cmd));
 
 	cmd->name = strdup(state->sym.str);
 	next_sym(state);
 
-	while (cmd_suffix(state)) {
-		// TODO
+	while (cmd_suffix(state, cmd)) {
+		// This space is intentionally left blank
 	}
 
 	return cmd;

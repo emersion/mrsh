@@ -3,8 +3,15 @@
 
 #include "array.h"
 
+struct mrsh_io_redirect {
+	int io_number;
+	char *op;
+	char *filename;
+};
+
 struct mrsh_command {
 	char *name;
+	struct mrsh_array io_redirects;
 };
 
 struct mrsh_pipeline {

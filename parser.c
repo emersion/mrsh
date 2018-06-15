@@ -377,6 +377,15 @@ static bool accept_token(struct parser_state *state, const char *str) {
 	return strcmp(str, state->sym.str) == 0 && accept(state, TOKEN);
 }
 
+static char *take(struct parser_state *state, enum symbol_name sym) {
+	if (state->sym.name != sym) {
+		return NULL;
+	}
+	char *str = strdup(state->sym.str);
+	next_sym(state);
+	return str;
+}
+
 static bool newline_list(struct parser_state *state) {
 	if (!accept(state, NEWLINE)) {
 		return false;
@@ -408,12 +417,7 @@ static bool io_here(struct parser_state *state) {
 
 static char *filename(struct parser_state *state) {
 	// TODO: Apply rule 2
-	if (state->sym.name != TOKEN) {
-		return NULL;
-	}
-	char *str = strdup(state->sym.str);
-	accept(state, TOKEN);
-	return str;
+	return take(state, TOKEN);
 }
 
 static bool io_file(struct parser_state *state,
@@ -468,9 +472,9 @@ static bool cmd_prefix(struct parser_state *state, struct mrsh_command *cmd) {
 		return true;
 	}
 
-	if (state->sym.name == ASSIGNMENT_WORD) {
+	char *assign = take(state, ASSIGNMENT_WORD);
+	if (assign != NULL) {
 		mrsh_array_add(&cmd->assignments, strdup(state->sym.str));
-		accept(state, ASSIGNMENT_WORD);
 		return true;
 	}
 
@@ -532,12 +536,13 @@ static bool cmd_suffix(struct parser_state *state, struct mrsh_command *cmd) {
 	}
 
 	// TODO: s/TOKEN/WORD/, with rule 1?
-	if (state->sym.name != TOKEN) {
-		return false;
+	char *arg = take(state, TOKEN);
+	if (arg != NULL) {
+		mrsh_array_add(&cmd->arguments, arg);
+		return true;
 	}
-	mrsh_array_add(&cmd->arguments, strdup(state->sym.str));
-	accept(state, TOKEN);
-	return true;
+
+	return false;
 }
 
 static struct mrsh_command *simple_command(struct parser_state *state) {
@@ -550,12 +555,10 @@ static struct mrsh_command *simple_command(struct parser_state *state) {
 		transform_cmd_name(state);
 	} while (cmd_prefix(state, &cmd));
 
-	if (state->sym.name != WORD) {
+	cmd.name = take(state, WORD);
+	if (cmd.name == NULL) {
 		return NULL;
 	}
-
-	cmd.name = strdup(state->sym.str);
-	next_sym(state);
 
 	while (cmd_suffix(state, &cmd)) {
 		// This space is intentionally left blank

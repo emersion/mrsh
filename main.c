@@ -23,7 +23,12 @@ static void print_io_redirect(struct mrsh_io_redirect *redir) {
 }
 
 static void print_command(struct mrsh_command *cmd, const char *prefix) {
-	printf("command %s\n", cmd->name);
+	printf("command %s", cmd->name);
+	for (size_t i = 0; i < cmd->arguments.len; ++i) {
+		char *arg = cmd->arguments.data[i];
+		printf(" %s", arg);
+	}
+	printf("\n");
 
 	for (size_t i = 0; i < cmd->io_redirects.len; ++i) {
 		struct mrsh_io_redirect *redir = cmd->io_redirects.data[i];

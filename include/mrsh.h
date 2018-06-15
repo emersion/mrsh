@@ -11,20 +11,21 @@ struct mrsh_io_redirect {
 
 struct mrsh_command {
 	char *name;
-	struct mrsh_array io_redirects;
+	struct mrsh_array arguments; // char *
+	struct mrsh_array io_redirects; // struct mrsh_io_redirect *
 };
 
 struct mrsh_pipeline {
-	struct mrsh_array commands;
+	struct mrsh_array commands; // struct mrsh_command *
 };
 
 struct mrsh_complete_command {
 	// TODO: missing one level
-	struct mrsh_array pipelines; // mrsh_pipeline
+	struct mrsh_array pipelines; // struct mrsh_pipeline *
 };
 
 struct mrsh_program {
-	struct mrsh_array commands; // mrsh_complete_command
+	struct mrsh_array commands; // struct mrsh_complete_command *
 };
 
 #endif

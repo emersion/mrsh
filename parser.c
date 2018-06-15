@@ -518,12 +518,18 @@ static bool cmd_suffix(struct parser_state *state, struct mrsh_command *cmd) {
 	}
 
 	// TODO: s/TOKEN/WORD/, with rule 1?
-	return accept(state, TOKEN);
+	if (state->sym.name != TOKEN) {
+		return false;
+	}
+	mrsh_array_add(&cmd->arguments, strdup(state->sym.str));
+	accept(state, TOKEN);
+	return true;
 }
 
 static struct mrsh_command *simple_command(struct parser_state *state) {
 	struct mrsh_command *cmd = calloc(1, sizeof(struct mrsh_command));
 	mrsh_array_init(&cmd->io_redirects);
+	mrsh_array_init(&cmd->arguments);
 
 	do {
 		transform_cmd_name(state);

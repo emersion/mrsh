@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "mrsh.h"
+#include "ast.h"
 #include "parser.h"
 
 #define L_LINE "│ "
@@ -45,13 +45,12 @@ static void print_command(struct mrsh_command *cmd, const char *prefix) {
 	}
 }
 
-static void print_pipeline(struct mrsh_pipeline *pipeline,
-		const char *prefix) {
+static void print_pipeline(struct mrsh_pipeline *pl, const char *prefix) {
 	printf("pipeline\n");
 
-	for (size_t i = 0; i < pipeline->commands.len; ++i) {
-		struct mrsh_command *cmd = pipeline->commands.data[i];
-		bool last = i == pipeline->commands.len - 1;
+	for (size_t i = 0; i < pl->commands.len; ++i) {
+		struct mrsh_command *cmd = pl->commands.data[i];
+		bool last = i == pl->commands.len - 1;
 
 		char sub_prefix[make_sub_prefix(prefix, last, NULL)];
 		make_sub_prefix(prefix, last, sub_prefix);
@@ -61,30 +60,53 @@ static void print_pipeline(struct mrsh_pipeline *pipeline,
 	}
 }
 
-static void print_complete_command(struct mrsh_complete_command *cmd,
-		const char *prefix) {
-	printf("complete_command\n");
+static void print_node(struct mrsh_node *node, const char *prefix);
 
-	for (size_t i = 0; i < cmd->pipelines.len; ++i) {
-		struct mrsh_pipeline *pipeline = cmd->pipelines.data[i];
-		bool last = i == cmd->pipelines.len - 1;
+static void print_binop(struct mrsh_binop *binop, const char *prefix) {
+	printf("binop\n");
 
-		char sub_prefix[make_sub_prefix(prefix, last, NULL)];
-		make_sub_prefix(prefix, last, sub_prefix);
+	char sub_prefix[make_sub_prefix(prefix, false, NULL)];
 
-		printf("%s%s", prefix, last ? L_LAST : L_VAL);
-		print_pipeline(pipeline, sub_prefix);
+	make_sub_prefix(prefix, false, sub_prefix);
+	printf("%s%s", prefix, L_VAL);
+	print_node(binop->left, sub_prefix);
+
+	make_sub_prefix(prefix, true, sub_prefix);
+	printf("%s%s", prefix, L_LAST);
+	print_node(binop->right, sub_prefix);
+}
+
+static void print_node(struct mrsh_node *node, const char *prefix) {
+	struct mrsh_pipeline *pl = mrsh_node_get_pipeline(node);
+	if (pl != NULL) {
+		print_pipeline(pl, prefix);
+		return;
 	}
+
+	struct mrsh_binop *binop = mrsh_node_get_binop(node);
+	if (binop != NULL) {
+		print_binop(binop, prefix);
+		return;
+	}
+
+	printf("unknown node\n");
+}
+
+static void print_command_list(struct mrsh_command_list *l,
+		const char *prefix) {
+	printf("command_list%s: ", l->ampersand ? " &" : "");
+
+	print_node(l->node, prefix);
 }
 
 static void print_program(struct mrsh_program *prog) {
 	printf("program\n");
 
 	for (size_t i = 0; i < prog->commands.len; ++i) {
-		struct mrsh_complete_command *cmd = prog->commands.data[i];
+		struct mrsh_command_list *l = prog->commands.data[i];
 		bool last = i == prog->commands.len - 1;
 		printf(last ? L_LAST : L_VAL);
-		print_complete_command(cmd, last ? L_GAP : L_LINE);
+		print_command_list(l, last ? L_GAP : L_LINE);
 	}
 }
 

@@ -19,6 +19,7 @@ executable(
 	'mrsh',
 	files([
 		'array.c',
+		'ast.c',
 		'main.c',
 		'parser.c',
 	]),

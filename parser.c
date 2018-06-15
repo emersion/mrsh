@@ -8,7 +8,7 @@
 #include <string.h>
 
 #include "array.h"
-#include "mrsh.h"
+#include "ast.h"
 #include "parser.h"
 
 static const char *symbol_str(enum symbol_name sym) {
@@ -392,8 +392,14 @@ static void linebreak(struct parser_state *state) {
 	newline_list(state);
 }
 
-static bool separator_op(struct parser_state *state) {
-	return accept_token(state, "&") || accept_token(state, ";");
+static int separator_op(struct parser_state *state) {
+	if (accept_token(state, "&")) {
+		return '&';
+	}
+	if (accept_token(state, ";")) {
+		return ';';
+	}
+	return -1;
 }
 
 static bool io_here(struct parser_state *state) {
@@ -513,7 +519,9 @@ static void transform_cmd_name(struct parser_state *state) {
 
 static bool cmd_suffix(struct parser_state *state, struct mrsh_command *cmd) {
 	// TODO
-	if (strcmp(state->sym.str, "|") == 0) {
+	if (strcmp(state->sym.str, "|") == 0 ||
+			strcmp(state->sym.str, "&") == 0 ||
+			strcmp(state->sym.str, ";") == 0) {
 		return false;
 	}
 
@@ -533,23 +541,29 @@ static bool cmd_suffix(struct parser_state *state, struct mrsh_command *cmd) {
 }
 
 static struct mrsh_command *simple_command(struct parser_state *state) {
-	struct mrsh_command *cmd = calloc(1, sizeof(struct mrsh_command));
-	mrsh_array_init(&cmd->io_redirects);
-	mrsh_array_init(&cmd->assignments);
-	mrsh_array_init(&cmd->arguments);
+	struct mrsh_command cmd = {0};
 
 	do {
+		if (state->sym.name != TOKEN) {
+			return NULL;
+		}
 		transform_cmd_name(state);
-	} while (cmd_prefix(state, cmd));
+	} while (cmd_prefix(state, &cmd));
 
-	cmd->name = strdup(state->sym.str);
+	if (state->sym.name != WORD) {
+		return NULL;
+	}
+
+	cmd.name = strdup(state->sym.str);
 	next_sym(state);
 
-	while (cmd_suffix(state, cmd)) {
+	while (cmd_suffix(state, &cmd)) {
 		// This space is intentionally left blank
 	}
 
-	return cmd;
+	struct mrsh_command *cmd_ptr = calloc(1, sizeof(struct mrsh_command));
+	memcpy(cmd_ptr, &cmd, sizeof(struct mrsh_command));
+	return cmd_ptr;
 }
 
 static struct mrsh_command *command(struct parser_state *state) {
@@ -561,55 +575,82 @@ static struct mrsh_command *command(struct parser_state *state) {
 }
 
 static struct mrsh_pipeline *pipeline(struct parser_state *state) {
-	struct mrsh_pipeline *pl = calloc(1, sizeof(struct mrsh_pipeline));
-	mrsh_array_init(&pl->commands);
-
 	if (accept(state, Bang)) {
 		// TODO
 	}
 
 	struct mrsh_command *cmd = command(state);
-	mrsh_array_add(&pl->commands, cmd);
+	if (cmd == NULL) {
+		return NULL;
+	}
+
+	struct mrsh_array commands = {0};
+	mrsh_array_add(&commands, cmd);
+
 	while (accept_token(state, "|")) {
 		linebreak(state);
 		struct mrsh_command *cmd = command(state);
-		mrsh_array_add(&pl->commands, cmd);
+		mrsh_array_add(&commands, cmd);
 	}
 
-	return pl;
+	return mrsh_pipeline_create(&commands);
 }
 
-static void and_or(struct parser_state *state, struct mrsh_array *pipelines) {
+static struct mrsh_node *and_or(struct parser_state *state) {
 	struct mrsh_pipeline *pl = pipeline(state);
-	mrsh_array_add(pipelines, pl);
-
-	while (accept(state, AND_IF) || accept(state, OR_IF)) {
-		linebreak(state);
-		and_or(state, pipelines);
+	if (pl == NULL) {
+		return NULL;
 	}
+
+	int binop_type = -1;
+	if (accept(state, AND_IF)) {
+		binop_type = MRSH_BINOP_AND;
+	} else if (accept(state, OR_IF)) {
+		binop_type = MRSH_BINOP_OR;
+	}
+
+	if (binop_type == -1) {
+		return &pl->node;
+	}
+
+	linebreak(state);
+	struct mrsh_node *node = and_or(state);
+	assert(node != NULL);
+
+	struct mrsh_binop *binop = mrsh_binop_create(binop_type, &pl->node, node);
+	return &binop->node;
 }
 
-static void list(struct parser_state *state, struct mrsh_array *pipelines) {
-	and_or(state, pipelines);
-
-	while (separator_op(state)) {
-		and_or(state, pipelines);
+static struct mrsh_command_list *list(struct parser_state *state) {
+	struct mrsh_node *node = and_or(state);
+	if (node == NULL) {
+		return NULL;
 	}
-}
 
-static struct mrsh_complete_command *complete_command(
-		struct parser_state *state) {
-	struct mrsh_complete_command *cmd =
-		calloc(1, sizeof(struct mrsh_complete_command));
-	mrsh_array_init(&cmd->pipelines);
+	struct mrsh_command_list *cmd = calloc(1, sizeof(struct mrsh_command_list));
+	cmd->node = node;
 
-	list(state, &cmd->pipelines);
-
-	if (separator_op(state)) {
-		// TODO
+	int sep = separator_op(state);
+	if (sep == '&') {
+		cmd->ampersand = true;
 	}
 
 	return cmd;
+}
+
+static void complete_command(struct parser_state *state,
+		struct mrsh_array *cmds) {
+	struct mrsh_command_list *l = list(state);
+	assert(l != NULL);
+	mrsh_array_add(cmds, l);
+
+	while (true) {
+		l = list(state);
+		if (l == NULL) {
+			break;
+		}
+		mrsh_array_add(cmds, l);
+	}
 }
 
 static void program(struct parser_state *state, struct mrsh_program *prog) {
@@ -618,12 +659,10 @@ static void program(struct parser_state *state, struct mrsh_program *prog) {
 		return;
 	}
 
-	struct mrsh_complete_command *cmd = complete_command(state);
-	mrsh_array_add(&prog->commands, cmd);
+	complete_command(state, &prog->commands);
 
 	while (newline_list(state) && state->sym.name != EOF_TOKEN) {
-		struct mrsh_complete_command *cmd = complete_command(state);
-		mrsh_array_add(&prog->commands, cmd);
+		complete_command(state, &prog->commands);
 	}
 
 	linebreak(state);
@@ -636,7 +675,6 @@ struct mrsh_program *mrsh_parse(FILE *f) {
 	next_sym(&state);
 
 	struct mrsh_program *prog = calloc(1, sizeof(struct mrsh_program));
-	mrsh_array_init(&prog->commands);
 
 	program(&state, prog);
 

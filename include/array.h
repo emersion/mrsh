@@ -9,7 +9,6 @@ struct mrsh_array {
 	size_t len, cap;
 };
 
-void mrsh_array_init(struct mrsh_array *array);
 ssize_t mrsh_array_add(struct mrsh_array *array, void *value);
 void mrsh_array_finish(struct mrsh_array *array);
 

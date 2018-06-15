@@ -462,7 +462,13 @@ static bool cmd_prefix(struct parser_state *state, struct mrsh_command *cmd) {
 		return true;
 	}
 
-	return accept(state, ASSIGNMENT_WORD);
+	if (state->sym.name == ASSIGNMENT_WORD) {
+		mrsh_array_add(&cmd->assignments, strdup(state->sym.str));
+		accept(state, ASSIGNMENT_WORD);
+		return true;
+	}
+
+	return false;
 }
 
 static void transform_rule1(struct parser_state *state) {
@@ -529,6 +535,7 @@ static bool cmd_suffix(struct parser_state *state, struct mrsh_command *cmd) {
 static struct mrsh_command *simple_command(struct parser_state *state) {
 	struct mrsh_command *cmd = calloc(1, sizeof(struct mrsh_command));
 	mrsh_array_init(&cmd->io_redirects);
+	mrsh_array_init(&cmd->assignments);
 	mrsh_array_init(&cmd->arguments);
 
 	do {

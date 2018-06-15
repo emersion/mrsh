@@ -32,9 +32,16 @@ static void print_command(struct mrsh_command *cmd, const char *prefix) {
 
 	for (size_t i = 0; i < cmd->io_redirects.len; ++i) {
 		struct mrsh_io_redirect *redir = cmd->io_redirects.data[i];
-		bool last = i == cmd->io_redirects.len - 1;
+		bool last = i == cmd->io_redirects.len - 1 && cmd->assignments.len == 0;
 		printf("%s%s", prefix, last ? L_LAST : L_VAL);
 		print_io_redirect(redir);
+	}
+
+	for (size_t i = 0; i < cmd->assignments.len; ++i) {
+		char *assign = cmd->assignments.data[i];
+		bool last = i == cmd->assignments.len - 1;
+		printf("%s%s", prefix, last ? L_LAST : L_VAL);
+		printf("assignment %s\n", assign);
 	}
 }
 

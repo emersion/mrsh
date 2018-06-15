@@ -13,6 +13,7 @@ struct mrsh_command {
 	char *name;
 	struct mrsh_array arguments; // char *
 	struct mrsh_array io_redirects; // struct mrsh_io_redirect *
+	struct mrsh_array assignments; // char *
 };
 
 struct mrsh_pipeline {

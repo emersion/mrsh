@@ -60,10 +60,20 @@ static void print_pipeline(struct mrsh_pipeline *pl, const char *prefix) {
 	}
 }
 
+static const char *binop_type_str(enum mrsh_binop_type type) {
+	switch (type) {
+	case MRSH_BINOP_AND:
+		return "&&";
+	case MRSH_BINOP_OR:
+		return "||";
+	}
+	return NULL;
+}
+
 static void print_node(struct mrsh_node *node, const char *prefix);
 
 static void print_binop(struct mrsh_binop *binop, const char *prefix) {
-	printf("binop\n");
+	printf("binop %s\n", binop_type_str(binop->type));
 
 	char sub_prefix[make_sub_prefix(prefix, false, NULL)];
 
@@ -94,7 +104,7 @@ static void print_node(struct mrsh_node *node, const char *prefix) {
 
 static void print_command_list(struct mrsh_command_list *l,
 		const char *prefix) {
-	printf("command_list%s: ", l->ampersand ? " &" : "");
+	printf("command_list%s ", l->ampersand ? " &" : "");
 
 	print_node(l->node, prefix);
 }

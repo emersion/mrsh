@@ -428,14 +428,10 @@ static bool cmd_prefix(struct parser_state *state) {
 	if (!io_redirect(state) && !accept(state, ASSIGNMENT_WORD)) {
 		return false;
 	}
-
-	while (io_redirect(state) || accept(state, ASSIGNMENT_WORD)) {
-		// This space is intentionally left blank
-	}
 	return true;
 }
 
-static void rule1(struct parser_state *state) {
+static void transform_rule1(struct parser_state *state) {
 	// Apply rule 1
 	assert(state->sym.name == TOKEN);
 
@@ -449,7 +445,7 @@ static void rule1(struct parser_state *state) {
 	state->sym.name = WORD;
 }
 
-static bool cmd_word(struct parser_state *state) {
+static void transform_cmd_word(struct parser_state *state) {
 	// Apply rule 7b
 	assert(state->sym.name == TOKEN);
 	// TODO: handle quotes
@@ -458,64 +454,49 @@ static bool cmd_word(struct parser_state *state) {
 	if (pos != NULL && pos != state->sym.str) {
 		// TODO: check that chars before = form a valid name
 		state->sym.name = ASSIGNMENT_WORD;
-		fprintf(stderr, "assignment_word: %s\n", state->sym.str);
-		next_sym(state);
-		return true;
+		return;
 	}
 
-	rule1(state);
-	fprintf(stderr, "cmd_word: %s\n", state->sym.str);
-	next_sym(state);
-	return true;
+	transform_rule1(state);
 }
 
-static char *cmd_name(struct parser_state *state) {
-	char *name;
-
+static void transform_cmd_name(struct parser_state *state) {
 	// Apply rule 7a
 	if (strchr(state->sym.str, '=') == NULL) {
 		// Apply rule 1
-		rule1(state);
-		name = strdup(state->sym.str);
-		next_sym(state);
+		transform_rule1(state);
 	} else {
 		// Apply rule 7b
-		if (!cmd_word(state)) {
-			fprintf(stderr, "expected a cmd_word");
-			exit(EXIT_FAILURE);
-		}
-		name = NULL; // TODO
+		transform_cmd_word(state);
 	}
-
-	return name;
 }
 
 static bool cmd_suffix(struct parser_state *state) {
+	// TODO
+	if (strcmp(state->sym.str, "|") == 0) {
+		return false;
+	}
+
 	// TODO: s/TOKEN/WORD/, with rule 1?
 	if (!io_redirect(state) && !accept(state, TOKEN)) {
 		return false;
 	}
 
-	while (io_redirect(state) || accept(state, TOKEN)) {
-		// This space is intentionally left blank
-	}
 	return true;
 }
 
 static struct mrsh_command *simple_command(struct parser_state *state) {
 	struct mrsh_command *cmd = calloc(1, sizeof(struct mrsh_command));
 
-	if (cmd_prefix(state)) {
-		if (cmd_word(state)) {
-			if (cmd_suffix(state)) {
-				// TODO
-			}
-		}
-	} else {
-		cmd->name = cmd_name(state);
-		if (cmd_suffix(state)) {
-			// TODO
-		}
+	do {
+		transform_cmd_name(state);
+	} while (cmd_prefix(state));
+
+	cmd->name = strdup(state->sym.str);
+	next_sym(state);
+
+	while (cmd_suffix(state)) {
+		// TODO
 	}
 
 	return cmd;

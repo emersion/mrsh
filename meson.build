@@ -13,10 +13,15 @@ project(
 
 add_project_arguments('-Wno-unused-parameter', language: 'c')
 
+mrsh_inc = include_directories('include')
+
 executable(
 	'mrsh',
 	files([
+		'array.c',
 		'main.c',
+		'parser.c',
 	]),
+	include_directories: [mrsh_inc],
 	install: true,
 )

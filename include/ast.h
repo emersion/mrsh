@@ -73,7 +73,7 @@ struct mrsh_command_list {
 };
 
 struct mrsh_program {
-	struct mrsh_array commands; // struct mrsh_command_list *
+	struct mrsh_array body; // struct mrsh_command_list *
 };
 
 struct mrsh_simple_command *mrsh_simple_command_create(char *name,

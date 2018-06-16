@@ -187,5 +187,5 @@ static void print_command_list(struct mrsh_command_list *l,
 void mrsh_program_print(struct mrsh_program *prog) {
 	printf("program\n");
 
-	print_command_list_array(&prog->commands, "");
+	print_command_list_array(&prog->body, "");
 }

@@ -20,10 +20,11 @@ executable(
 	'mrsh',
 	files([
 		'array.c',
-		'ast.c',
 		'ast_print.c',
+		'ast.c',
 		'main.c',
 		'parser.c',
+		'shell.c',
 	]),
 	include_directories: [mrsh_inc],
 	install: true,

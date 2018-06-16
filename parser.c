@@ -792,10 +792,10 @@ static void program(struct parser_state *state, struct mrsh_program *prog) {
 		return;
 	}
 
-	complete_command(state, &prog->commands);
+	complete_command(state, &prog->body);
 
 	while (newline_list(state) && state->sym.name != EOF_TOKEN) {
-		complete_command(state, &prog->commands);
+		complete_command(state, &prog->body);
 	}
 
 	linebreak(state);

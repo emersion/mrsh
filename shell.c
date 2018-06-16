@@ -66,6 +66,30 @@ static int run_pipeline(struct mrsh_state *state, struct mrsh_pipeline *pl) {
 	return exit_status;
 }
 
+static int run_node(struct mrsh_state *state, struct mrsh_node *node);
+
+static int run_binop(struct mrsh_state *state, struct mrsh_binop *binop) {
+	int left_status = run_node(state, binop->left);
+	if (left_status < 0) {
+		return left_status;
+	}
+
+	switch (binop->type) {
+	case MRSH_BINOP_AND:
+		if (left_status != 0) {
+			return left_status;
+		}
+		break;
+	case MRSH_BINOP_OR:
+		if (left_status == 0) {
+			return 0;
+		}
+		break;
+	}
+
+	return run_node(state, binop->right);
+}
+
 static int run_node(struct mrsh_state *state, struct mrsh_node *node) {
 	switch (node->type) {
 	case MRSH_NODE_PIPELINE:;
@@ -73,9 +97,13 @@ static int run_node(struct mrsh_state *state, struct mrsh_node *node) {
 		assert(pl != NULL);
 		return run_pipeline(state, pl);
 		break;
-	default:
-		assert(false); // TODO
+	case MRSH_NODE_BINOP:;
+		struct mrsh_binop *binop = mrsh_node_get_binop(node);
+		assert(binop != NULL);
+		return run_binop(state, binop);
+		break;
 	}
+	assert(false);
 }
 
 int mrsh_run_command_list(struct mrsh_state *state,

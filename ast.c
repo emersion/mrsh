@@ -3,6 +3,59 @@
 
 #include "ast.h"
 
+struct mrsh_simple_command *mrsh_simple_command_create(char *name,
+		struct mrsh_array *arguments, struct mrsh_array *io_redirects,
+		struct mrsh_array *assignments) {
+	struct mrsh_simple_command *cmd =
+		calloc(1, sizeof(struct mrsh_simple_command));
+	cmd->command.type = MRSH_SIMPLE_COMMAND;
+	cmd->name = name;
+	cmd->arguments = *arguments;
+	cmd->io_redirects = *io_redirects;
+	cmd->assignments = *assignments;
+	return cmd;
+}
+
+struct mrsh_brace_group *mrsh_brace_group_create(struct mrsh_array *body) {
+	struct mrsh_brace_group *group = calloc(1, sizeof(struct mrsh_brace_group));
+	group->command.type = MRSH_BRACE_GROUP;
+	group->body = *body;
+	return group;
+}
+
+struct mrsh_if_clause *mrsh_if_clause_create(struct mrsh_array *condition,
+		struct mrsh_array *body, struct mrsh_command *else_part) {
+	struct mrsh_if_clause *group = calloc(1, sizeof(struct mrsh_if_clause));
+	group->command.type = MRSH_IF_CLAUSE;
+	group->condition = *condition;
+	group->body = *body;
+	group->else_part = else_part;
+	return group;
+}
+
+struct mrsh_simple_command *mrsh_command_get_simple_command(
+		struct mrsh_command *cmd) {
+	if (cmd->type != MRSH_SIMPLE_COMMAND) {
+		return NULL;
+	}
+	return (struct mrsh_simple_command *)cmd;
+}
+
+struct mrsh_brace_group *mrsh_command_get_brace_group(
+		struct mrsh_command *cmd) {
+	if (cmd->type != MRSH_BRACE_GROUP) {
+		return NULL;
+	}
+	return (struct mrsh_brace_group *)cmd;
+}
+
+struct mrsh_if_clause *mrsh_command_get_if_clause(struct mrsh_command *cmd) {
+	if (cmd->type != MRSH_IF_CLAUSE) {
+		return NULL;
+	}
+	return (struct mrsh_if_clause *)cmd;
+}
+
 struct mrsh_pipeline *mrsh_pipeline_create(struct mrsh_array *commands,
 		bool bang) {
 	struct mrsh_pipeline *pl = calloc(1, sizeof(struct mrsh_pipeline));

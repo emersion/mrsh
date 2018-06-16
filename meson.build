@@ -12,6 +12,7 @@ project(
 )
 
 add_project_arguments('-Wno-unused-parameter', language: 'c')
+add_project_arguments('-Wno-missing-braces', language: 'c')
 
 mrsh_inc = include_directories('include')
 

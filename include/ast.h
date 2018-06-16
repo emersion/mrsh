@@ -9,11 +9,34 @@ struct mrsh_io_redirect {
 	char *filename;
 };
 
+enum mrsh_command_type {
+	MRSH_SIMPLE_COMMAND,
+	MRSH_BRACE_GROUP,
+	MRSH_IF_CLAUSE,
+};
+
 struct mrsh_command {
+	enum mrsh_command_type type;
+};
+
+struct mrsh_simple_command {
+	struct mrsh_command command;
 	char *name;
 	struct mrsh_array arguments; // char *
 	struct mrsh_array io_redirects; // struct mrsh_io_redirect *
 	struct mrsh_array assignments; // char *
+};
+
+struct mrsh_brace_group {
+	struct mrsh_command command;
+	struct mrsh_array body; // struct mrsh_command_list *
+};
+
+struct mrsh_if_clause {
+	struct mrsh_command command;
+	struct mrsh_array condition; // struct mrsh_command_list *
+	struct mrsh_array body; // struct mrsh_command_list *
+	struct mrsh_command *else_part; // can be NULL
 };
 
 enum mrsh_node_type {
@@ -50,6 +73,17 @@ struct mrsh_command_list {
 struct mrsh_program {
 	struct mrsh_array commands; // struct mrsh_command_list *
 };
+
+struct mrsh_simple_command *mrsh_simple_command_create(char *name,
+	struct mrsh_array *arguments, struct mrsh_array *io_redirects,
+	struct mrsh_array *assignments);
+struct mrsh_brace_group *mrsh_brace_group_create(struct mrsh_array *body);
+struct mrsh_if_clause *mrsh_if_clause_create(struct mrsh_array *condition,
+	struct mrsh_array *body, struct mrsh_command *else_part);
+struct mrsh_simple_command *mrsh_command_get_simple_command(
+	struct mrsh_command *cmd);
+struct mrsh_brace_group *mrsh_command_get_brace_group(struct mrsh_command *cmd);
+struct mrsh_if_clause *mrsh_command_get_if_clause(struct mrsh_command *cmd);
 
 struct mrsh_pipeline *mrsh_pipeline_create(struct mrsh_array *commands,
 	bool bang);

@@ -465,7 +465,7 @@ static struct mrsh_io_redirect *io_redirect(struct parser_state *state) {
 	return NULL;
 }
 
-static bool cmd_prefix(struct parser_state *state, struct mrsh_command *cmd) {
+static bool cmd_prefix(struct parser_state *state, struct mrsh_simple_command *cmd) {
 	struct mrsh_io_redirect *redir = io_redirect(state);
 	if (redir != NULL) {
 		mrsh_array_add(&cmd->io_redirects, redir);
@@ -524,7 +524,7 @@ static void apply_rule7a(struct parser_state *state) {
 	}
 }
 
-static bool cmd_suffix(struct parser_state *state, struct mrsh_command *cmd) {
+static bool cmd_suffix(struct parser_state *state, struct mrsh_simple_command *cmd) {
 	// TODO
 	if (strcmp(state->sym.str, "|") == 0 ||
 			strcmp(state->sym.str, "&") == 0 ||
@@ -548,8 +548,8 @@ static bool cmd_suffix(struct parser_state *state, struct mrsh_command *cmd) {
 	return false;
 }
 
-static struct mrsh_command *simple_command(struct parser_state *state) {
-	struct mrsh_command cmd = {0};
+static struct mrsh_simple_command *simple_command(struct parser_state *state) {
+	struct mrsh_simple_command cmd = {0};
 
 	apply_rule7a(state);
 
@@ -566,17 +566,146 @@ static struct mrsh_command *simple_command(struct parser_state *state) {
 		// This space is intentionally left blank
 	}
 
-	struct mrsh_command *cmd_ptr = calloc(1, sizeof(struct mrsh_command));
-	memcpy(cmd_ptr, &cmd, sizeof(struct mrsh_command));
-	return cmd_ptr;
+	return mrsh_simple_command_create(cmd.name, &cmd.arguments,
+		&cmd.io_redirects, &cmd.assignments);
+}
+
+static int separator(struct parser_state *state) {
+	int sep = separator_op(state);
+	if (sep != -1) {
+		linebreak(state);
+		return sep;
+	}
+
+	if (newline_list(state)) {
+		return '\n';
+	}
+
+	return -1;
+}
+
+static struct mrsh_node *and_or(struct parser_state *state);
+
+static struct mrsh_command_list *term(struct parser_state *state) {
+	struct mrsh_node *node = and_or(state);
+	if (node == NULL) {
+		return NULL;
+	}
+
+	struct mrsh_command_list *cmd = calloc(1, sizeof(struct mrsh_command_list));
+	cmd->node = node;
+
+	int sep = separator(state);
+	if (sep == '&') {
+		cmd->ampersand = true;
+	}
+
+	return cmd;
+}
+
+static void compound_list(struct parser_state *state, struct mrsh_array *cmds) {
+	linebreak(state);
+
+	struct mrsh_command_list *l = term(state);
+	assert(l != NULL);
+	mrsh_array_add(cmds, l);
+
+	while (true) {
+		l = term(state);
+		if (l == NULL) {
+			break;
+		}
+		mrsh_array_add(cmds, l);
+	}
+}
+
+static struct mrsh_brace_group *brace_group(struct parser_state *state) {
+	apply_rule1(state);
+	if (!accept(state, Lbrace)) {
+		return NULL;
+	}
+
+	struct mrsh_array body = {0};
+	compound_list(state, &body);
+
+	apply_rule1(state);
+	expect(state, Rbrace);
+	return mrsh_brace_group_create(&body);
+}
+
+static struct mrsh_command *else_part(struct parser_state *state) {
+	apply_rule1(state);
+
+	if (accept(state, Elif)) {
+		struct mrsh_array cond = {0};
+		compound_list(state, &cond);
+
+		apply_rule1(state);
+		expect(state, Then);
+
+		struct mrsh_array body = {0};
+		compound_list(state, &body);
+
+		struct mrsh_command *ep = else_part(state);
+
+		struct mrsh_if_clause *ic = mrsh_if_clause_create(&cond, &body, ep);
+		return &ic->command;
+	}
+
+	if (accept(state, Else)) {
+		struct mrsh_array body = {0};
+		compound_list(state, &body);
+
+		struct mrsh_brace_group *bg = mrsh_brace_group_create(&body);
+		return &bg->command;
+	}
+
+	return NULL;
+}
+
+static struct mrsh_if_clause *if_clause(struct parser_state *state) {
+	apply_rule1(state);
+	if (!accept(state, If)) {
+		return NULL;
+	}
+
+	struct mrsh_array cond = {0};
+	compound_list(state, &cond);
+
+	apply_rule1(state);
+	expect(state, Then);
+
+	struct mrsh_array body = {0};
+	compound_list(state, &body);
+
+	struct mrsh_command *ep = else_part(state);
+
+	apply_rule1(state);
+	expect(state, Fi);
+
+	return mrsh_if_clause_create(&cond, &body, ep);
 }
 
 static struct mrsh_command *command(struct parser_state *state) {
-	// TODO: compound_command
+	struct mrsh_simple_command *sc = simple_command(state);
+	if (sc) {
+		return &sc->command;
+	}
+
+	struct mrsh_brace_group *bg = brace_group(state);
+	if (bg) {
+		return &bg->command;
+	}
+
+	struct mrsh_if_clause *ic = if_clause(state);
+	if (ic) {
+		return &ic->command;
+	}
+
+	// TODO: subshell for_clause case_clause while_clause until_clause
 	// TODO: compound_command redirect_list
 	// TODO: function_definition
-
-	return simple_command(state);
+	return NULL;
 }
 
 static struct mrsh_pipeline *pipeline(struct parser_state *state) {

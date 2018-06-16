@@ -352,8 +352,8 @@ static void next_sym(struct parser_state *state) {
 		return;
 	}
 
-	fprintf(stderr, "symbol: %s \"%s\"\n",
-		symbol_str(state->sym.name), state->sym.str);
+	//fprintf(stderr, "symbol: %s \"%s\"\n",
+	//	symbol_str(state->sym.name), state->sym.str);
 }
 
 static bool accept(struct parser_state *state, enum symbol_name sym) {
@@ -786,20 +786,27 @@ static void complete_command(struct parser_state *state,
 	}
 }
 
-static void program(struct parser_state *state, struct mrsh_program *prog) {
+static struct mrsh_program *program(struct parser_state *state) {
+	struct mrsh_program *prog = calloc(1, sizeof(struct mrsh_program));
+
 	linebreak(state);
 	if (accept(state, EOF_TOKEN)) {
-		return;
+		return prog;
 	}
 
 	complete_command(state, &prog->body);
 
-	while (newline_list(state) && state->sym.name != EOF_TOKEN) {
+	while (newline_list(state)) {
+		if (accept(state, EOF_TOKEN)) {
+			return prog;
+		}
+
 		complete_command(state, &prog->body);
 	}
 
 	linebreak(state);
 	expect(state, EOF_TOKEN);
+	return prog;
 }
 
 struct mrsh_program *mrsh_parse(FILE *f) {
@@ -807,9 +814,5 @@ struct mrsh_program *mrsh_parse(FILE *f) {
 	parser_init(&state, f);
 	next_sym(&state);
 
-	struct mrsh_program *prog = calloc(1, sizeof(struct mrsh_program));
-
-	program(&state, prog);
-
-	return prog;
+	return program(&state);
 }

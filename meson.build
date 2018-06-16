@@ -22,6 +22,7 @@ executable(
 		'array.c',
 		'ast_print.c',
 		'ast.c',
+		'builtin.c',
 		'main.c',
 		'parser.c',
 		'shell.c',

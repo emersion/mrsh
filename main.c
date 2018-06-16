@@ -5,7 +5,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 
-const char usage[] = "usage: mrsh [-n]";
+static const char usage[] = "usage: mrsh [-n]\n";
 
 int main(int argc, char *argv[]) {
 	bool noexec = false;
@@ -29,13 +29,18 @@ int main(int argc, char *argv[]) {
 	}
 
 	struct mrsh_parser *parser = mrsh_parser_create(stdin);
-	struct mrsh_state state = {};
+	struct mrsh_state state = {0};
+	mrsh_state_init(&state);
 
-	struct mrsh_command_list *list;
-	while ((list = mrsh_parse_command_list(parser)) != NULL) {
+	while (state.exit == -1) {
+		struct mrsh_command_list *list = mrsh_parse_command_list(parser);
+		if (list == NULL) {
+			state.exit = EXIT_SUCCESS;
+			break;
+		}
 		mrsh_run_command_list(&state, list);
 	}
 
 	mrsh_parser_destroy(parser);
-	return EXIT_SUCCESS;
+	return state.exit;
 }

@@ -46,7 +46,7 @@ static void print_command(struct mrsh_command *cmd, const char *prefix) {
 }
 
 static void print_pipeline(struct mrsh_pipeline *pl, const char *prefix) {
-	printf("pipeline\n");
+	printf("pipeline%s\n", pl->bang ? " !" : "");
 
 	for (size_t i = 0; i < pl->commands.len; ++i) {
 		struct mrsh_command *cmd = pl->commands.data[i];
@@ -104,7 +104,7 @@ static void print_node(struct mrsh_node *node, const char *prefix) {
 
 static void print_command_list(struct mrsh_command_list *l,
 		const char *prefix) {
-	printf("command_list%s ", l->ampersand ? " &" : "");
+	printf("command_list%s ─ ", l->ampersand ? " &" : "");
 
 	print_node(l->node, prefix);
 }

@@ -481,9 +481,10 @@ static bool cmd_prefix(struct parser_state *state, struct mrsh_command *cmd) {
 	return false;
 }
 
-static void transform_rule1(struct parser_state *state) {
-	// Apply rule 1
-	assert(state->sym.name == TOKEN);
+static void apply_rule1(struct parser_state *state) {
+	if (state->sym.name != TOKEN) {
+		return;
+	}
 
 	for (size_t i = 0; i < sizeof(keywords)/sizeof(keywords[0]); ++i) {
 		if (strcmp(state->sym.str, keywords[i].str) == 0) {
@@ -495,11 +496,12 @@ static void transform_rule1(struct parser_state *state) {
 	state->sym.name = WORD;
 }
 
-static void transform_cmd_word(struct parser_state *state) {
-	// Apply rule 7b
-	assert(state->sym.name == TOKEN);
-	// TODO: handle quotes
+static void apply_rule7b(struct parser_state *state) {
+	if (state->sym.name != TOKEN && state->sym.name != WORD) {
+		return;
+	}
 
+	// TODO: handle quotes
 	const char *pos = strchr(state->sym.str, '=');
 	if (pos != NULL && pos != state->sym.str) {
 		// TODO: check that chars before = form a valid name
@@ -507,17 +509,18 @@ static void transform_cmd_word(struct parser_state *state) {
 		return;
 	}
 
-	transform_rule1(state);
+	apply_rule1(state);
 }
 
-static void transform_cmd_name(struct parser_state *state) {
-	// Apply rule 7a
+static void apply_rule7a(struct parser_state *state) {
+	if (state->sym.name != TOKEN && state->sym.name != WORD) {
+		return;
+	}
+
 	if (strchr(state->sym.str, '=') == NULL) {
-		// Apply rule 1
-		transform_rule1(state);
+		apply_rule1(state);
 	} else {
-		// Apply rule 7b
-		transform_cmd_word(state);
+		apply_rule7b(state);
 	}
 }
 
@@ -548,12 +551,11 @@ static bool cmd_suffix(struct parser_state *state, struct mrsh_command *cmd) {
 static struct mrsh_command *simple_command(struct parser_state *state) {
 	struct mrsh_command cmd = {0};
 
-	do {
-		if (state->sym.name != TOKEN) {
-			return NULL;
-		}
-		transform_cmd_name(state);
-	} while (cmd_prefix(state, &cmd));
+	apply_rule7a(state);
+
+	while (cmd_prefix(state, &cmd)) {
+		apply_rule7b(state);
+	}
 
 	cmd.name = take(state, WORD);
 	if (cmd.name == NULL) {
@@ -578,9 +580,8 @@ static struct mrsh_command *command(struct parser_state *state) {
 }
 
 static struct mrsh_pipeline *pipeline(struct parser_state *state) {
-	if (accept(state, Bang)) {
-		// TODO
-	}
+	apply_rule1(state);
+	bool bang = accept(state, Bang);
 
 	struct mrsh_command *cmd = command(state);
 	if (cmd == NULL) {
@@ -596,7 +597,7 @@ static struct mrsh_pipeline *pipeline(struct parser_state *state) {
 		mrsh_array_add(&commands, cmd);
 	}
 
-	return mrsh_pipeline_create(&commands);
+	return mrsh_pipeline_create(&commands, bang);
 }
 
 static struct mrsh_node *and_or(struct parser_state *state) {

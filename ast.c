@@ -3,10 +3,12 @@
 
 #include "ast.h"
 
-struct mrsh_pipeline *mrsh_pipeline_create(struct mrsh_array *commands) {
+struct mrsh_pipeline *mrsh_pipeline_create(struct mrsh_array *commands,
+		bool bang) {
 	struct mrsh_pipeline *pl = calloc(1, sizeof(struct mrsh_pipeline));
 	pl->node.type = MRSH_NODE_PIPELINE;
 	pl->commands = *commands;
+	pl->bang = bang;
 	return pl;
 }
 

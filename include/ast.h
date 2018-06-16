@@ -28,6 +28,7 @@ struct mrsh_node {
 struct mrsh_pipeline {
 	struct mrsh_node node;
 	struct mrsh_array commands; // struct mrsh_command *
+	bool bang;
 };
 
 enum mrsh_binop_type {
@@ -50,7 +51,8 @@ struct mrsh_program {
 	struct mrsh_array commands; // struct mrsh_command_list *
 };
 
-struct mrsh_pipeline *mrsh_pipeline_create(struct mrsh_array *commands);
+struct mrsh_pipeline *mrsh_pipeline_create(struct mrsh_array *commands,
+	bool bang);
 struct mrsh_binop *mrsh_binop_create(enum mrsh_binop_type type,
 	struct mrsh_node *left, struct mrsh_node *right);
 struct mrsh_pipeline *mrsh_node_get_pipeline(struct mrsh_node *node);

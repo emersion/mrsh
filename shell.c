@@ -38,7 +38,7 @@ static int run_simple_command(struct mrsh_state *state,
 		if (waitpid(pid, &status, 0) != pid) {
 			return -1;
 		}
-		return status;
+		return WEXITSTATUS(status);
 	}
 }
 

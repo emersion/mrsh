@@ -1,7 +1,6 @@
 #include <assert.h>
+#include <mrsh/array.h>
 #include <stdlib.h>
-
-#include "array.h"
 
 #define INITIAL_SIZE 32
 

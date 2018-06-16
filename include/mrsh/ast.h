@@ -1,9 +1,8 @@
 #ifndef _MRSH_AST_H
 #define _MRSH_AST_H
 
+#include <mrsh/array.h>
 #include <stdbool.h>
-
-#include "array.h"
 
 struct mrsh_io_redirect {
 	int io_number;

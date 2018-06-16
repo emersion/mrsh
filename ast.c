@@ -1,7 +1,6 @@
+#include <mrsh/ast.h>
 #include <stdbool.h>
 #include <stdlib.h>
-
-#include "ast.h"
 
 struct mrsh_simple_command *mrsh_simple_command_create(char *name,
 		struct mrsh_array *arguments, struct mrsh_array *io_redirects,

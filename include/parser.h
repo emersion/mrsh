@@ -1,7 +1,8 @@
-#ifndef _MRSH_PARSER_H
-#define _MRSH_PARSER_H
+#ifndef _PARSER_H
+#define _PARSER_H
 
 #include <stdio.h>
+#include <mrsh/parser.h>
 
 enum symbol_name {
 	WORD,
@@ -97,7 +98,7 @@ static const struct symbol keywords[] = {
 	{ In, "in" },
 };
 
-struct parser_state {
+struct mrsh_parser {
 	FILE *f;
 
 	char *peek;
@@ -106,7 +107,5 @@ struct parser_state {
 	struct symbol sym;
 	size_t sym_str_len, sym_str_cap;
 };
-
-struct mrsh_program *mrsh_parse(FILE *f);
 
 #endif

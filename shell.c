@@ -1,12 +1,11 @@
 #include <assert.h>
 #include <errno.h>
+#include <mrsh/shell.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/wait.h>
 #include <unistd.h>
-
-#include "shell.h"
 
 static int run_simple_command(struct mrsh_simple_command *sc) {
 	char *argv[1 + sc->arguments.len + 1];
@@ -61,9 +60,14 @@ static void run_node(struct mrsh_node *node) {
 	}
 }
 
+void mrsh_run_command_list(struct mrsh_state *state,
+		struct mrsh_command_list *list) {
+	run_node(list->node);
+}
+
 void mrsh_run_program(struct mrsh_state *state, struct mrsh_program *prog) {
 	for (size_t i = 0; i < prog->body.len; ++i) {
-		struct mrsh_command_list *l = prog->body.data[i];
-		run_node(l->node);
+		struct mrsh_command_list *list = prog->body.data[i];
+		run_node(list->node);
 	}
 }

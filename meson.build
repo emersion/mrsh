@@ -21,6 +21,7 @@ executable(
 	files([
 		'array.c',
 		'ast.c',
+		'ast_print.c',
 		'main.c',
 		'parser.c',
 	]),

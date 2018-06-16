@@ -1,6 +1,8 @@
 #ifndef _MRSH_AST_H
 #define _MRSH_AST_H
 
+#include <stdbool.h>
+
 #include "array.h"
 
 struct mrsh_io_redirect {
@@ -91,5 +93,7 @@ struct mrsh_binop *mrsh_binop_create(enum mrsh_binop_type type,
 	struct mrsh_node *left, struct mrsh_node *right);
 struct mrsh_pipeline *mrsh_node_get_pipeline(struct mrsh_node *node);
 struct mrsh_binop *mrsh_node_get_binop(struct mrsh_node *node);
+
+void mrsh_program_print(struct mrsh_program *prog);
 
 #endif

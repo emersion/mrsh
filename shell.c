@@ -53,33 +53,41 @@ static int run_command(struct mrsh_state *state, struct mrsh_command *cmd) {
 	}
 }
 
-static void run_pipeline(struct mrsh_state *state, struct mrsh_pipeline *pl) {
+static int run_pipeline(struct mrsh_state *state, struct mrsh_pipeline *pl) {
+	int exit_status = 0;
 	for (size_t i = 0; i < pl->commands.len; ++i) {
 		struct mrsh_command *cmd = pl->commands.data[i];
-		run_command(state, cmd);
+		exit_status = run_command(state, cmd);
 	}
+
+	if (pl->bang) {
+		exit_status = !exit_status;
+	}
+	return exit_status;
 }
 
-static void run_node(struct mrsh_state *state, struct mrsh_node *node) {
+static int run_node(struct mrsh_state *state, struct mrsh_node *node) {
 	switch (node->type) {
 	case MRSH_NODE_PIPELINE:;
 		struct mrsh_pipeline *pl = mrsh_node_get_pipeline(node);
 		assert(pl != NULL);
-		run_pipeline(state, pl);
+		return run_pipeline(state, pl);
 		break;
 	default:
 		assert(false); // TODO
 	}
 }
 
-void mrsh_run_command_list(struct mrsh_state *state,
+int mrsh_run_command_list(struct mrsh_state *state,
 		struct mrsh_command_list *list) {
-	run_node(state, list->node);
+	return run_node(state, list->node);
 }
 
-void mrsh_run_program(struct mrsh_state *state, struct mrsh_program *prog) {
+int mrsh_run_program(struct mrsh_state *state, struct mrsh_program *prog) {
+	int exit_status = 0;
 	for (size_t i = 0; i < prog->body.len; ++i) {
 		struct mrsh_command_list *list = prog->body.data[i];
-		run_node(state, list->node);
+		exit_status = run_node(state, list->node);
 	}
+	return exit_status;
 }

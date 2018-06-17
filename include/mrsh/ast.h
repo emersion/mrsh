@@ -10,6 +10,10 @@ struct mrsh_io_redirect {
 	char *filename;
 };
 
+struct mrsh_assignment {
+	char *name, *value;
+};
+
 enum mrsh_command_type {
 	MRSH_SIMPLE_COMMAND,
 	MRSH_BRACE_GROUP,
@@ -25,7 +29,7 @@ struct mrsh_simple_command {
 	char *name;
 	struct mrsh_array arguments; // char *
 	struct mrsh_array io_redirects; // struct mrsh_io_redirect *
-	struct mrsh_array assignments; // char *
+	struct mrsh_array assignments; // struct mrsh_assignment *
 };
 
 struct mrsh_brace_group {
@@ -94,5 +98,6 @@ struct mrsh_pipeline *mrsh_node_get_pipeline(struct mrsh_node *node);
 struct mrsh_binop *mrsh_node_get_binop(struct mrsh_node *node);
 
 void mrsh_program_print(struct mrsh_program *prog);
+void mrsh_command_list_print(struct mrsh_command_list *list);
 
 #endif

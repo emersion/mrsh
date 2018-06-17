@@ -26,6 +26,10 @@ static void print_io_redirect(struct mrsh_io_redirect *redir) {
 	printf("io_redirect %d %s %s\n", redir->io_number, redir->op, redir->filename);
 }
 
+static void print_assignment(struct mrsh_assignment *assign) {
+	printf("assignment %s=%s\n", assign->name, assign->value);
+}
+
 static void print_simple_command(struct mrsh_simple_command *cmd,
 		const char *prefix) {
 	printf("command %s", cmd->name);
@@ -43,10 +47,10 @@ static void print_simple_command(struct mrsh_simple_command *cmd,
 	}
 
 	for (size_t i = 0; i < cmd->assignments.len; ++i) {
-		char *assign = cmd->assignments.data[i];
+		struct mrsh_assignment *assign = cmd->assignments.data[i];
 		bool last = i == cmd->assignments.len - 1;
 		print_prefix(prefix, last);
-		printf("assignment %s\n", assign);
+		print_assignment(assign);
 	}
 }
 
@@ -176,11 +180,15 @@ static void print_node(struct mrsh_node *node, const char *prefix) {
 	}
 }
 
-static void print_command_list(struct mrsh_command_list *l,
+static void print_command_list(struct mrsh_command_list *list,
 		const char *prefix) {
-	printf("command_list%s ─ ", l->ampersand ? " &" : "");
+	printf("command_list%s ─ ", list->ampersand ? " &" : "");
 
-	print_node(l->node, prefix);
+	print_node(list->node, prefix);
+}
+
+void mrsh_command_list_print(struct mrsh_command_list *list) {
+	print_command_list(list, "");
 }
 
 void mrsh_program_print(struct mrsh_program *prog) {

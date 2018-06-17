@@ -49,6 +49,7 @@ static int run_command_list_array(struct mrsh_state *state,
 	int exit_status = 0;
 	for (size_t i = 0; i < array->len; ++i) {
 		struct mrsh_command_list *list = array->data[i];
+		// TODO: handle list->ampersand
 		exit_status = run_node(state, list->node);
 	}
 	return exit_status;

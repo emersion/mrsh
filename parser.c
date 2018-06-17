@@ -479,16 +479,36 @@ static struct mrsh_io_redirect *io_redirect(struct mrsh_parser *state) {
 	return NULL;
 }
 
-static bool cmd_prefix(struct mrsh_parser *state, struct mrsh_simple_command *cmd) {
+static struct mrsh_assignment *assignment_word(struct mrsh_parser *state) {
+	if (state->sym.name != TOKEN && state->sym.name != WORD) {
+		return NULL;
+	}
+
+	// TODO: check that the equal sign is unquoted
+	const char *pos = strchr(state->sym.str, '=');
+	if (pos == NULL || pos == state->sym.str) {
+		return NULL;
+	}
+	// TODO: check that chars before = form a valid name
+
+	struct mrsh_assignment *assign = calloc(1, sizeof(struct mrsh_assignment));
+	assign->name = strndup(state->sym.str, pos - state->sym.str);
+	assign->value = strdup(pos + 1);
+	next_sym(state);
+	return assign;
+}
+
+static bool cmd_prefix(struct mrsh_parser *state,
+		struct mrsh_simple_command *cmd) {
 	struct mrsh_io_redirect *redir = io_redirect(state);
 	if (redir != NULL) {
 		mrsh_array_add(&cmd->io_redirects, redir);
 		return true;
 	}
 
-	char *assign = take(state, ASSIGNMENT_WORD);
+	struct mrsh_assignment *assign = assignment_word(state);
 	if (assign != NULL) {
-		mrsh_array_add(&cmd->assignments, strdup(state->sym.str));
+		mrsh_array_add(&cmd->assignments, assign);
 		return true;
 	}
 
@@ -510,34 +530,6 @@ static void apply_rule1(struct mrsh_parser *state) {
 	state->sym.name = WORD;
 }
 
-static void apply_rule7b(struct mrsh_parser *state) {
-	if (state->sym.name != TOKEN && state->sym.name != WORD) {
-		return;
-	}
-
-	// TODO: handle quotes
-	const char *pos = strchr(state->sym.str, '=');
-	if (pos != NULL && pos != state->sym.str) {
-		// TODO: check that chars before = form a valid name
-		state->sym.name = ASSIGNMENT_WORD;
-		return;
-	}
-
-	apply_rule1(state);
-}
-
-static void apply_rule7a(struct mrsh_parser *state) {
-	if (state->sym.name != TOKEN && state->sym.name != WORD) {
-		return;
-	}
-
-	if (strchr(state->sym.str, '=') == NULL) {
-		apply_rule1(state);
-	} else {
-		apply_rule7b(state);
-	}
-}
-
 static bool cmd_suffix(struct mrsh_parser *state, struct mrsh_simple_command *cmd) {
 	// TODO
 	if (strcmp(state->sym.str, "|") == 0 ||
@@ -552,7 +544,6 @@ static bool cmd_suffix(struct mrsh_parser *state, struct mrsh_simple_command *cm
 		return true;
 	}
 
-	// TODO: s/TOKEN/WORD/, with rule 1?
 	char *arg = take(state, TOKEN);
 	if (arg != NULL) {
 		mrsh_array_add(&cmd->arguments, arg);
@@ -565,12 +556,11 @@ static bool cmd_suffix(struct mrsh_parser *state, struct mrsh_simple_command *cm
 static struct mrsh_simple_command *simple_command(struct mrsh_parser *state) {
 	struct mrsh_simple_command cmd = {0};
 
-	apply_rule7a(state);
-
 	while (cmd_prefix(state, &cmd)) {
-		apply_rule7b(state);
+		// This space is intentionally left blank
 	}
 
+	apply_rule1(state);
 	cmd.name = take(state, WORD);
 	if (cmd.name == NULL) {
 		return NULL;

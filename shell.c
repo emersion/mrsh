@@ -1,3 +1,4 @@
+#define _POSIX_C_SOURCE 200112L
 #include <assert.h>
 #include <errno.h>
 #include <mrsh/shell.h>
@@ -29,8 +30,15 @@ static int run_simple_command(struct mrsh_state *state,
 	if (pid < 0) {
 		return -1;
 	} else if (pid == 0) {
+		for (size_t i = 0; i < sc->assignments.len; ++i) {
+			struct mrsh_assignment *assign = sc->assignments.data[i];
+			setenv(assign->name, assign->value, true);
+		}
+
 		errno = 0;
 		execvp(sc->name, argv);
+
+		// Something went wrong
 		fprintf(stderr, "%s: %s\n", sc->name, strerror(errno));
 		exit(127);
 	} else {

@@ -1,8 +1,9 @@
 #define _POSIX_C_SOURCE 200112L
 #include <assert.h>
 #include <errno.h>
-#include <mrsh/shell.h>
+#include <fcntl.h>
 #include <mrsh/builtin.h>
+#include <mrsh/shell.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -21,6 +22,7 @@ static int run_simple_command(struct mrsh_state *state,
 	memcpy(argv + 1, sc->arguments.data, sc->arguments.len * sizeof(void *));
 	argv[argc] = NULL;
 
+	// TODO: redirections for builtins
 	int ret = mrsh_builtin(state, argc, argv);
 	if (ret != -1) {
 		return ret;
@@ -33,6 +35,48 @@ static int run_simple_command(struct mrsh_state *state,
 		for (size_t i = 0; i < sc->assignments.len; ++i) {
 			struct mrsh_assignment *assign = sc->assignments.data[i];
 			setenv(assign->name, assign->value, true);
+		}
+
+		for (size_t i = 0; i < sc->io_redirects.len; ++i) {
+			struct mrsh_io_redirect *redir = sc->io_redirects.data[i];
+
+			// TODO: filename expansions
+			int fd, default_redir_fd;
+			errno = 0;
+			if (strcmp(redir->op, "<") == 0) {
+				fd = open(redir->filename, O_RDONLY);
+				default_redir_fd = STDIN_FILENO;
+			} else if (strcmp(redir->op, ">") == 0 ||
+					strcmp(redir->op, ">|") == 0) {
+				fd = open(redir->filename, O_WRONLY | O_CREAT | O_TRUNC, 0644);
+				default_redir_fd = STDOUT_FILENO;
+			} else if (strcmp(redir->op, ">>") == 0) {
+				fd = open(redir->filename, O_WRONLY | O_CREAT | O_APPEND, 0644);
+				default_redir_fd = STDOUT_FILENO;
+			} else if (strcmp(redir->op, "<>") == 0) {
+				fd = open(redir->filename, O_RDWR | O_CREAT, 0644);
+				default_redir_fd = STDIN_FILENO;
+			} else {
+				assert(false); // TODO
+			}
+			if (fd < 0) {
+				fprintf(stderr, "cannot open %s: %s\n", redir->filename,
+					strerror(errno));
+				exit(EXIT_FAILURE);
+			}
+
+			int redir_fd = redir->io_number;
+			if (redir_fd < 0) {
+				redir_fd = default_redir_fd;
+			}
+
+			errno = 0;
+			int ret = dup2(fd, redir_fd);
+			if (ret < 0) {
+				fprintf(stderr, "cannot duplicate file descriptor: %s\n",
+					strerror(errno));
+				exit(EXIT_FAILURE);
+			}
 		}
 
 		errno = 0;

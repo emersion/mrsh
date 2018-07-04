@@ -451,23 +451,38 @@ static struct mrsh_io_redirect *io_redirect(struct mrsh_parser *state) {
 }
 
 static struct mrsh_assignment *assignment_word(struct mrsh_parser *state) {
-	/*if (state->sym.name != TOKEN && state->sym.name != WORD) {
+	if (state->sym != TOKEN) {
 		return NULL;
 	}
 
-	// TODO: check that the equal sign is unquoted
-	const char *pos = strchr(state->sym.str, '=');
-	if (pos == NULL || pos == state->sym.str) {
-		return NULL;
+	// In the shell command language, a word consisting solely of underscores,
+	// digits, and alphabetics from the portable character set. The first
+	// character of a name is not a digit.
+	size_t i = 0;
+	while (true) {
+		parser_peek(state, NULL, i + 1);
+
+		char c = state->peek[i];
+		if (i > 0 && c == '=') {
+			break;
+		} else if (c != '_' && !isalnum(c)) {
+			return NULL;
+		} else if (i == 0 && isdigit(c)) {
+			return NULL;
+		}
+
+		++i;
 	}
-	// TODO: check that chars before = form a valid name
+
+	char *name = strndup(state->peek, i);
+	parser_read(state, NULL, i + 1);
+	char *value = word(state);
+	next_symbol(state);
 
 	struct mrsh_assignment *assign = calloc(1, sizeof(struct mrsh_assignment));
-	assign->name = strndup(state->sym.str, pos - state->sym.str);
-	assign->value = strdup(pos + 1);
-	next_sym(state);
-	return assign;*/
-	return NULL;
+	assign->name = name;
+	assign->value = value;
+	return assign;
 }
 
 static bool cmd_prefix(struct mrsh_parser *state,

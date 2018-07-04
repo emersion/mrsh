@@ -317,18 +317,21 @@ static bool newline(struct mrsh_parser *state) {
 	return true;
 }
 
+static const char *operator_str(enum symbol_name sym) {
+	for (size_t i = 0; i < sizeof(operators)/sizeof(operators[0]); ++i) {
+		if (operators[i].name == sym) {
+			return operators[i].str;
+		}
+	}
+	return NULL;
+}
+
 static bool operator(struct mrsh_parser *state, enum symbol_name sym) {
 	if (state->sym != sym) {
 		return false;
 	}
 
-	const char *str = NULL;
-	for (size_t i = 0; i < sizeof(operators)/sizeof(operators[0]); ++i) {
-		if (operators[i].name == sym) {
-			str = operators[i].str;
-			break;
-		}
-	}
+	const char *str = operator_str(sym);
 	assert(str != NULL);
 
 	char buf[OPERATOR_MAX_LEN];
@@ -382,45 +385,56 @@ static int separator_op(struct mrsh_parser *state) {
 	return -1;
 }
 
-/*static bool io_here(struct mrsh_parser *state) {
+static bool io_here(struct mrsh_parser *state) {
 	return false; // TODO
 }
 
 static char *filename(struct mrsh_parser *state) {
 	// TODO: Apply rule 2
-	return take_token(state);
+	return word(state);
 }
 
 static bool io_file(struct mrsh_parser *state,
 		struct mrsh_io_redirect *redir) {
-	char *str = strdup(state->sym.str);
-	enum symbol_name name = state->sym.name;
-	if (token(state, "<") || token(state, ">")) {
-		redir->op = str;
-	} else if (accept(state, LESSAND)
-			|| accept(state, GREATAND)
-			|| accept(state, DGREAT)
-			|| accept(state, CLOBBER)
-			|| accept(state, LESSGREAT)) {
-		redir->op = strdup(symbol_str(name));
-		free(str);
+	enum symbol_name sym = state->sym;
+	if (token(state, "<")) {
+		redir->op = strdup("<");
+	} else if (token(state, ">")) {
+		redir->op = strdup(">");
+	} else if (operator(state, LESSAND)
+			|| operator(state, GREATAND)
+			|| operator(state, DGREAT)
+			|| operator(state, CLOBBER)
+			|| operator(state, LESSGREAT)) {
+		redir->op = strdup(operator_str(sym));
 	} else {
 		return false;
 	}
 
 	redir->filename = filename(state);
-	return (redir->filename != NULL);
-}*/
+	return redir->filename != NULL;
+}
+
+static int io_number(struct mrsh_parser *state) {
+	char c = parser_peek_char(state);
+	if (!isdigit(c)) {
+		return -1;
+	}
+
+	char buf[2];
+	parser_peek(state, buf, sizeof(buf));
+	if (buf[1] != '<' && buf[1] != '>') {
+		return -1;
+	}
+
+	parser_read_char(state);
+	return strtol(buf, NULL, 10);
+}
 
 static struct mrsh_io_redirect *io_redirect(struct mrsh_parser *state) {
-	/*struct mrsh_io_redirect redir = {
-		.io_number = -1,
-	};
+	struct mrsh_io_redirect redir = {0};
 
-	if (state->sym.name == IO_NUMBER) {
-		redir.io_number = strtol(state->sym.str, NULL, 10);
-		accept(state, IO_NUMBER);
-	}
+	redir.io_number = io_number(state);
 
 	if (io_file(state, &redir)) {
 		struct mrsh_io_redirect *redir_ptr =
@@ -433,7 +447,6 @@ static struct mrsh_io_redirect *io_redirect(struct mrsh_parser *state) {
 		return NULL; // TODO
 	}
 
-	return NULL;*/
 	return NULL;
 }
 

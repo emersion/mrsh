@@ -9,36 +9,7 @@
 
 #include "parser.h"
 
-static const char *symbol_str(enum symbol_name sym) {
-	for (size_t i = 0; i < sizeof(operators)/sizeof(operators[0]); ++i) {
-		if (sym == operators[i].name) {
-			return operators[i].str;
-		}
-	}
-
-	for (size_t i = 0; i < sizeof(keywords)/sizeof(keywords[0]); ++i) {
-		if (sym == keywords[i].name) {
-			return keywords[i].str;
-		}
-	}
-
-	switch (sym) {
-	case WORD: return "WORD";
-	case ASSIGNMENT_WORD: return "ASSIGNMENT_WORD";
-	case NAME: return "NAME";
-	case NEWLINE: return "NEWLINE";
-	case IO_NUMBER: return "IO_NUMBER";
-
-	case EOF_TOKEN: return "EOF_TOKEN";
-	case TOKEN: return "TOKEN";
-
-	default: break;
-	}
-
-	return NULL;
-}
-
-static void next_sym(struct mrsh_parser *state);
+static void next_symbol(struct mrsh_parser *state);
 
 struct mrsh_parser *mrsh_parser_create(FILE *f) {
 	struct mrsh_parser *state = calloc(1, sizeof(struct mrsh_parser));
@@ -49,12 +20,8 @@ struct mrsh_parser *mrsh_parser_create(FILE *f) {
 	state->peek = malloc(state->peek_cap);
 	state->peek_len = 0;
 
-	state->sym_str_cap = 128;
-	state->sym.str = malloc(state->sym_str_cap);
-	state->sym.str[0] = '\0';
-	state->sym_str_len = 0;
+	next_symbol(state);
 
-	next_sym(state);
 	return state;
 }
 
@@ -63,7 +30,6 @@ void mrsh_parser_destroy(struct mrsh_parser *state) {
 		return;
 	}
 	free(state->peek);
-	free(state->sym.str);
 	free(state);
 }
 
@@ -120,56 +86,21 @@ static char parser_read_char(struct mrsh_parser *state) {
 	return c;
 }
 
-static bool accept_char(struct mrsh_parser *state, char c) {
-	if (parser_peek_char(state) == c) {
-		parser_read_char(state);
-		return true;
-	}
-	return false;
-}
-
 static bool accept_str(struct mrsh_parser *state, const char *str) {
 	size_t len = strlen(str);
+	assert(len > 0);
 
+	// TODO: optimize this
 	char next[len];
-	size_t n_read = parser_peek(state, next, len);
-	if (n_read == len && strncmp(next, str, len) == 0) {
-		parser_read(state, next, len);
-		return true;
-	}
-	return false;
-}
-
-static void parser_sym_reset(struct mrsh_parser *state) {
-	if (state->sym_str_cap > 0) {
-		state->sym.str[0] = '\0';
-	}
-	state->sym_str_len = 0;
-}
-
-static void parser_sym_begin(struct mrsh_parser *state, enum symbol_name sym) {
-	parser_sym_reset(state);
-	state->sym.name = sym;
-}
-
-static void parser_sym_append_char(struct mrsh_parser *state, char c) {
-	size_t min_cap = state->sym_str_len + 2; // new char + NULL char
-	if (min_cap > state->sym_str_cap) {
-		size_t new_cap = state->sym_str_cap * 2;
-		if (new_cap < min_cap) {
-			new_cap = min_cap;
+	for (size_t n = 1; n <= len; ++n) {
+		size_t n_read = parser_peek(state, next, n);
+		if (n_read < n || strncmp(next, str, n) != 0) {
+			return false;
 		}
-		state->sym.str = realloc(state->sym.str, new_cap);
-		if (state->sym.str == NULL) {
-			state->sym_str_cap = 0;
-			return;
-		}
-		state->sym_str_cap = new_cap;
 	}
 
-	state->sym.str[state->sym_str_len] = c;
-	state->sym.str[state->sym_str_len + 1] = '\0';
-	state->sym_str_len++;
+	parser_read(state, next, len);
+	return true;
 }
 
 static bool is_operator_start(char c) {
@@ -185,7 +116,7 @@ static bool is_operator_start(char c) {
 	}
 }
 
-static void single_quotes(struct mrsh_parser *state) {
+/*static void single_quotes(struct mrsh_parser *state) {
 	char c = parser_read_char(state);
 	assert(c == '\'');
 
@@ -296,42 +227,111 @@ static void word(struct mrsh_parser *state) {
 		parser_read_char(state);
 		first = false;
 	}
+}*/
+
+static char *word(struct mrsh_parser *state) {
+	if (state->sym != TOKEN) {
+		return NULL;
+	}
+
+	char *str = malloc(128); // TODO
+	char *cur = str;
+
+	bool first = true;
+	while (true) {
+		char c = parser_peek_char(state);
+		if (c == '\0' || c == '\n') {
+			break;
+		}
+
+		if (c == '$' || c == '`') {
+			// TODO
+			fprintf(stderr, "not yet implemented\n");
+			exit(EXIT_FAILURE);
+		}
+
+		// Quoting
+		if (c == '\'') {
+			// TODO
+			//single_quotes(state);
+			//continue;
+			fprintf(stderr, "not yet implemented\n");
+			exit(EXIT_FAILURE);
+		}
+		if (c == '"') {
+			// TODO
+			//double_quotes(state);
+			//continue;
+			fprintf(stderr, "not yet implemented\n");
+			exit(EXIT_FAILURE);
+		}
+		if (c == '\\') {
+			// Unquoted backslash
+			parser_read_char(state);
+			c = parser_peek_char(state);
+			if (c == '\n') {
+				// Continuation line
+				parser_read_char(state);
+				continue;
+			}
+		}
+
+		if (is_operator_start(c)) {
+			if (first) {
+				cur[0] = c;
+				cur++;
+				parser_read_char(state);
+			}
+			break;
+		}
+		if (isblank(c)) {
+			break;
+		}
+
+		cur[0] = c;
+		cur++;
+		parser_read_char(state);
+		first = false;
+	}
+	cur[0] = '\0';
+
+	next_symbol(state);
+	return str;
 }
 
 // See section 2.3 Token Recognition
-static void token(struct mrsh_parser *state) {
+static void next_symbol(struct mrsh_parser *state) {
 	char c = parser_peek_char(state);
 
-	if (accept_char(state, '\0')) {
-		parser_sym_begin(state, EOF_TOKEN);
+	if (c == '\0') {
+		state->sym = EOF_TOKEN;
 		return;
 	}
-	if (accept_char(state, '\n')) {
-		parser_sym_begin(state, NEWLINE);
+	if (c == '\n') {
+		state->sym = NEWLINE;
 		return;
 	}
 
 	if (is_operator_start(c)) {
+		char next[OPERATOR_MAX_LEN];
 		for (size_t i = 0; i < sizeof(operators)/sizeof(operators[0]); ++i) {
-			if (accept_str(state, operators[i].str)) {
-				parser_sym_begin(state, operators[i].name);
+			const char *str = operators[i].str;
+			size_t n = strlen(str);
+			size_t n_read = parser_peek(state, next, n);
+			if (n_read == n && strncmp(next, str, n) == 0) {
+				state->sym = operators[i].name;
 				return;
 			}
 		}
-
-		parser_sym_begin(state, TOKEN);
-		parser_sym_append_char(state, c);
-		parser_read_char(state);
-		return;
 	}
 
 	if (isblank(c)) {
 		parser_read_char(state);
-		token(state);
+		next_symbol(state);
 		return;
 	}
 
-	if (accept_char(state, '#')) {
+	if (c == '#') {
 		while (true) {
 			char c = parser_peek_char(state);
 			if (c == '\0' || c == '\n') {
@@ -339,106 +339,106 @@ static void token(struct mrsh_parser *state) {
 			}
 			parser_read_char(state);
 		}
-		token(state);
+		next_symbol(state);
 		return;
 	}
 
-	parser_sym_begin(state, TOKEN);
-	word(state);
+	state->sym = TOKEN;
 }
 
-static void symbol(struct mrsh_parser *state) {
-	token(state);
-
-	if (state->sym.name == TOKEN) {
-		char next = parser_peek_char(state);
-		if (strlen(state->sym.str) == 1 && isdigit(state->sym.str[0]) &&
-				(next == '<' || next == '>')) {
-			state->sym.name = IO_NUMBER;
-		}
-	}
+static bool eof(struct mrsh_parser *state) {
+	return state->sym == EOF_TOKEN;
 }
 
-static void next_sym(struct mrsh_parser *state) {
-	parser_sym_reset(state);
-	symbol(state);
-	if (state->sym.name == EOF_TOKEN) {
-		return;
-	}
-
-	//fprintf(stderr, "symbol: %s \"%s\"\n",
-	//	symbol_str(state->sym.name), state->sym.str);
-}
-
-static bool accept(struct mrsh_parser *state, enum symbol_name sym) {
-	if (state->sym.name == sym) {
-		next_sym(state);
-		return true;
-	}
-	return false;
-}
-
-static void expect(struct mrsh_parser *state, enum symbol_name sym) {
-	if (accept(state, sym)) {
-		return;
-	}
-	fprintf(stderr, "unexpected symbol: expected %s, got %s\n",
-		symbol_str(sym), symbol_str(state->sym.name));
-	exit(EXIT_FAILURE);
-}
-
-static bool accept_token(struct mrsh_parser *state, const char *str) {
-	return strcmp(str, state->sym.str) == 0 && accept(state, TOKEN);
-}
-
-static char *take(struct mrsh_parser *state, enum symbol_name sym) {
-	if (state->sym.name != sym) {
-		return NULL;
-	}
-	char *str = strdup(state->sym.str);
-	next_sym(state);
-	return str;
-}
-
-static bool newline_list(struct mrsh_parser *state) {
-	if (!accept(state, NEWLINE)) {
+static bool newline(struct mrsh_parser *state) {
+	if (state->sym != NEWLINE) {
 		return false;
 	}
-
-	while (accept(state, NEWLINE)) {
-		// This space is intentionally left blank
-	}
+	char c = parser_read_char(state);
+	assert(c == '\n');
+	next_symbol(state);
 	return true;
 }
 
+static bool operator(struct mrsh_parser *state, enum symbol_name sym) {
+	if (state->sym != sym) {
+		return false;
+	}
+
+	const char *str = NULL;
+	for (size_t i = 0; i < sizeof(operators)/sizeof(operators[0]); ++i) {
+		if (operators[i].name == sym) {
+			str = operators[i].str;
+			break;
+		}
+	}
+	assert(str != NULL);
+
+	char buf[OPERATOR_MAX_LEN];
+	parser_read(state, buf, strlen(str));
+	assert(strncmp(str, buf, strlen(str)) == 0);
+	next_symbol(state);
+	return true;
+}
+
+static bool token(struct mrsh_parser *state, const char *str) {
+	if (state->sym != TOKEN) {
+		return false;
+	}
+	if (!accept_str(state, str)) {
+		return false;
+	}
+	next_symbol(state);
+	return true;
+}
+
+static void expect_token(struct mrsh_parser *state, const char *str) {
+	if (token(state, str)) {
+		return;
+	}
+	fprintf(stderr, "unexpected token: expected %s\n", str);
+	exit(EXIT_FAILURE);
+}
+
 static void linebreak(struct mrsh_parser *state) {
-	newline_list(state);
+	while (newline(state)) {
+		// This space is intentionally left blank
+	}
+}
+
+static bool newline_list(struct mrsh_parser *state) {
+	if (!newline(state)) {
+		return false;
+	}
+
+	linebreak(state);
+	return true;
 }
 
 static int separator_op(struct mrsh_parser *state) {
-	if (accept_token(state, "&")) {
+	if (token(state, "&")) {
 		return '&';
 	}
-	if (accept_token(state, ";")) {
+	if (token(state, ";")) {
 		return ';';
 	}
 	return -1;
 }
 
-static bool io_here(struct mrsh_parser *state) {
+/*static bool io_here(struct mrsh_parser *state) {
 	return false; // TODO
 }
 
 static char *filename(struct mrsh_parser *state) {
 	// TODO: Apply rule 2
-	return take(state, TOKEN);
+	return take_token(state);
 }
 
 static bool io_file(struct mrsh_parser *state,
 		struct mrsh_io_redirect *redir) {
 	char *str = strdup(state->sym.str);
 	enum symbol_name name = state->sym.name;
-	if (accept_token(state, "<") || accept_token(state, ">")) {
+	if (token(state, "<") || token(state, ">")) {
 		redir->op = str;
 	} else if (accept(state, LESSAND)
 			|| accept(state, GREATAND)
@@ -453,10 +453,10 @@ static bool io_file(struct mrsh_parser *state,
 
 	redir->filename = filename(state);
 	return (redir->filename != NULL);
-}
+}*/
 
 static struct mrsh_io_redirect *io_redirect(struct mrsh_parser *state) {
-	struct mrsh_io_redirect redir = {
+	/*struct mrsh_io_redirect redir = {
 		.io_number = -1,
 	};
 
@@ -476,11 +476,12 @@ static struct mrsh_io_redirect *io_redirect(struct mrsh_parser *state) {
 		return NULL; // TODO
 	}
 
+	return NULL;*/
 	return NULL;
 }
 
 static struct mrsh_assignment *assignment_word(struct mrsh_parser *state) {
-	if (state->sym.name != TOKEN && state->sym.name != WORD) {
+	/*if (state->sym.name != TOKEN && state->sym.name != WORD) {
 		return NULL;
 	}
 
@@ -495,7 +496,8 @@ static struct mrsh_assignment *assignment_word(struct mrsh_parser *state) {
 	assign->name = strndup(state->sym.str, pos - state->sym.str);
 	assign->value = strdup(pos + 1);
 	next_sym(state);
-	return assign;
+	return assign;*/
+	return NULL;
 }
 
 static bool cmd_prefix(struct mrsh_parser *state,
@@ -515,36 +517,15 @@ static bool cmd_prefix(struct mrsh_parser *state,
 	return false;
 }
 
-static void apply_rule1(struct mrsh_parser *state) {
-	if (state->sym.name != TOKEN) {
-		return;
-	}
-
-	for (size_t i = 0; i < sizeof(keywords)/sizeof(keywords[0]); ++i) {
-		if (strcmp(state->sym.str, keywords[i].str) == 0) {
-			state->sym.name = keywords[i].name;
-			return;
-		}
-	}
-
-	state->sym.name = WORD;
-}
-
-static bool cmd_suffix(struct mrsh_parser *state, struct mrsh_simple_command *cmd) {
-	// TODO
-	if (strcmp(state->sym.str, "|") == 0 ||
-			strcmp(state->sym.str, "&") == 0 ||
-			strcmp(state->sym.str, ";") == 0) {
-		return false;
-	}
-
+static bool cmd_suffix(struct mrsh_parser *state,
+		struct mrsh_simple_command *cmd) {
 	struct mrsh_io_redirect *redir = io_redirect(state);
 	if (redir != NULL) {
 		mrsh_array_add(&cmd->io_redirects, redir);
 		return true;
 	}
 
-	char *arg = take(state, TOKEN);
+	char *arg = word(state);
 	if (arg != NULL) {
 		mrsh_array_add(&cmd->arguments, arg);
 		return true;
@@ -560,8 +541,7 @@ static struct mrsh_simple_command *simple_command(struct mrsh_parser *state) {
 		// This space is intentionally left blank
 	}
 
-	apply_rule1(state);
-	cmd.name = take(state, WORD);
+	cmd.name = word(state);
 	if (cmd.name == NULL) {
 		return NULL;
 	}
@@ -624,28 +604,23 @@ static void compound_list(struct mrsh_parser *state, struct mrsh_array *cmds) {
 }
 
 static struct mrsh_brace_group *brace_group(struct mrsh_parser *state) {
-	apply_rule1(state);
-	if (!accept(state, Lbrace)) {
+	if (!token(state, "{")) {
 		return NULL;
 	}
 
 	struct mrsh_array body = {0};
 	compound_list(state, &body);
 
-	apply_rule1(state);
-	expect(state, Rbrace);
+	expect_token(state, "}");
 	return mrsh_brace_group_create(&body);
 }
 
 static struct mrsh_command *else_part(struct mrsh_parser *state) {
-	apply_rule1(state);
-
-	if (accept(state, Elif)) {
+	if (token(state, "elif")) {
 		struct mrsh_array cond = {0};
 		compound_list(state, &cond);
 
-		apply_rule1(state);
-		expect(state, Then);
+		expect_token(state, "then");
 
 		struct mrsh_array body = {0};
 		compound_list(state, &body);
@@ -656,7 +631,7 @@ static struct mrsh_command *else_part(struct mrsh_parser *state) {
 		return &ic->command;
 	}
 
-	if (accept(state, Else)) {
+	if (token(state, "else")) {
 		struct mrsh_array body = {0};
 		compound_list(state, &body);
 
@@ -668,24 +643,21 @@ static struct mrsh_command *else_part(struct mrsh_parser *state) {
 }
 
 static struct mrsh_if_clause *if_clause(struct mrsh_parser *state) {
-	apply_rule1(state);
-	if (!accept(state, If)) {
+	if (!token(state, "if")) {
 		return NULL;
 	}
 
 	struct mrsh_array cond = {0};
 	compound_list(state, &cond);
 
-	apply_rule1(state);
-	expect(state, Then);
+	expect_token(state, "then");
 
 	struct mrsh_array body = {0};
 	compound_list(state, &body);
 
 	struct mrsh_command *ep = else_part(state);
 
-	apply_rule1(state);
-	expect(state, Fi);
+	expect_token(state, "fi");
 
 	return mrsh_if_clause_create(&cond, &body, ep);
 }
@@ -713,8 +685,7 @@ static struct mrsh_command *command(struct mrsh_parser *state) {
 }
 
 static struct mrsh_pipeline *pipeline(struct mrsh_parser *state) {
-	apply_rule1(state);
-	bool bang = accept(state, Bang);
+	bool bang = token(state, "!");
 
 	struct mrsh_command *cmd = command(state);
 	if (cmd == NULL) {
@@ -724,7 +695,7 @@ static struct mrsh_pipeline *pipeline(struct mrsh_parser *state) {
 	struct mrsh_array commands = {0};
 	mrsh_array_add(&commands, cmd);
 
-	while (accept_token(state, "|")) {
+	while (token(state, "|")) {
 		linebreak(state);
 		struct mrsh_command *cmd = command(state);
 		mrsh_array_add(&commands, cmd);
@@ -740,9 +711,9 @@ static struct mrsh_node *and_or(struct mrsh_parser *state) {
 	}
 
 	int binop_type = -1;
-	if (accept(state, AND_IF)) {
+	if (operator(state, AND_IF)) {
 		binop_type = MRSH_BINOP_AND;
-	} else if (accept(state, OR_IF)) {
+	} else if (operator(state, OR_IF)) {
 		binop_type = MRSH_BINOP_OR;
 	}
 
@@ -794,14 +765,14 @@ static struct mrsh_program *program(struct mrsh_parser *state) {
 	struct mrsh_program *prog = calloc(1, sizeof(struct mrsh_program));
 
 	linebreak(state);
-	if (accept(state, EOF_TOKEN)) {
+	if (eof(state)) {
 		return prog;
 	}
 
 	complete_command(state, &prog->body);
 
 	while (newline_list(state)) {
-		if (accept(state, EOF_TOKEN)) {
+		if (eof(state)) {
 			return prog;
 		}
 
@@ -809,13 +780,15 @@ static struct mrsh_program *program(struct mrsh_parser *state) {
 	}
 
 	linebreak(state);
-	expect(state, EOF_TOKEN);
+	if (eof(state)) {
+		assert(false);
+	}
 	return prog;
 }
 
 struct mrsh_command_list *mrsh_parse_command_list(struct mrsh_parser *state) {
 	linebreak(state);
-	if (accept(state, EOF_TOKEN)) {
+	if (eof(state)) {
 		return NULL;
 	}
 

@@ -76,6 +76,8 @@ static const struct symbol operators[] = {
 	{ CLOBBER, ">|" },
 };
 
+#define OPERATOR_MAX_LEN 3
+
 static const struct symbol keywords[] = {
 	{ If, "if" },
 	{ Then, "then" },
@@ -104,8 +106,7 @@ struct mrsh_parser {
 	char *peek;
 	size_t peek_len, peek_cap;
 
-	struct symbol sym;
-	size_t sym_str_len, sym_str_cap;
+	enum symbol_name sym;
 };
 
 #endif

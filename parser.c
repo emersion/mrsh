@@ -116,7 +116,9 @@ static bool is_operator_start(char c) {
 	}
 }
 
-/*static void single_quotes(struct mrsh_parser *state) {
+static void single_quotes(struct mrsh_parser *state, char **cur_ptr) {
+	char *cur = *cur_ptr;
+
 	char c = parser_read_char(state);
 	assert(c == '\'');
 
@@ -131,12 +133,17 @@ static bool is_operator_start(char c) {
 			break;
 		}
 
-		parser_sym_append_char(state, c);
+		cur[0] = c;
+		cur++;
 		parser_read_char(state);
 	}
+
+	*cur_ptr = cur;
 }
 
-static void double_quotes(struct mrsh_parser *state) {
+static void double_quotes(struct mrsh_parser *state, char **cur_ptr) {
+	char *cur = *cur_ptr;
+
 	char c = parser_read_char(state);
 	assert(c == '"');
 
@@ -177,57 +184,13 @@ static void double_quotes(struct mrsh_parser *state) {
 			}
 		}
 
-		parser_sym_append_char(state, c);
+		cur[0] = c;
+		cur++;
 		parser_read_char(state);
 	}
+
+	*cur_ptr = cur;
 }
-
-static void word(struct mrsh_parser *state) {
-	bool first = true;
-	while (true) {
-		char c = parser_peek_char(state);
-		if (c == '\0' || c == '\n') {
-			break;
-		}
-
-		if (c == '$' || c == '`') {
-			// TODO
-			fprintf(stderr, "not yet implemented\n");
-			exit(EXIT_FAILURE);
-		}
-
-		// Quoting
-		if (c == '\'') {
-			single_quotes(state);
-			continue;
-		}
-		if (c == '"') {
-			double_quotes(state);
-			continue;
-		}
-		if (c == '\\') {
-			// Unquoted backslash
-			parser_read_char(state);
-			c = parser_peek_char(state);
-			if (c == '\n') {
-				// Continuation line
-				parser_read_char(state);
-				continue;
-			}
-		}
-
-		if (!first && is_operator_start(c)) {
-			break;
-		}
-		if (isblank(c)) {
-			break;
-		}
-
-		parser_sym_append_char(state, c);
-		parser_read_char(state);
-		first = false;
-	}
-}*/
 
 static char *word(struct mrsh_parser *state) {
 	if (state->sym != TOKEN) {
@@ -252,18 +215,12 @@ static char *word(struct mrsh_parser *state) {
 
 		// Quoting
 		if (c == '\'') {
-			// TODO
-			//single_quotes(state);
-			//continue;
-			fprintf(stderr, "not yet implemented\n");
-			exit(EXIT_FAILURE);
+			single_quotes(state, &cur);
+			continue;
 		}
 		if (c == '"') {
-			// TODO
-			//double_quotes(state);
-			//continue;
-			fprintf(stderr, "not yet implemented\n");
-			exit(EXIT_FAILURE);
+			double_quotes(state, &cur);
+			continue;
 		}
 		if (c == '\\') {
 			// Unquoted backslash

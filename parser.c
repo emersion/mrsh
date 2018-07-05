@@ -215,7 +215,7 @@ static size_t peek_token(struct mrsh_parser *state) {
 	}
 }
 
-static char *word(struct mrsh_parser *state) {
+static char *word(struct mrsh_parser *state, bool no_keyword) {
 	if (state->sym != TOKEN) {
 		return NULL;
 	}
@@ -224,12 +224,14 @@ static char *word(struct mrsh_parser *state) {
 		return NULL;
 	}
 
-	// TODO: optimize this
 	size_t token_len = peek_token(state);
-	for (size_t i = 0; i < sizeof(keywords)/sizeof(keywords[0]); ++i) {
-		if (strlen(keywords[i].str) == token_len &&
-				strncmp(state->peek, keywords[i].str, token_len) == 0) {
-			return NULL;
+	if (no_keyword) {
+		// TODO: optimize this
+		for (size_t i = 0; i < sizeof(keywords)/sizeof(keywords[0]); ++i) {
+			if (strlen(keywords[i].str) == token_len &&
+					strncmp(state->peek, keywords[i].str, token_len) == 0) {
+				return NULL;
+			}
 		}
 	}
 
@@ -435,7 +437,7 @@ static bool io_here(struct mrsh_parser *state) {
 
 static char *filename(struct mrsh_parser *state) {
 	// TODO: Apply rule 2
-	return word(state);
+	return word(state, false);
 }
 
 static bool io_file(struct mrsh_parser *state,
@@ -520,7 +522,7 @@ static struct mrsh_assignment *assignment_word(struct mrsh_parser *state) {
 
 	char *name = strndup(state->peek, i);
 	parser_read(state, NULL, i + 1);
-	char *value = word(state);
+	char *value = word(state, false);
 	next_symbol(state);
 
 	struct mrsh_assignment *assign = calloc(1, sizeof(struct mrsh_assignment));
@@ -554,7 +556,7 @@ static bool cmd_suffix(struct mrsh_parser *state,
 		return true;
 	}
 
-	char *arg = word(state);
+	char *arg = word(state, false);
 	if (arg != NULL) {
 		mrsh_array_add(&cmd->arguments, arg);
 		return true;
@@ -570,7 +572,7 @@ static struct mrsh_simple_command *simple_command(struct mrsh_parser *state) {
 		// This space is intentionally left blank
 	}
 
-	cmd.name = word(state);
+	cmd.name = word(state, true);
 	if (cmd.name == NULL) {
 		return NULL;
 	}

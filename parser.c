@@ -99,9 +99,29 @@ static bool is_operator_start(char c) {
 	}
 }
 
-static void single_quotes(struct mrsh_parser *state, char **cur_ptr) {
-	char *cur = *cur_ptr;
+static bool append_char(char **buf, size_t *cap, size_t *len, char c) {
+	size_t new_len = *len + 1;
+	if (new_len > *cap) {
+		size_t new_cap = 2 * *cap;
+		if (new_cap == 0) {
+			new_cap = 32;
+		}
+		char *new_buf = realloc(*buf, new_cap);
+		if (new_buf == NULL) {
+			return false;
+		}
 
+		*buf = new_buf;
+		*cap = new_cap;
+	}
+
+	(*buf)[*len] = c;
+	*len = new_len;
+	return true;
+}
+
+static void single_quotes(struct mrsh_parser *state, char **buf, size_t *cap,
+		size_t *len) {
 	char c = parser_read_char(state);
 	assert(c == '\'');
 
@@ -116,17 +136,13 @@ static void single_quotes(struct mrsh_parser *state, char **cur_ptr) {
 			break;
 		}
 
-		cur[0] = c;
-		cur++;
 		parser_read_char(state);
+		append_char(buf, cap, len, c);
 	}
-
-	*cur_ptr = cur;
 }
 
-static void double_quotes(struct mrsh_parser *state, char **cur_ptr) {
-	char *cur = *cur_ptr;
-
+static void double_quotes(struct mrsh_parser *state, char **buf, size_t *cap,
+		size_t *len) {
 	char c = parser_read_char(state);
 	assert(c == '"');
 
@@ -167,12 +183,9 @@ static void double_quotes(struct mrsh_parser *state, char **cur_ptr) {
 			}
 		}
 
-		cur[0] = c;
-		cur++;
 		parser_read_char(state);
+		append_char(buf, cap, len, c);
 	}
-
-	*cur_ptr = cur;
 }
 
 static size_t peek_token(struct mrsh_parser *state) {
@@ -220,9 +233,10 @@ static char *word(struct mrsh_parser *state) {
 		}
 	}
 
-	char *str = malloc(128); // TODO
+	char *str = malloc(token_len);
+	size_t cap = token_len;
+	size_t len = token_len;
 	parser_read(state, str, token_len);
-	char *cur = str + token_len;
 
 	while (true) {
 		char c = parser_peek_char(state);
@@ -238,11 +252,11 @@ static char *word(struct mrsh_parser *state) {
 
 		// Quoting
 		if (c == '\'') {
-			single_quotes(state, &cur);
+			single_quotes(state, &str, &cap, &len);
 			continue;
 		}
 		if (c == '"') {
-			double_quotes(state, &cur);
+			double_quotes(state, &str, &cap, &len);
 			continue;
 		}
 
@@ -260,10 +274,10 @@ static char *word(struct mrsh_parser *state) {
 		}
 
 		parser_read_char(state);
-		cur[0] = c;
-		++cur;
+		append_char(&str, &cap, &len, c);
 	}
-	cur[0] = '\0';
+
+	append_char(&str, &cap, &len, '\0');
 
 	next_symbol(state);
 	return str;

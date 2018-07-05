@@ -86,23 +86,6 @@ static char parser_read_char(struct mrsh_parser *state) {
 	return c;
 }
 
-static bool accept_str(struct mrsh_parser *state, const char *str) {
-	size_t len = strlen(str);
-	assert(len > 0);
-
-	// TODO: optimize this
-	char next[len];
-	for (size_t n = 1; n <= len; ++n) {
-		size_t n_read = parser_peek(state, next, n);
-		if (n_read < n || strncmp(next, str, n) != 0) {
-			return false;
-		}
-	}
-
-	parser_read(state, next, len);
-	return true;
-}
-
 static bool is_operator_start(char c) {
 	switch (c) {
 	case '&':
@@ -200,9 +183,12 @@ static char *word(struct mrsh_parser *state) {
 	char *str = malloc(128); // TODO
 	char *cur = str;
 
-	bool first = true;
+	size_t i = 0;
+	bool quoted = false;
 	while (true) {
-		char c = parser_peek_char(state);
+		parser_peek(state, NULL, i + 1);
+
+		char c = state->peek[i];
 		if (c == '\0' || c == '\n') {
 			break;
 		}
@@ -215,43 +201,56 @@ static char *word(struct mrsh_parser *state) {
 
 		// Quoting
 		if (c == '\'') {
+			quoted = true;
+			parser_read(state, NULL, i);
+			i = 0;
 			single_quotes(state, &cur);
 			continue;
 		}
 		if (c == '"') {
+			quoted = true;
+			parser_read(state, NULL, i);
+			i = 0;
 			double_quotes(state, &cur);
 			continue;
 		}
+
 		if (c == '\\') {
 			// Unquoted backslash
-			parser_read_char(state);
+			parser_read(state, NULL, i + 1);
+			i = 0;
 			c = parser_peek_char(state);
 			if (c == '\n') {
 				// Continuation line
 				parser_read_char(state);
 				continue;
 			}
-		}
-
-		if (is_operator_start(c)) {
-			if (first) {
-				cur[0] = c;
-				cur++;
-				parser_read_char(state);
-			}
-			break;
-		}
-		if (isblank(c)) {
+		} else if (is_operator_start(c) || isblank(c)) {
 			break;
 		}
 
 		cur[0] = c;
-		cur++;
-		parser_read_char(state);
-		first = false;
+		++cur;
+		++i;
 	}
 	cur[0] = '\0';
 
+	// TODO: optimize this
+	if (!quoted) {
+		if (cur == str) {
+			free(str);
+			return NULL;
+		}
+
+		for (size_t i = 0; i < sizeof(keywords)/sizeof(keywords[0]); ++i) {
+			if (strcmp(str, keywords[i].str) == 0) {
+				free(str);
+				return NULL;
+			}
+		}
+	}
+
+	parser_read(state, NULL, i);
 	next_symbol(state);
 	return str;
 }
@@ -345,9 +344,34 @@ static bool token(struct mrsh_parser *state, const char *str) {
 	if (state->sym != TOKEN) {
 		return false;
 	}
-	if (!accept_str(state, str)) {
+
+	size_t len = strlen(str);
+	assert(len > 0);
+
+	if (len == 1 && !isalpha(str[0])) {
+		if (parser_peek_char(state) != str[0]) {
+			return false;
+		}
+		parser_read_char(state);
+		next_symbol(state);
+		return true;
+	}
+
+	for (size_t i = 0; i < len; ++i) {
+		parser_peek(state, NULL, i + 1);
+
+		assert(isalpha(str[i]));
+		if (state->peek[i] != str[i]) {
+			return false;
+		}
+	}
+
+	parser_peek(state, NULL, len + 1);
+	if (isalpha(state->peek[len])) {
 		return false;
 	}
+
+	parser_read(state, NULL, len);
 	next_symbol(state);
 	return true;
 }
@@ -648,11 +672,6 @@ static struct mrsh_if_clause *if_clause(struct mrsh_parser *state) {
 }
 
 static struct mrsh_command *command(struct mrsh_parser *state) {
-	struct mrsh_simple_command *sc = simple_command(state);
-	if (sc) {
-		return &sc->command;
-	}
-
 	struct mrsh_brace_group *bg = brace_group(state);
 	if (bg) {
 		return &bg->command;
@@ -666,6 +685,12 @@ static struct mrsh_command *command(struct mrsh_parser *state) {
 	// TODO: subshell for_clause case_clause while_clause until_clause
 	// TODO: compound_command redirect_list
 	// TODO: function_definition
+
+	struct mrsh_simple_command *sc = simple_command(state);
+	if (sc) {
+		return &sc->command;
+	}
+
 	return NULL;
 }
 

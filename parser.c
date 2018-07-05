@@ -175,20 +175,57 @@ static void double_quotes(struct mrsh_parser *state, char **cur_ptr) {
 	*cur_ptr = cur;
 }
 
+static size_t peek_token(struct mrsh_parser *state) {
+	size_t i = 0;
+	while (true) {
+		parser_peek(state, NULL, i + 1);
+
+		char c = state->peek[i];
+
+		switch (c) {
+		case '\0':
+		case '\n':
+			return i;
+		case '$':
+		case '`':
+		case '\'':
+		case '"':
+		case '\\': // TODO: allow backslash in tokens
+			return 0;
+		}
+
+		if (is_operator_start(c) || isblank(c)) {
+			return i;
+		}
+
+		++i;
+	}
+}
+
 static char *word(struct mrsh_parser *state) {
 	if (state->sym != TOKEN) {
 		return NULL;
 	}
 
+	if (is_operator_start(parser_peek_char(state))) {
+		return NULL;
+	}
+
+	// TODO: optimize this
+	size_t token_len = peek_token(state);
+	for (size_t i = 0; i < sizeof(keywords)/sizeof(keywords[0]); ++i) {
+		if (strlen(keywords[i].str) == token_len &&
+				strncmp(state->peek, keywords[i].str, token_len) == 0) {
+			return NULL;
+		}
+	}
+
 	char *str = malloc(128); // TODO
-	char *cur = str;
+	parser_read(state, str, token_len);
+	char *cur = str + token_len;
 
-	size_t i = 0;
-	bool quoted = false;
 	while (true) {
-		parser_peek(state, NULL, i + 1);
-
-		char c = state->peek[i];
+		char c = parser_peek_char(state);
 		if (c == '\0' || c == '\n') {
 			break;
 		}
@@ -201,24 +238,17 @@ static char *word(struct mrsh_parser *state) {
 
 		// Quoting
 		if (c == '\'') {
-			quoted = true;
-			parser_read(state, NULL, i);
-			i = 0;
 			single_quotes(state, &cur);
 			continue;
 		}
 		if (c == '"') {
-			quoted = true;
-			parser_read(state, NULL, i);
-			i = 0;
 			double_quotes(state, &cur);
 			continue;
 		}
 
 		if (c == '\\') {
 			// Unquoted backslash
-			parser_read(state, NULL, i + 1);
-			i = 0;
+			parser_read_char(state);
 			c = parser_peek_char(state);
 			if (c == '\n') {
 				// Continuation line
@@ -229,28 +259,12 @@ static char *word(struct mrsh_parser *state) {
 			break;
 		}
 
+		parser_read_char(state);
 		cur[0] = c;
 		++cur;
-		++i;
 	}
 	cur[0] = '\0';
 
-	// TODO: optimize this
-	if (!quoted) {
-		if (cur == str) {
-			free(str);
-			return NULL;
-		}
-
-		for (size_t i = 0; i < sizeof(keywords)/sizeof(keywords[0]); ++i) {
-			if (strcmp(str, keywords[i].str) == 0) {
-				free(str);
-				return NULL;
-			}
-		}
-	}
-
-	parser_read(state, NULL, i);
 	next_symbol(state);
 	return str;
 }
@@ -357,19 +371,11 @@ static bool token(struct mrsh_parser *state, const char *str) {
 		return true;
 	}
 
-	for (size_t i = 0; i < len; ++i) {
-		parser_peek(state, NULL, i + 1);
-
-		assert(isalpha(str[i]));
-		if (state->peek[i] != str[i]) {
-			return false;
-		}
-	}
-
-	parser_peek(state, NULL, len + 1);
-	if (isalpha(state->peek[len])) {
+	size_t token_len = peek_token(state);
+	if (len != token_len || strncmp(state->peek, str, token_len) != 0) {
 		return false;
 	}
+	// assert(isalpha(str[i]));
 
 	parser_read(state, NULL, len);
 	next_symbol(state);

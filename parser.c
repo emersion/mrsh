@@ -228,8 +228,8 @@ static char *word(struct mrsh_parser *state, bool no_keyword) {
 	if (no_keyword) {
 		// TODO: optimize this
 		for (size_t i = 0; i < sizeof(keywords)/sizeof(keywords[0]); ++i) {
-			if (strlen(keywords[i].str) == token_len &&
-					strncmp(state->peek, keywords[i].str, token_len) == 0) {
+			if (strlen(keywords[i]) == token_len &&
+					strncmp(state->peek, keywords[i], token_len) == 0) {
 				return NULL;
 			}
 		}

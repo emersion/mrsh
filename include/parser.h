@@ -5,11 +5,10 @@
 #include <mrsh/parser.h>
 
 enum symbol_name {
-	WORD,
-	ASSIGNMENT_WORD,
-	NAME,
+	EOF_TOKEN,
+	TOKEN,
+
 	NEWLINE,
-	IO_NUMBER,
 
 	/* The following are the operators (see XBD Operator)
 	   containing more than one character. */
@@ -26,35 +25,6 @@ enum symbol_name {
 	DLESSDASH,
 
 	CLOBBER,
-
-	/* The following are the reserved words. */
-
-	If,
-	Then,
-	Else,
-	Elif,
-	Fi,
-	Do,
-	Done,
-
-	Case,
-	Esac,
-	While,
-	Until,
-	For,
-
-	/* These are reserved words, not operator tokens, and are
-	   recognized when reserved words are recognized. */
-	Lbrace,
-	Rbrace,
-	Bang,
-
-	In,
-
-	/* Special symbols */
-
-	EOF_TOKEN = -1,
-	TOKEN = -2,
 };
 
 struct symbol {
@@ -78,26 +48,26 @@ static const struct symbol operators[] = {
 
 #define OPERATOR_MAX_LEN 3
 
-static const struct symbol keywords[] = {
-	{ If, "if" },
-	{ Then, "then" },
-	{ Else, "else" },
-	{ Elif, "elif" },
-	{ Fi, "fi" },
-	{ Do, "do" },
-	{ Done, "done" },
+static const char *keywords[] = {
+	"if",
+	"then",
+	"else",
+	"elif",
+	"fi",
+	"do",
+	"done",
 
-	{ Case, "case" },
-	{ Esac, "esac" },
-	{ While, "while" },
-	{ Until, "until" },
-	{ For, "for" },
+	"case",
+	"esac",
+	"while",
+	"until",
+	"for",
 
-	{ Lbrace, "{" },
-	{ Rbrace, "}" },
-	{ Bang, "!" },
+	"{",
+	"}",
+	"!",
 
-	{ In, "in" },
+	"in",
 };
 
 struct mrsh_parser {

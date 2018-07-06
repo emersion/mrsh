@@ -38,7 +38,6 @@ int main(int argc, char *argv[]) {
 			state.exit = EXIT_SUCCESS;
 			break;
 		}
-		mrsh_command_list_print(list);
 		mrsh_run_command_list(&state, list);
 	}
 

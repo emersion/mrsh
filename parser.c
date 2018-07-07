@@ -474,6 +474,7 @@ static int io_number(struct mrsh_parser *state) {
 	}
 
 	parser_read_char(state);
+	next_symbol(state);
 	return strtol(buf, NULL, 10);
 }
 
@@ -493,6 +494,7 @@ static struct mrsh_io_redirect *io_redirect(struct mrsh_parser *state) {
 		return NULL; // TODO
 	}
 
+	assert(redir.io_number < 0);
 	return NULL;
 }
 

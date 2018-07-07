@@ -14,6 +14,21 @@ void mrsh_state_init(struct mrsh_state *state) {
 	state->exit = -1;
 }
 
+static int parse_fd(const char *str) {
+	char *endptr;
+	errno = 0;
+	int fd = strtol(str, &endptr, 10);
+	if (errno != 0) {
+		return -1;
+	}
+	if (endptr[0] != '\0') {
+		errno = EINVAL;
+		return -1;
+	}
+
+	return fd;
+}
+
 static int run_simple_command(struct mrsh_state *state,
 		struct mrsh_simple_command *sc) {
 	int argc = 1 + sc->arguments.len;
@@ -56,8 +71,16 @@ static int run_simple_command(struct mrsh_state *state,
 			} else if (strcmp(redir->op, "<>") == 0) {
 				fd = open(redir->filename, O_RDWR | O_CREAT, 0644);
 				default_redir_fd = STDIN_FILENO;
+			} else if (strcmp(redir->op, "<&") == 0) {
+				// TODO: parse "-"
+				fd = parse_fd(redir->filename);
+				default_redir_fd = STDIN_FILENO;
+			} else if (strcmp(redir->op, ">&") == 0) {
+				// TODO: parse "-"
+				fd = parse_fd(redir->filename);
+				default_redir_fd = STDOUT_FILENO;
 			} else {
-				assert(false); // TODO
+				assert(false);
 			}
 			if (fd < 0) {
 				fprintf(stderr, "cannot open %s: %s\n", redir->filename,

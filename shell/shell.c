@@ -1,4 +1,3 @@
-#define _POSIX_C_SOURCE 200112L
 #include <assert.h>
 #include "shell.h"
 
@@ -22,8 +21,11 @@ static struct task *handle_command_list_array(struct mrsh_array *array) {
 
 	for (size_t i = 0; i < array->len; ++i) {
 		struct mrsh_command_list *list = array->data[i];
-		// TODO: handle list->ampersand
-		task_list_add(task_list, handle_node(list->node));
+		struct task *child = handle_node(list->node);
+		if (list->ampersand) {
+			child = task_bg_create(child);
+		}
+		task_list_add(task_list, child);
 	}
 
 	return task_list;

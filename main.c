@@ -22,12 +22,6 @@ int main(int argc, char *argv[]) {
 		}
 	}
 
-	if (noexec) {
-		struct mrsh_program *prog = mrsh_parse(stdin);
-		mrsh_program_print(prog);
-		return EXIT_SUCCESS;
-	}
-
 	struct mrsh_parser *parser = mrsh_parser_create(stdin);
 	struct mrsh_state state = {0};
 	mrsh_state_init(&state);
@@ -39,7 +33,9 @@ int main(int argc, char *argv[]) {
 			break;
 		}
 		mrsh_program_print(prog);
-		mrsh_run_program(&state, prog);
+		if (!noexec) {
+			mrsh_run_program(&state, prog);
+		}
 		mrsh_program_destroy(prog);
 	}
 

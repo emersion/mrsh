@@ -6,9 +6,9 @@
 #include <unistd.h>
 #include "shell.h"
 
-struct task_bg {
+struct task_async {
 	struct task task;
-	struct task *bg;
+	struct task *async;
 	bool started;
 };
 
@@ -37,8 +37,8 @@ static int fork_detached(void) {
 	}
 }
 
-static bool task_bg_start(struct task *task, struct context *ctx) {
-	struct task_bg *tb = (struct task_bg *)task;
+static bool task_async_start(struct task *task, struct context *ctx) {
+	struct task_async *ta = (struct task_async *)task;
 
 	// Start a subshell
 	int ret = fork_detached();
@@ -52,7 +52,7 @@ static bool task_bg_start(struct task *task, struct context *ctx) {
 			dup2(ctx->stdout_fileno, STDOUT_FILENO);
 		}
 
-		int ret = task_run(tb->bg, ctx);
+		int ret = task_run(ta->async, ctx);
 		if (ret < 0) {
 			exit(127);
 		}
@@ -70,26 +70,26 @@ static bool task_bg_start(struct task *task, struct context *ctx) {
 	}
 }
 
-static int task_bg_poll(struct task *task, struct context *ctx) {
-	struct task_bg *tb = (struct task_bg *)task;
+static int task_async_poll(struct task *task, struct context *ctx) {
+	struct task_async *ta = (struct task_async *)task;
 
-	if (!tb->started) {
-		if (!task_bg_start(task, ctx)) {
+	if (!ta->started) {
+		if (!task_async_start(task, ctx)) {
 			return TASK_STATUS_ERROR;
 		}
-		tb->started = true;
+		ta->started = true;
 	}
 
 	return 0;
 }
 
-static const struct task_interface task_bg_impl = {
-	.poll = task_bg_poll,
+static const struct task_interface task_async_impl = {
+	.poll = task_async_poll,
 };
 
-struct task *task_bg_create(struct task *bg) {
-	struct task_bg *tb = calloc(1, sizeof(struct task_bg));
-	task_init(&tb->task, &task_bg_impl);
-	tb->bg = bg;
-	return &tb->task;
+struct task *task_async_create(struct task *async) {
+	struct task_async *ta = calloc(1, sizeof(struct task_async));
+	task_init(&ta->task, &task_async_impl);
+	ta->async = async;
+	return &ta->task;
 }

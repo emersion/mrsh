@@ -27,7 +27,7 @@ executable(
 		'parser.c',
 		'shell/process.c',
 		'shell/shell.c',
-		'shell/task_bg.c',
+		'shell/task_async.c',
 		'shell/task_binop.c',
 		'shell/task_builtin.c',
 		'shell/task_if_clause.c',

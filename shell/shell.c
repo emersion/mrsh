@@ -23,7 +23,7 @@ static struct task *handle_command_list_array(struct mrsh_array *array) {
 		struct mrsh_command_list *list = array->data[i];
 		struct task *child = handle_node(list->node);
 		if (list->ampersand) {
-			child = task_bg_create(child);
+			child = task_async_create(child);
 		}
 		task_list_add(task_list, child);
 	}

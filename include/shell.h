@@ -53,4 +53,4 @@ void task_pipeline_add(struct task *task, struct task *child);
 struct task *task_binop_create(enum mrsh_binop_type type,
 	struct task *left, struct task *right);
 
-struct task *task_bg_create(struct task *bg);
+struct task *task_async_create(struct task *async);

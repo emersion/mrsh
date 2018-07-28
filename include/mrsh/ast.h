@@ -79,6 +79,12 @@ struct mrsh_program {
 	struct mrsh_array body; // struct mrsh_command_list *
 };
 
+void mrsh_io_redirect_destroy(struct mrsh_io_redirect *redir);
+void mrsh_assignment_destroy(struct mrsh_assignment *assign);
+void mrsh_command_destroy(struct mrsh_command *cmd);
+void mrsh_node_destroy(struct mrsh_node *node);
+void mrsh_command_list_destroy(struct mrsh_command_list *l);
+void mrsh_program_destroy(struct mrsh_program *prog);
 struct mrsh_simple_command *mrsh_simple_command_create(char *name,
 	struct mrsh_array *arguments, struct mrsh_array *io_redirects,
 	struct mrsh_array *assignments);

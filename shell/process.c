@@ -24,6 +24,7 @@ static void process_remove(struct process *proc) {
 		if (running_processes.data[i] == proc) {
 			memmove(&running_processes.data[i], &running_processes.data[i + 1],
 				running_processes.len - i - 1);
+			--running_processes.len;
 			break;
 		}
 	}

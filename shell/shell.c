@@ -92,17 +92,6 @@ static struct task *handle_node(struct mrsh_node *node) {
 	assert(false);
 }
 
-int mrsh_run_line(struct mrsh_state *state, struct mrsh_array *cmds) {
-	struct task *task = handle_command_list_array(cmds);
-
-	struct context ctx = {
-		.state = state,
-		.stdin_fileno = -1,
-		.stdout_fileno = -1,
-	};
-	return task_run(task, &ctx);
-}
-
 int mrsh_run_program(struct mrsh_state *state, struct mrsh_program *prog) {
 	struct task *task = handle_command_list_array(&prog->body);
 

@@ -9,6 +9,5 @@ struct mrsh_state {
 
 void mrsh_state_init(struct mrsh_state *state);
 int mrsh_run_program(struct mrsh_state *state, struct mrsh_program *prog);
-int mrsh_run_line(struct mrsh_state *state, struct mrsh_array *list);
 
 #endif

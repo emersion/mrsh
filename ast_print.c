@@ -187,10 +187,6 @@ static void print_command_list(struct mrsh_command_list *list,
 	print_node(list->node, prefix);
 }
 
-void mrsh_print_line(struct mrsh_array *cmds) {
-	print_command_list_array(cmds, "");
-}
-
 void mrsh_program_print(struct mrsh_program *prog) {
 	printf("program\n");
 

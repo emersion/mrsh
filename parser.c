@@ -820,19 +820,19 @@ static struct mrsh_program *program(struct mrsh_parser *state) {
 	return prog;
 }
 
-struct mrsh_array *mrsh_parse_line(struct mrsh_parser *state) {
+struct mrsh_program *mrsh_parse_line(struct mrsh_parser *state) {
 	linebreak(state);
 	if (eof(state)) {
 		return NULL;
 	}
 
-	struct mrsh_array *cmds = calloc(1, sizeof(struct mrsh_array));
-	if (cmds == NULL) {
+	struct mrsh_program *prog = calloc(1, sizeof(struct mrsh_program));
+	if (prog == NULL) {
 		return NULL;
 	}
 
-	complete_command(state, cmds);
-	return cmds;
+	complete_command(state, &prog->body);
+	return prog;
 }
 
 struct mrsh_program *mrsh_parse(FILE *f) {

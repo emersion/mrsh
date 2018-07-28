@@ -33,13 +33,13 @@ int main(int argc, char *argv[]) {
 	mrsh_state_init(&state);
 
 	while (state.exit == -1) {
-		struct mrsh_array *cmds = mrsh_parse_line(parser);
-		if (cmds == NULL) {
+		struct mrsh_program *prog = mrsh_parse_line(parser);
+		if (prog == NULL) {
 			state.exit = EXIT_SUCCESS;
 			break;
 		}
-		mrsh_print_line(cmds);
-		mrsh_run_line(&state, cmds);
+		mrsh_program_print(prog);
+		mrsh_run_program(&state, prog);
 	}
 
 	mrsh_parser_destroy(parser);

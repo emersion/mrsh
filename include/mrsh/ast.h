@@ -98,6 +98,6 @@ struct mrsh_pipeline *mrsh_node_get_pipeline(struct mrsh_node *node);
 struct mrsh_binop *mrsh_node_get_binop(struct mrsh_node *node);
 
 void mrsh_program_print(struct mrsh_program *prog);
-void mrsh_command_list_print(struct mrsh_command_list *list);
+void mrsh_print_line(struct mrsh_array *cmds);
 
 #endif

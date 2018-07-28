@@ -4,6 +4,9 @@
 #include <stdlib.h>
 #include <string.h>
 
+typedef int (*mrsh_builtin_func_t)(struct mrsh_state *state,
+	int argc, char *argv[]);
+
 static const char exit_usage[] = "usage: exit [n]\n";
 
 static int builtin_exit(struct mrsh_state *state, int argc, char *argv[]) {
@@ -26,13 +29,26 @@ static int builtin_exit(struct mrsh_state *state, int argc, char *argv[]) {
 	return EXIT_SUCCESS;
 }
 
-int mrsh_builtin(struct mrsh_state *state, int argc, char *argv[]) {
+mrsh_builtin_func_t get_builtin(const char *name) {
+	if (strcmp(name, "exit") == 0) {
+		return builtin_exit;
+	} else {
+		return NULL;
+	}
+}
+
+int mrsh_has_builtin(const char *name) {
+	return get_builtin(name) != NULL;
+}
+
+int mrsh_run_builtin(struct mrsh_state *state, int argc, char *argv[]) {
 	assert(argc > 0);
 
-	const char *cmd = argv[0];
-	if (strcmp(cmd, "exit") == 0) {
-		return builtin_exit(state, argc, argv);
+	const char *name = argv[0];
+	mrsh_builtin_func_t builtin = get_builtin(name);
+	if (builtin == NULL) {
+		return -1;
 	}
 
-	return -1;
+	return builtin(state, argc, argv);
 }

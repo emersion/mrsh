@@ -7,6 +7,13 @@ struct task_binop {
 	struct task *left, *right;
 };
 
+static void task_binop_destroy(struct task *task) {
+	struct task_binop *tb = (struct task_binop *)task;
+	task_destroy(tb->left);
+	task_destroy(tb->right);
+	free(tb);
+}
+
 static int task_binop_poll(struct task *task, struct context *ctx) {
 	struct task_binop *tb = (struct task_binop *)task;
 
@@ -32,6 +39,7 @@ static int task_binop_poll(struct task *task, struct context *ctx) {
 }
 
 static const struct task_interface task_binop_impl = {
+	.destroy = task_binop_destroy,
 	.poll = task_binop_poll,
 };
 

@@ -12,6 +12,12 @@ struct task_async {
 	bool started;
 };
 
+static void task_async_destroy(struct task *task) {
+	struct task_async *ta = (struct task_async *)task;
+	task_destroy(ta->async);
+	free(ta);
+}
+
 static int fork_detached(void) {
 	pid_t pid = fork();
 	if (pid < 0) {
@@ -84,6 +90,7 @@ static int task_async_poll(struct task *task, struct context *ctx) {
 }
 
 static const struct task_interface task_async_impl = {
+	.destroy = task_async_destroy,
 	.poll = task_async_poll,
 };
 

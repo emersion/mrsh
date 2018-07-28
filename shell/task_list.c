@@ -9,6 +9,10 @@ struct task_list {
 
 static void task_list_destroy(struct task *task) {
 	struct task_list *tl = (struct task_list *)task;
+	for (size_t i = 0; i < tl->children.len; ++i) {
+		struct task *child = tl->children.data[i];
+		task_destroy(child);
+	}
 	mrsh_array_finish(&tl->children);
 	free(tl);
 }

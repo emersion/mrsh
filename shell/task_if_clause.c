@@ -6,6 +6,14 @@ struct task_if_clause {
 	struct task *condition, *body, *else_part;
 };
 
+static void task_if_clause_destroy(struct task *task) {
+	struct task_if_clause *tic = (struct task_if_clause *)task;
+	task_destroy(tic->condition);
+	task_destroy(tic->body);
+	task_destroy(tic->else_part);
+	free(tic);
+}
+
 static int task_if_clause_poll(struct task *task, struct context *ctx) {
 	struct task_if_clause *tic = (struct task_if_clause *)task;
 
@@ -25,6 +33,7 @@ static int task_if_clause_poll(struct task *task, struct context *ctx) {
 }
 
 static const struct task_interface task_if_clause_impl = {
+	.destroy = task_if_clause_destroy,
 	.poll = task_if_clause_poll,
 };
 

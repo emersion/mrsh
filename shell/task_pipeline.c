@@ -8,6 +8,16 @@ struct task_pipeline {
 	bool started;
 };
 
+static void task_pipeline_destroy(struct task *task) {
+	struct task_pipeline *tp = (struct task_pipeline *)task;
+	for (size_t i = 0; i < tp->children.len; ++i) {
+		struct task *child = tp->children.data[i];
+		task_destroy(child);
+	}
+	mrsh_array_finish(&tp->children);
+	free(tp);
+}
+
 static bool task_pipeline_start(struct task *task, struct context *parent_ctx) {
 	struct task_pipeline *tp = (struct task_pipeline *)task;
 
@@ -66,6 +76,7 @@ static int task_pipeline_poll(struct task *task, struct context *ctx) {
 }
 
 static const struct task_interface task_pipeline_impl = {
+	.destroy = task_pipeline_destroy,
 	.poll = task_pipeline_poll,
 };
 

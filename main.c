@@ -40,6 +40,7 @@ int main(int argc, char *argv[]) {
 		}
 		mrsh_program_print(prog);
 		mrsh_run_program(&state, prog);
+		mrsh_program_destroy(prog);
 	}
 
 	mrsh_parser_destroy(parser);

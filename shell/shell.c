@@ -100,5 +100,7 @@ int mrsh_run_program(struct mrsh_state *state, struct mrsh_program *prog) {
 		.stdin_fileno = -1,
 		.stdout_fileno = -1,
 	};
-	return task_run(task, &ctx);
+	int ret = task_run(task, &ctx);
+	task_destroy(task);
+	return ret;
 }

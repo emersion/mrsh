@@ -13,6 +13,10 @@ void task_init(struct task *task, const struct task_interface *impl) {
 }
 
 void task_destroy(struct task *task) {
+	if (task == NULL) {
+		return;
+	}
+
 	if (task->impl->destroy) {
 		task->impl->destroy(task);
 	} else {

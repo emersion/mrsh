@@ -42,8 +42,8 @@ static bool task_process_start(struct task *task, struct context *ctx) {
 
 	pid_t pid = fork();
 	if (pid < 0) {
-		fprintf(stderr, "failed to fork()\n");
-		return NULL;
+		fprintf(stderr, "failed to fork(): %s\n", strerror(errno));
+		return false;
 	} else if (pid == 0) {
 		int argc = 1 + sc->arguments.len;
 		char *argv[argc + 1];

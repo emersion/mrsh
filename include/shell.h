@@ -8,6 +8,7 @@ struct context {
 
 struct process {
 	pid_t pid;
+	bool finished;
 	int stat;
 };
 

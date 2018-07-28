@@ -1,6 +1,8 @@
 #include <assert.h>
 #include <errno.h>
+#include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <sys/wait.h>
 #include "shell.h"
 
@@ -38,6 +40,7 @@ int task_run(struct task *task, struct context *ctx) {
 			if (errno == EINTR) {
 				continue;
 			}
+			fprintf(stderr, "failed to waitpid(): %s\n", strerror(errno));
 			return -1;
 		}
 

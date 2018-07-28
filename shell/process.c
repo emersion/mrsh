@@ -8,11 +8,12 @@ static struct mrsh_array running_processes = {0};
 void process_init(struct process *proc, pid_t pid) {
 	mrsh_array_add(&running_processes, proc);
 	proc->pid = pid;
+	proc->finished = false;
 	proc->stat = 0;
 }
 
 int process_poll(struct process *proc) {
-	if (proc->stat == 0) {
+	if (!proc->finished) {
 		return -1;
 	}
 	return WEXITSTATUS(proc->stat);
@@ -36,6 +37,7 @@ void process_notify(pid_t pid, int stat) {
 	for (size_t i = 0; i < running_processes.len; ++i) {
 		struct process *proc = running_processes.data[i];
 		if (proc->pid == pid) {
+			proc->finished = true;
 			proc->stat = stat;
 			process_remove(proc);
 			break;

@@ -18,9 +18,9 @@ static int task_list_poll(struct task *task, struct context *ctx) {
 
 	int ret = 0;
 	while (tl->current < tl->children.len) {
-		struct task *current = tl->children.data[tl->current];
+		struct task *child = tl->children.data[tl->current];
 
-		ret = task_poll(current, ctx);
+		ret = task_poll(child, ctx);
 		if (ret < 0) {
 			return ret;
 		}

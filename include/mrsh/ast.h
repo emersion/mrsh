@@ -4,12 +4,18 @@
 #include <mrsh/array.h>
 #include <stdbool.h>
 
+/**
+ * An IO redirection operator. The format is: `[io_number]op filename`.
+ */
 struct mrsh_io_redirect {
-	int io_number;
-	char *op;
+	int io_number; // -1 if unspecified
+	char *op; // one of <, >, >|, >>, <&, <>
 	char *filename;
 };
 
+/**
+ * A variable assignment. The format is: `name=value`.
+ */
 struct mrsh_assignment {
 	char *name, *value;
 };
@@ -20,10 +26,18 @@ enum mrsh_command_type {
 	MRSH_IF_CLAUSE,
 };
 
+/**
+ * A command. It is either a simple command, a brace group or an if clause.
+ */
 struct mrsh_command {
 	enum mrsh_command_type type;
 };
 
+/**
+ * A simple command is a type of command. It contains a command name, followed
+ * by command arguments. It can also contain IO redirections and variable
+ * assignments.
+ */
 struct mrsh_simple_command {
 	struct mrsh_command command;
 	char *name;
@@ -32,11 +46,29 @@ struct mrsh_simple_command {
 	struct mrsh_array assignments; // struct mrsh_assignment *
 };
 
+/**
+ * A brace group is a type of command. It contains command lists and executes
+ * them in the current process environment. The format is:
+ * `{ compound-list ; }`.
+ */
 struct mrsh_brace_group {
 	struct mrsh_command command;
 	struct mrsh_array body; // struct mrsh_command_list *
 };
 
+/**
+ * An if clause is a type of command. The format is:
+ *
+ *   if compound-list
+ *   then
+ *       compound-list
+ *   [elif compound-list
+ *   then
+ *       compound-list] ...
+ *   [else
+ *       compound-list]
+ *   fi
+ */
 struct mrsh_if_clause {
 	struct mrsh_command command;
 	struct mrsh_array condition; // struct mrsh_command_list *
@@ -49,32 +81,51 @@ enum mrsh_node_type {
 	MRSH_NODE_BINOP,
 };
 
+/**
+ * A node is an AND-OR list component. It is either a pipeline or a binary
+ * operation.
+ */
 struct mrsh_node {
 	enum mrsh_node_type type;
 };
 
+/**
+ * A pipeline is a type of node which consists of multiple commands
+ * separated by `|`. The format is: `[!] command1 [ | command2 ...]`.
+ */
 struct mrsh_pipeline {
 	struct mrsh_node node;
 	struct mrsh_array commands; // struct mrsh_command *
-	bool bang;
+	bool bang; // whether the pipeline begins with `!`
 };
 
 enum mrsh_binop_type {
-	MRSH_BINOP_AND,
-	MRSH_BINOP_OR,
+	MRSH_BINOP_AND, // `&&`
+	MRSH_BINOP_OR, // `||`
 };
 
+/**
+ * A binary operation is a type of node which consists of multiple pipelines
+ * separated by `&&` or `||`.
+ */
 struct mrsh_binop {
 	struct mrsh_node node;
 	enum mrsh_binop_type type;
 	struct mrsh_node *left, *right;
 };
 
+/**
+ * A command list contains AND-OR lists separated by `;` (for sequential
+ * execution) or `&` (for asynchronous execution).
+ */
 struct mrsh_command_list {
 	struct mrsh_node *node;
-	bool ampersand;
+	bool ampersand; // whether the command list ends with `&`
 };
 
+/**
+ * A shell program. It contains command lists.
+ */
 struct mrsh_program {
 	struct mrsh_array body; // struct mrsh_command_list *
 };

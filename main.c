@@ -8,8 +8,6 @@
 #include <string.h>
 #include <unistd.h>
 
-static const char usage[] = "usage: mrsh [-n]\n";
-
 int main(int argc, char *argv[]) {
 	bool noexec = false;
 
@@ -35,7 +33,6 @@ int main(int argc, char *argv[]) {
 			input = stdin;
 			break;
 		default:
-			fprintf(stderr, usage);
 			exit(EXIT_FAILURE);
 		}
 	}

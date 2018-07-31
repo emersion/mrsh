@@ -33,7 +33,7 @@ int main(int argc, char *argv[]) {
 			input = stdin;
 			break;
 		default:
-			exit(EXIT_FAILURE);
+			return EXIT_FAILURE;
 		}
 	}
 
@@ -54,8 +54,9 @@ int main(int argc, char *argv[]) {
 			state.exit = EXIT_SUCCESS;
 			break;
 		}
-		mrsh_program_print(prog);
-		if (!noexec) {
+		if (noexec) {
+			mrsh_program_print(prog);
+		} else {
 			mrsh_run_program(&state, prog);
 		}
 		mrsh_program_destroy(prog);

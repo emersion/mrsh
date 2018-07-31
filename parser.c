@@ -20,6 +20,7 @@ struct mrsh_parser *mrsh_parser_create(FILE *f) {
 	state->peek = malloc(state->peek_cap);
 	state->peek_len = 0;
 
+	state->lineno = 1;
 	next_symbol(state);
 
 	return state;
@@ -74,6 +75,11 @@ static char parser_peek_char(struct mrsh_parser *state) {
 static size_t parser_read(struct mrsh_parser *state, char *buf, size_t size) {
 	size_t n = parser_peek(state, buf, size);
 	if (n > 0) {
+		for (size_t i = 0; i < n; ++i) {
+			if (state->peek[i] == '\n') {
+				++state->lineno;
+			}
+		}
 		memmove(state->peek, state->peek + n, state->peek_len - n);
 		state->peek_len -= n;
 	}
@@ -398,12 +404,18 @@ static bool token(struct mrsh_parser *state, const char *str) {
 	return true;
 }
 
+static void parser_set_error(struct mrsh_parser *state, const char *msg) {
+	fprintf(stderr, "mrsh:%d: syntax error: %s\n", state->lineno, msg);
+	exit(EXIT_FAILURE);
+}
+
 static void expect_token(struct mrsh_parser *state, const char *str) {
 	if (token(state, str)) {
 		return;
 	}
-	fprintf(stderr, "unexpected token: expected %s\n", str);
-	exit(EXIT_FAILURE);
+	char msg[128];
+	snprintf(msg, sizeof(msg), "unexpected token: expected %s\n", str);
+	parser_set_error(state, msg);
 }
 
 static void linebreak(struct mrsh_parser *state) {
@@ -620,11 +632,14 @@ static struct mrsh_command_list *term(struct mrsh_parser *state) {
 	return cmd;
 }
 
-static void compound_list(struct mrsh_parser *state, struct mrsh_array *cmds) {
+static bool compound_list(struct mrsh_parser *state, struct mrsh_array *cmds) {
 	linebreak(state);
 
 	struct mrsh_command_list *l = term(state);
-	assert(l != NULL);
+	if (l == NULL) {
+		parser_set_error(state, "expected a term");
+		return false;
+	}
 	mrsh_array_add(cmds, l);
 
 	while (true) {
@@ -634,6 +649,8 @@ static void compound_list(struct mrsh_parser *state, struct mrsh_array *cmds) {
 		}
 		mrsh_array_add(cmds, l);
 	}
+
+	return true;
 }
 
 static struct mrsh_brace_group *brace_group(struct mrsh_parser *state) {
@@ -732,6 +749,11 @@ static struct mrsh_pipeline *pipeline(struct mrsh_parser *state) {
 	while (token(state, "|")) {
 		linebreak(state);
 		struct mrsh_command *cmd = command(state);
+		if (cmd == NULL) {
+			// TODO: free commands
+			parser_set_error(state, "expected a command");
+			return NULL;
+		}
 		mrsh_array_add(&commands, cmd);
 	}
 
@@ -757,7 +779,11 @@ static struct mrsh_node *and_or(struct mrsh_parser *state) {
 
 	linebreak(state);
 	struct mrsh_node *node = and_or(state);
-	assert(node != NULL);
+	if (node == NULL) {
+		mrsh_node_destroy(&pl->node);
+		parser_set_error(state, "expected an AND-OR list");
+		return NULL;
+	}
 
 	struct mrsh_binop *binop = mrsh_binop_create(binop_type, &pl->node, node);
 	return &binop->node;
@@ -780,10 +806,13 @@ static struct mrsh_command_list *list(struct mrsh_parser *state) {
 	return cmd;
 }
 
-static void complete_command(struct mrsh_parser *state,
+static bool complete_command(struct mrsh_parser *state,
 		struct mrsh_array *cmds) {
 	struct mrsh_command_list *l = list(state);
-	assert(l != NULL);
+	if (l == NULL) {
+		parser_set_error(state, "expected a complete command");
+		return false;
+	}
 	mrsh_array_add(cmds, l);
 
 	while (true) {
@@ -793,6 +822,8 @@ static void complete_command(struct mrsh_parser *state,
 		}
 		mrsh_array_add(cmds, l);
 	}
+
+	return true;
 }
 
 static struct mrsh_program *program(struct mrsh_parser *state) {
@@ -803,14 +834,20 @@ static struct mrsh_program *program(struct mrsh_parser *state) {
 		return prog;
 	}
 
-	complete_command(state, &prog->body);
+	if (!complete_command(state, &prog->body)) {
+		mrsh_program_destroy(prog);
+		return NULL;
+	}
 
 	while (newline_list(state)) {
 		if (eof(state)) {
 			return prog;
 		}
 
-		complete_command(state, &prog->body);
+		if (!complete_command(state, &prog->body)) {
+			mrsh_program_destroy(prog);
+			return NULL;
+		}
 	}
 
 	linebreak(state);
@@ -831,7 +868,11 @@ struct mrsh_program *mrsh_parse_line(struct mrsh_parser *state) {
 		return NULL;
 	}
 
-	complete_command(state, &prog->body);
+	if (!complete_command(state, &prog->body)) {
+		mrsh_program_destroy(prog);
+		return NULL;
+	}
+
 	return prog;
 }
 

@@ -1,7 +1,8 @@
 #include <assert.h>
-#include <mrsh/ast.h>
 #include <stdbool.h>
 #include <stdlib.h>
+
+#include "ast.h"
 
 void mrsh_io_redirect_destroy(struct mrsh_io_redirect *redir) {
 	if (redir == NULL) {
@@ -21,7 +22,7 @@ void mrsh_assignment_destroy(struct mrsh_assignment *assign) {
 	free(assign);
 }
 
-static void mrsh_command_list_array_finish(struct mrsh_array *cmds) {
+void command_list_array_finish(struct mrsh_array *cmds) {
 	for (size_t i = 0; i < cmds->len; ++i) {
 		struct mrsh_command_list *l = cmds->data[i];
 		mrsh_command_list_destroy(l);
@@ -57,13 +58,13 @@ void mrsh_command_destroy(struct mrsh_command *cmd) {
 		return;
 	case MRSH_BRACE_GROUP:;
 		struct mrsh_brace_group *bg = mrsh_command_get_brace_group(cmd);
-		mrsh_command_list_array_finish(&bg->body);
+		command_list_array_finish(&bg->body);
 		free(bg);
 		return;
 	case MRSH_IF_CLAUSE:;
 		struct mrsh_if_clause *ic = mrsh_command_get_if_clause(cmd);
-		mrsh_command_list_array_finish(&ic->condition);
-		mrsh_command_list_array_finish(&ic->body);
+		command_list_array_finish(&ic->condition);
+		command_list_array_finish(&ic->body);
 		mrsh_command_destroy(ic->else_part);
 		free(ic);
 		return;
@@ -110,7 +111,7 @@ void mrsh_program_destroy(struct mrsh_program *prog) {
 		return;
 	}
 
-	mrsh_command_list_array_finish(&prog->body);
+	command_list_array_finish(&prog->body);
 	free(prog);
 }
 

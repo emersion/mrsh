@@ -7,6 +7,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "ast.h"
 #include "parser.h"
 
 static void next_symbol(struct mrsh_parser *state);
@@ -409,13 +410,14 @@ static void parser_set_error(struct mrsh_parser *state, const char *msg) {
 	exit(EXIT_FAILURE);
 }
 
-static void expect_token(struct mrsh_parser *state, const char *str) {
+static bool expect_token(struct mrsh_parser *state, const char *str) {
 	if (token(state, str)) {
-		return;
+		return true;
 	}
 	char msg[128];
 	snprintf(msg, sizeof(msg), "unexpected token: expected %s\n", str);
 	parser_set_error(state, msg);
+	return false;
 }
 
 static void linebreak(struct mrsh_parser *state) {
@@ -632,7 +634,8 @@ static struct mrsh_command_list *term(struct mrsh_parser *state) {
 	return cmd;
 }
 
-static bool compound_list(struct mrsh_parser *state, struct mrsh_array *cmds) {
+static bool expect_compound_list(struct mrsh_parser *state,
+		struct mrsh_array *cmds) {
 	linebreak(state);
 
 	struct mrsh_command_list *l = term(state);
@@ -659,21 +662,35 @@ static struct mrsh_brace_group *brace_group(struct mrsh_parser *state) {
 	}
 
 	struct mrsh_array body = {0};
-	compound_list(state, &body);
+	if (!expect_compound_list(state, &body)) {
+		return NULL;
+	}
 
-	expect_token(state, "}");
+	if (!expect_token(state, "}")) {
+		command_list_array_finish(&body);
+		return NULL;
+	}
+
 	return mrsh_brace_group_create(&body);
 }
 
 static struct mrsh_command *else_part(struct mrsh_parser *state) {
 	if (token(state, "elif")) {
 		struct mrsh_array cond = {0};
-		compound_list(state, &cond);
+		if (!expect_compound_list(state, &cond)) {
+			return NULL;
+		}
 
-		expect_token(state, "then");
+		if (!expect_token(state, "then")) {
+			command_list_array_finish(&cond);
+			return NULL;
+		}
 
 		struct mrsh_array body = {0};
-		compound_list(state, &body);
+		if (!expect_compound_list(state, &body)) {
+			command_list_array_finish(&cond);
+			return NULL;
+		}
 
 		struct mrsh_command *ep = else_part(state);
 
@@ -683,7 +700,9 @@ static struct mrsh_command *else_part(struct mrsh_parser *state) {
 
 	if (token(state, "else")) {
 		struct mrsh_array body = {0};
-		compound_list(state, &body);
+		if (!expect_compound_list(state, &body)) {
+			return NULL;
+		}
 
 		struct mrsh_brace_group *bg = mrsh_brace_group_create(&body);
 		return &bg->command;
@@ -698,18 +717,34 @@ static struct mrsh_if_clause *if_clause(struct mrsh_parser *state) {
 	}
 
 	struct mrsh_array cond = {0};
-	compound_list(state, &cond);
+	if (!expect_compound_list(state, &cond)) {
+		goto error_cond;
+	}
 
-	expect_token(state, "then");
+	if (!expect_token(state, "then")) {
+		goto error_cond;
+	}
 
 	struct mrsh_array body = {0};
-	compound_list(state, &body);
+	if (!expect_compound_list(state, &body)) {
+		goto error_body;
+	}
 
 	struct mrsh_command *ep = else_part(state);
 
-	expect_token(state, "fi");
+	if (!expect_token(state, "fi")) {
+		goto error_else_part;
+	}
 
 	return mrsh_if_clause_create(&cond, &body, ep);
+
+error_else_part:
+	mrsh_command_destroy(ep);
+error_body:
+	command_list_array_finish(&body);
+error_cond:
+	command_list_array_finish(&cond);
+	return NULL;
 }
 
 static struct mrsh_command *command(struct mrsh_parser *state) {
@@ -806,7 +841,7 @@ static struct mrsh_command_list *list(struct mrsh_parser *state) {
 	return cmd;
 }
 
-static bool complete_command(struct mrsh_parser *state,
+static bool expect_complete_command(struct mrsh_parser *state,
 		struct mrsh_array *cmds) {
 	struct mrsh_command_list *l = list(state);
 	if (l == NULL) {
@@ -834,7 +869,7 @@ static struct mrsh_program *program(struct mrsh_parser *state) {
 		return prog;
 	}
 
-	if (!complete_command(state, &prog->body)) {
+	if (!expect_complete_command(state, &prog->body)) {
 		mrsh_program_destroy(prog);
 		return NULL;
 	}
@@ -844,7 +879,7 @@ static struct mrsh_program *program(struct mrsh_parser *state) {
 			return prog;
 		}
 
-		if (!complete_command(state, &prog->body)) {
+		if (!expect_complete_command(state, &prog->body)) {
 			mrsh_program_destroy(prog);
 			return NULL;
 		}
@@ -868,7 +903,7 @@ struct mrsh_program *mrsh_parse_line(struct mrsh_parser *state) {
 		return NULL;
 	}
 
-	if (!complete_command(state, &prog->body)) {
+	if (!expect_complete_command(state, &prog->body)) {
 		mrsh_program_destroy(prog);
 		return NULL;
 	}

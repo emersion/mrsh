@@ -584,17 +584,19 @@ static bool cmd_suffix(struct mrsh_parser *state,
 static struct mrsh_simple_command *simple_command(struct mrsh_parser *state) {
 	struct mrsh_simple_command cmd = {0};
 
+	bool has_prefix = false;
 	while (cmd_prefix(state, &cmd)) {
-		// This space is intentionally left blank
+		has_prefix = true;
 	}
 
+	// TODO: alias substitution
 	cmd.name = word(state, true);
-	if (cmd.name == NULL) {
+	if (cmd.name == NULL && !has_prefix) {
 		return NULL;
-	}
-
-	while (cmd_suffix(state, &cmd)) {
-		// This space is intentionally left blank
+	} else if (cmd.name != NULL) {
+		while (cmd_suffix(state, &cmd)) {
+			// This space is intentionally left blank
+		}
 	}
 
 	return mrsh_simple_command_create(cmd.name, &cmd.arguments,

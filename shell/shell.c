@@ -6,6 +6,11 @@ void mrsh_state_init(struct mrsh_state *state) {
 }
 
 static struct task *handle_simple_command(struct mrsh_simple_command *sc) {
+	if (sc->name == NULL) {
+		// TODO: task that sets variable
+		return task_list_create();
+	}
+
 	struct task *task = task_builtin_create(sc);
 	if (task != NULL) {
 		return task;

@@ -40,7 +40,7 @@ struct mrsh_command {
  */
 struct mrsh_simple_command {
 	struct mrsh_command command;
-	char *name;
+	char *name; // can be NULL if it contains only assignments
 	struct mrsh_array arguments; // char *
 	struct mrsh_array io_redirects; // struct mrsh_io_redirect *
 	struct mrsh_array assignments; // struct mrsh_assignment *

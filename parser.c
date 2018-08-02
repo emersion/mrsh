@@ -315,8 +315,14 @@ static struct mrsh_token *word(struct mrsh_parser *state, bool no_keyword) {
 
 	next_symbol(state);
 
-	struct mrsh_token_list *tl = mrsh_token_list_create(&children, false);
-	return &tl->token;
+	if (children.len == 1) {
+		struct mrsh_token *token = children.data[0];
+		mrsh_array_finish(&children); // TODO: don't allocate this array
+		return token;
+	} else {
+		struct mrsh_token_list *tl = mrsh_token_list_create(&children, false);
+		return &tl->token;
+	}
 }
 
 // See section 2.3 Token Recognition

@@ -22,35 +22,109 @@ static void print_prefix(const char *prefix, bool last) {
 	printf("%s%s", prefix, last ? L_LAST : L_VAL);
 }
 
-static void print_io_redirect(struct mrsh_io_redirect *redir) {
-	printf("io_redirect %d %s %s\n", redir->io_number, redir->op, redir->filename);
+static void print_token(struct mrsh_token *token, const char *prefix) {
+	switch (token->type) {
+	case MRSH_TOKEN_STRING:;
+		struct mrsh_token_string *ts = mrsh_token_get_string(token);
+		assert(ts != NULL);
+		printf("token_string%s %s\n",
+			ts->single_quoted ? " (quoted)" : "", ts->str);
+		break;
+	case MRSH_TOKEN_LIST:;
+		struct mrsh_token_list *tl = mrsh_token_get_list(token);
+		assert(tl != NULL);
+		printf("token_list%s\n", tl->double_quoted ? " (quoted)" : "");
+
+		for (size_t i = 0; i < tl->children.len; ++i) {
+			struct mrsh_token *child = tl->children.data[i];
+			bool last = i == tl->children.len - 1;
+
+			char sub_prefix[make_sub_prefix(prefix, last, NULL)];
+			make_sub_prefix(prefix, last, sub_prefix);
+
+			print_prefix(prefix, last);
+			print_token(child, sub_prefix);
+		}
+		break;
+	}
 }
 
-static void print_assignment(struct mrsh_assignment *assign) {
-	printf("assignment %s=%s\n", assign->name, assign->value);
+static void print_io_redirect(struct mrsh_io_redirect *redir,
+		const char *prefix) {
+	printf("io_redirect\n");
+
+	print_prefix(prefix, false);
+	printf("io_number %d\n", redir->io_number);
+
+	print_prefix(prefix, false);
+	printf("op %s\n", redir->op);
+
+	char sub_prefix[make_sub_prefix(prefix, true, NULL)];
+	make_sub_prefix(prefix, true, sub_prefix);
+
+	print_prefix(prefix, true);
+	printf("filename ─ ");
+	print_token(redir->filename, sub_prefix);
+}
+
+static void print_assignment(struct mrsh_assignment *assign,
+		const char *prefix) {
+	printf("assignment\n");
+
+	print_prefix(prefix, false);
+	printf("name %s\n", assign->name);
+
+	char sub_prefix[make_sub_prefix(prefix, true, NULL)];
+	make_sub_prefix(prefix, true, sub_prefix);
+
+	print_prefix(prefix, true);
+	printf("value ─ ");
+	print_token(assign->value, sub_prefix);
 }
 
 static void print_simple_command(struct mrsh_simple_command *cmd,
 		const char *prefix) {
-	printf("command %s", cmd->name);
+	printf("simple_command\n");
+
+	bool last = cmd->arguments.len == 0 && cmd->io_redirects.len == 0
+		&& cmd->assignments.len == 0;
+	char sub_prefix[make_sub_prefix(prefix, last, NULL)];
+	make_sub_prefix(prefix, last, sub_prefix);
+
+	print_prefix(prefix, last);
+	printf("name ─ ");
+	print_token(cmd->name, sub_prefix);
+
 	for (size_t i = 0; i < cmd->arguments.len; ++i) {
-		char *arg = cmd->arguments.data[i];
-		printf(" %s", arg);
+		struct mrsh_token *arg = cmd->arguments.data[i];
+		bool last = i == cmd->arguments.len - 1 && cmd->io_redirects.len == 0
+			&& cmd->assignments.len == 0;
+
+		make_sub_prefix(prefix, last, sub_prefix);
+
+		print_prefix(prefix, last);
+		printf("argument %zu ─ ", i + 1);
+		print_token(arg, sub_prefix);
 	}
-	printf("\n");
 
 	for (size_t i = 0; i < cmd->io_redirects.len; ++i) {
 		struct mrsh_io_redirect *redir = cmd->io_redirects.data[i];
 		bool last = i == cmd->io_redirects.len - 1 && cmd->assignments.len == 0;
+
+		make_sub_prefix(prefix, last, sub_prefix);
+
 		print_prefix(prefix, last);
-		print_io_redirect(redir);
+		print_io_redirect(redir, sub_prefix);
 	}
 
 	for (size_t i = 0; i < cmd->assignments.len; ++i) {
 		struct mrsh_assignment *assign = cmd->assignments.data[i];
 		bool last = i == cmd->assignments.len - 1;
+
+		make_sub_prefix(prefix, last, sub_prefix);
+
 		print_prefix(prefix, last);
-		print_assignment(assign);
+		print_assignment(assign, sub_prefix);
 	}
 }
 

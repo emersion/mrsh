@@ -1,15 +1,43 @@
 #include <assert.h>
 #include <stdbool.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "ast.h"
+#include "buffer.h"
+
+void mrsh_token_destroy(struct mrsh_token *token) {
+	if (token == NULL) {
+		return;
+	}
+
+	switch (token->type) {
+	case MRSH_TOKEN_STRING:;
+		struct mrsh_token_string *ts = mrsh_token_get_string(token);
+		assert(ts != NULL);
+		free(ts->str);
+		free(ts);
+		return;
+	case MRSH_TOKEN_LIST:;
+		struct mrsh_token_list *tl = mrsh_token_get_list(token);
+		assert(tl != NULL);
+		for (size_t i = 0; i < tl->children.len; ++i) {
+			struct mrsh_token *child = tl->children.data[i];
+			mrsh_token_destroy(child);
+		}
+		mrsh_array_finish(&tl->children);
+		free(tl);
+		return;
+	}
+	assert(false);
+}
 
 void mrsh_io_redirect_destroy(struct mrsh_io_redirect *redir) {
 	if (redir == NULL) {
 		return;
 	}
 	free(redir->op);
-	free(redir->filename);
+	mrsh_token_destroy(redir->filename);
 	free(redir);
 }
 
@@ -18,7 +46,7 @@ void mrsh_assignment_destroy(struct mrsh_assignment *assign) {
 		return;
 	}
 	free(assign->name);
-	free(assign->value);
+	mrsh_token_destroy(assign->value);
 	free(assign);
 }
 
@@ -38,10 +66,10 @@ void mrsh_command_destroy(struct mrsh_command *cmd) {
 	switch (cmd->type) {
 	case MRSH_SIMPLE_COMMAND:;
 		struct mrsh_simple_command *sc = mrsh_command_get_simple_command(cmd);
-		free(sc->name);
+		mrsh_token_destroy(sc->name);
 		for (size_t i = 0; i < sc->arguments.len; ++i) {
-			char *arg = sc->arguments.data[i];
-			free(arg);
+			struct mrsh_token *arg = sc->arguments.data[i];
+			mrsh_token_destroy(arg);
 		}
 		mrsh_array_finish(&sc->arguments);
 		for (size_t i = 0; i < sc->io_redirects.len; ++i) {
@@ -115,7 +143,39 @@ void mrsh_program_destroy(struct mrsh_program *prog) {
 	free(prog);
 }
 
-struct mrsh_simple_command *mrsh_simple_command_create(char *name,
+struct mrsh_token_string *mrsh_token_string_create(char *str,
+		bool single_quoted) {
+	struct mrsh_token_string *ts = calloc(1, sizeof(struct mrsh_token_string));
+	ts->token.type = MRSH_TOKEN_STRING;
+	ts->str = str;
+	ts->single_quoted = single_quoted;
+	return ts;
+}
+
+struct mrsh_token_list *mrsh_token_list_create(struct mrsh_array *children,
+		bool double_quoted) {
+	struct mrsh_token_list *tl = calloc(1, sizeof(struct mrsh_token_list));
+	tl->token.type = MRSH_TOKEN_LIST;
+	tl->children = *children;
+	tl->double_quoted = double_quoted;
+	return tl;
+}
+
+struct mrsh_token_string *mrsh_token_get_string(struct mrsh_token *token) {
+	if (token->type != MRSH_TOKEN_STRING) {
+		return NULL;
+	}
+	return (struct mrsh_token_string *)token;
+}
+
+struct mrsh_token_list *mrsh_token_get_list(struct mrsh_token *token) {
+	if (token->type != MRSH_TOKEN_LIST) {
+		return NULL;
+	}
+	return (struct mrsh_token_list *)token;
+}
+
+struct mrsh_simple_command *mrsh_simple_command_create(struct mrsh_token *name,
 		struct mrsh_array *arguments, struct mrsh_array *io_redirects,
 		struct mrsh_array *assignments) {
 	struct mrsh_simple_command *cmd =
@@ -199,4 +259,30 @@ struct mrsh_binop *mrsh_node_get_binop(struct mrsh_node *node) {
 		return NULL;
 	}
 	return (struct mrsh_binop *)node;
+}
+
+static void token_str(struct mrsh_token *token, struct buffer *buf) {
+	switch (token->type) {
+	case MRSH_TOKEN_STRING:;
+		struct mrsh_token_string *ts = mrsh_token_get_string(token);
+		assert(ts != NULL);
+		buffer_append(buf, ts->str, strlen(ts->str));
+		return;
+	case MRSH_TOKEN_LIST:;
+		struct mrsh_token_list *tl = mrsh_token_get_list(token);
+		assert(tl != NULL);
+		for (size_t i = 0; i < tl->children.len; ++i) {
+			struct mrsh_token *child = tl->children.data[i];
+			token_str(child, buf);
+		}
+		return;
+	}
+	assert(false);
+}
+
+char *mrsh_token_str(struct mrsh_token *token) {
+	struct buffer buf = {0};
+	token_str(token, &buf);
+	buffer_append_char(&buf, '\0');
+	return buffer_steal(&buf);
 }

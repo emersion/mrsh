@@ -47,13 +47,18 @@ static bool task_process_start(struct task *task, struct context *ctx) {
 	} else if (pid == 0) {
 		int argc = 1 + sc->arguments.len;
 		char *argv[argc + 1];
-		argv[0] = sc->name;
-		memcpy(argv + 1, sc->arguments.data, sc->arguments.len * sizeof(void *));
+		argv[0] = mrsh_token_str(sc->name);
+		for (size_t i = 0; i < sc->arguments.len; ++i) {
+			struct mrsh_token *token = sc->arguments.data[i];
+			argv[i + 1] = mrsh_token_str(token);
+		}
 		argv[argc] = NULL;
 
 		for (size_t i = 0; i < sc->assignments.len; ++i) {
 			struct mrsh_assignment *assign = sc->assignments.data[i];
-			setenv(assign->name, assign->value, true);
+			char *value = mrsh_token_str(assign->value);
+			setenv(assign->name, value, true);
+			free(value);
 		}
 
 		if (ctx->stdin_fileno >= 0) {
@@ -67,37 +72,41 @@ static bool task_process_start(struct task *task, struct context *ctx) {
 			struct mrsh_io_redirect *redir = sc->io_redirects.data[i];
 
 			// TODO: filename expansions
+			char *filename = mrsh_token_str(redir->filename);
+
 			int fd, default_redir_fd;
 			errno = 0;
 			if (strcmp(redir->op, "<") == 0) {
-				fd = open(redir->filename, O_RDONLY);
+				fd = open(filename, O_RDONLY);
 				default_redir_fd = STDIN_FILENO;
 			} else if (strcmp(redir->op, ">") == 0 ||
 					strcmp(redir->op, ">|") == 0) {
-				fd = open(redir->filename, O_WRONLY | O_CREAT | O_TRUNC, 0644);
+				fd = open(filename, O_WRONLY | O_CREAT | O_TRUNC, 0644);
 				default_redir_fd = STDOUT_FILENO;
 			} else if (strcmp(redir->op, ">>") == 0) {
-				fd = open(redir->filename, O_WRONLY | O_CREAT | O_APPEND, 0644);
+				fd = open(filename, O_WRONLY | O_CREAT | O_APPEND, 0644);
 				default_redir_fd = STDOUT_FILENO;
 			} else if (strcmp(redir->op, "<>") == 0) {
-				fd = open(redir->filename, O_RDWR | O_CREAT, 0644);
+				fd = open(filename, O_RDWR | O_CREAT, 0644);
 				default_redir_fd = STDIN_FILENO;
 			} else if (strcmp(redir->op, "<&") == 0) {
 				// TODO: parse "-"
-				fd = parse_fd(redir->filename);
+				fd = parse_fd(filename);
 				default_redir_fd = STDIN_FILENO;
 			} else if (strcmp(redir->op, ">&") == 0) {
 				// TODO: parse "-"
-				fd = parse_fd(redir->filename);
+				fd = parse_fd(filename);
 				default_redir_fd = STDOUT_FILENO;
 			} else {
 				assert(false);
 			}
 			if (fd < 0) {
-				fprintf(stderr, "cannot open %s: %s\n", redir->filename,
+				fprintf(stderr, "cannot open %s: %s\n", filename,
 					strerror(errno));
 				exit(EXIT_FAILURE);
 			}
+
+			free(filename);
 
 			int redir_fd = redir->io_number;
 			if (redir_fd < 0) {
@@ -114,10 +123,10 @@ static bool task_process_start(struct task *task, struct context *ctx) {
 		}
 
 		errno = 0;
-		execvp(sc->name, argv);
+		execvp(argv[0], argv);
 
 		// Something went wrong
-		fprintf(stderr, "%s: %s\n", sc->name, strerror(errno));
+		fprintf(stderr, "%s: %s\n", argv[0], strerror(errno));
 		exit(127);
 	} else {
 		if (ctx->stdin_fileno >= 0) {

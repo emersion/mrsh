@@ -14,8 +14,11 @@ static int task_builtin_poll(struct task *task, struct context *ctx) {
 
 	int argc = 1 + sc->arguments.len;
 	char *argv[argc + 1];
-	argv[0] = sc->name;
-	memcpy(argv + 1, sc->arguments.data, sc->arguments.len * sizeof(void *));
+	argv[0] = mrsh_token_str(sc->name);
+	for (size_t i = 0; i < sc->arguments.len; ++i) {
+		struct mrsh_token *token = sc->arguments.data[i];
+		argv[i + 1] = mrsh_token_str(token);
+	}
 	argv[argc] = NULL;
 
 	// TODO: redirections
@@ -31,7 +34,10 @@ static const struct task_interface task_builtin_impl = {
 };
 
 struct task *task_builtin_create(struct mrsh_simple_command *sc) {
-	if (!mrsh_has_builtin(sc->name)) {
+	char *name = mrsh_token_str(sc->name);
+	bool ok = mrsh_has_builtin(name);
+	free(name);
+	if (!ok) {
 		return NULL;
 	}
 

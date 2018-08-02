@@ -4,20 +4,53 @@
 #include <mrsh/array.h>
 #include <stdbool.h>
 
+enum mrsh_token_type {
+	MRSH_TOKEN_STRING,
+	MRSH_TOKEN_LIST,
+};
+
+/**
+ * A token can be:
+ * - An unquoted or a single-quoted string
+ * - An unquoted or a double-quoted list of tokens
+ */
+struct mrsh_token {
+	enum mrsh_token_type type;
+};
+
+/**
+ * A string token is a type of token. It can be unquoted or single-quoted.
+ */
+struct mrsh_token_string {
+	struct mrsh_token token;
+	char *str;
+	bool single_quoted;
+};
+
+/**
+ * A token list is a type of token. It can be unquoted or double-quoted.
+ */
+struct mrsh_token_list {
+	struct mrsh_token token;
+	struct mrsh_array children; // struct mrsh_token *
+	bool double_quoted;
+};
+
 /**
  * An IO redirection operator. The format is: `[io_number]op filename`.
  */
 struct mrsh_io_redirect {
 	int io_number; // -1 if unspecified
 	char *op; // one of <, >, >|, >>, <&, <>
-	char *filename;
+	struct mrsh_token *filename;
 };
 
 /**
  * A variable assignment. The format is: `name=value`.
  */
 struct mrsh_assignment {
-	char *name, *value;
+	char *name;
+	struct mrsh_token *value;
 };
 
 enum mrsh_command_type {
@@ -40,8 +73,8 @@ struct mrsh_command {
  */
 struct mrsh_simple_command {
 	struct mrsh_command command;
-	char *name; // can be NULL if it contains only assignments
-	struct mrsh_array arguments; // char *
+	struct mrsh_token *name; // can be NULL if it contains only assignments
+	struct mrsh_array arguments; // struct mrsh_token *
 	struct mrsh_array io_redirects; // struct mrsh_io_redirect *
 	struct mrsh_array assignments; // struct mrsh_assignment *
 };
@@ -130,13 +163,20 @@ struct mrsh_program {
 	struct mrsh_array body; // struct mrsh_command_list *
 };
 
+void mrsh_token_destroy(struct mrsh_token *token);
 void mrsh_io_redirect_destroy(struct mrsh_io_redirect *redir);
 void mrsh_assignment_destroy(struct mrsh_assignment *assign);
 void mrsh_command_destroy(struct mrsh_command *cmd);
 void mrsh_node_destroy(struct mrsh_node *node);
 void mrsh_command_list_destroy(struct mrsh_command_list *l);
 void mrsh_program_destroy(struct mrsh_program *prog);
-struct mrsh_simple_command *mrsh_simple_command_create(char *name,
+struct mrsh_token_string *mrsh_token_string_create(char *str,
+	bool single_quoted);
+struct mrsh_token_list *mrsh_token_list_create(struct mrsh_array *children,
+	bool double_quoted);
+struct mrsh_token_string *mrsh_token_get_string(struct mrsh_token *token);
+struct mrsh_token_list *mrsh_token_get_list(struct mrsh_token *token);
+struct mrsh_simple_command *mrsh_simple_command_create(struct mrsh_token *name,
 	struct mrsh_array *arguments, struct mrsh_array *io_redirects,
 	struct mrsh_array *assignments);
 struct mrsh_brace_group *mrsh_brace_group_create(struct mrsh_array *body);
@@ -154,6 +194,7 @@ struct mrsh_binop *mrsh_binop_create(enum mrsh_binop_type type,
 struct mrsh_pipeline *mrsh_node_get_pipeline(struct mrsh_node *node);
 struct mrsh_binop *mrsh_node_get_binop(struct mrsh_node *node);
 
+char *mrsh_token_str(struct mrsh_token *token);
 void mrsh_program_print(struct mrsh_program *prog);
 
 #endif

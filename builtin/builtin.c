@@ -12,7 +12,9 @@ struct builtin_map {
 
 static struct builtin_map builtins[] = {
 	// Keep alpha sorted
+	{ ":", builtin_colon },
 	{ "exit", builtin_exit },
+	{ "times", builtin_times },
 };
 
 static int builtin_compare(const void *_a, const void *_b) {

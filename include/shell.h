@@ -15,6 +15,18 @@ struct process {
 struct task;
 
 struct task_interface {
+	/**
+	 * Request a status update from the task. This starts or continues it.
+	 * `poll` must return without blocking with the current task's status:
+	 *
+	 * - TASK_STATUS_WAIT in case the task is pending
+	 * - TASK_STATUS_ERROR in case a fatal error occured
+	 * - A positive (or null) code in case the task finished
+	 *
+	 * `poll` will be called over and over until the task goes out of the
+	 * TASK_STATUS_WAIT state. Once the task is no longer in progress, the
+	 * returned state is cached and `poll` won't be called anymore..
+	 */
 	int (*poll)(struct task *task, struct context *ctx);
 	void (*destroy)(struct task *task);
 };
@@ -24,7 +36,7 @@ struct task_interface {
 
 struct task {
 	const struct task_interface *impl;
-	int status;
+	int status; // last task status
 };
 
 void process_init(struct process *process, pid_t pid);

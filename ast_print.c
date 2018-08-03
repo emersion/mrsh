@@ -30,6 +30,28 @@ static void print_token(struct mrsh_token *token, const char *prefix) {
 		printf("token_string%s %s\n",
 			ts->single_quoted ? " (quoted)" : "", ts->str);
 		break;
+	case MRSH_TOKEN_PARAMETER:;
+		struct mrsh_token_parameter *tp = mrsh_token_get_parameter(token);
+		assert(tp != NULL);
+		printf("token_parameter\n");
+
+		print_prefix(prefix, tp->op == NULL && tp->arg == NULL);
+		printf("name %s\n", tp->name);
+
+		if (tp->op != NULL) {
+			print_prefix(prefix, tp->arg == NULL);
+			printf("op %s\n", tp->op);
+		}
+
+		if (tp->arg != NULL) {
+			char sub_prefix[make_sub_prefix(prefix, true, NULL)];
+			make_sub_prefix(prefix, true, sub_prefix);
+
+			print_prefix(prefix, true);
+			printf("arg ─ ");
+			print_token(tp->arg, sub_prefix);
+		}
+		break;
 	case MRSH_TOKEN_LIST:;
 		struct mrsh_token_list *tl = mrsh_token_get_list(token);
 		assert(tl != NULL);

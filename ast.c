@@ -18,6 +18,14 @@ void mrsh_token_destroy(struct mrsh_token *token) {
 		free(ts->str);
 		free(ts);
 		return;
+	case MRSH_TOKEN_PARAMETER:;
+		struct mrsh_token_parameter *tp = mrsh_token_get_parameter(token);
+		assert(tp != NULL);
+		free(tp->name);
+		free(tp->op);
+		mrsh_token_destroy(tp->arg);
+		free(tp);
+		return;
 	case MRSH_TOKEN_LIST:;
 		struct mrsh_token_list *tl = mrsh_token_get_list(token);
 		assert(tl != NULL);
@@ -152,6 +160,17 @@ struct mrsh_token_string *mrsh_token_string_create(char *str,
 	return ts;
 }
 
+struct mrsh_token_parameter *mrsh_token_parameter_create(char *name, char *op,
+		struct mrsh_token *arg) {
+	struct mrsh_token_parameter *tp =
+		calloc(1, sizeof(struct mrsh_token_parameter));
+	tp->token.type = MRSH_TOKEN_PARAMETER;
+	tp->name = name;
+	tp->op = op;
+	tp->arg = arg;
+	return tp;
+}
+
 struct mrsh_token_list *mrsh_token_list_create(struct mrsh_array *children,
 		bool double_quoted) {
 	struct mrsh_token_list *tl = calloc(1, sizeof(struct mrsh_token_list));
@@ -166,6 +185,13 @@ struct mrsh_token_string *mrsh_token_get_string(struct mrsh_token *token) {
 		return NULL;
 	}
 	return (struct mrsh_token_string *)token;
+}
+
+struct mrsh_token_parameter *mrsh_token_get_parameter(struct mrsh_token *token) {
+	if (token->type != MRSH_TOKEN_PARAMETER) {
+		return NULL;
+	}
+	return (struct mrsh_token_parameter *)token;
 }
 
 struct mrsh_token_list *mrsh_token_get_list(struct mrsh_token *token) {
@@ -268,6 +294,8 @@ static void token_str(struct mrsh_token *token, struct buffer *buf) {
 		assert(ts != NULL);
 		buffer_append(buf, ts->str, strlen(ts->str));
 		return;
+	case MRSH_TOKEN_PARAMETER:
+		assert(false);
 	case MRSH_TOKEN_LIST:;
 		struct mrsh_token_list *tl = mrsh_token_get_list(token);
 		assert(tl != NULL);

@@ -6,6 +6,7 @@
 
 enum mrsh_token_type {
 	MRSH_TOKEN_STRING,
+	MRSH_TOKEN_PARAMETER,
 	MRSH_TOKEN_LIST,
 };
 
@@ -25,6 +26,17 @@ struct mrsh_token_string {
 	struct mrsh_token token;
 	char *str;
 	bool single_quoted;
+};
+
+/**
+ * A token parameter is a type of token candidate for parameter expansion. The
+ * format is either `$name` or `${expression}`.
+ */
+struct mrsh_token_parameter {
+	struct mrsh_token token;
+	char *name;
+	char *op; // can be NULL
+	struct mrsh_token *arg; // can be NULL
 };
 
 /**
@@ -172,9 +184,12 @@ void mrsh_command_list_destroy(struct mrsh_command_list *l);
 void mrsh_program_destroy(struct mrsh_program *prog);
 struct mrsh_token_string *mrsh_token_string_create(char *str,
 	bool single_quoted);
+struct mrsh_token_parameter *mrsh_token_parameter_create(char *name, char *op,
+	struct mrsh_token *arg);
 struct mrsh_token_list *mrsh_token_list_create(struct mrsh_array *children,
 	bool double_quoted);
 struct mrsh_token_string *mrsh_token_get_string(struct mrsh_token *token);
+struct mrsh_token_parameter *mrsh_token_get_parameter(struct mrsh_token *token);
 struct mrsh_token_list *mrsh_token_get_list(struct mrsh_token *token);
 struct mrsh_simple_command *mrsh_simple_command_create(struct mrsh_token *name,
 	struct mrsh_array *arguments, struct mrsh_array *io_redirects,

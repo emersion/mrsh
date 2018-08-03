@@ -107,6 +107,11 @@ static bool is_operator_start(char c) {
 	}
 }
 
+static void parser_set_error(struct mrsh_parser *state, const char *msg) {
+	fprintf(stderr, "mrsh:%d: syntax error: %s\n", state->lineno, msg);
+	exit(EXIT_FAILURE);
+}
+
 static struct mrsh_token *single_quotes(struct mrsh_parser *state) {
 	char c = parser_read_char(state);
 	assert(c == '\'');
@@ -219,6 +224,26 @@ static size_t peek_token(struct mrsh_parser *state) {
 	}
 }
 
+static struct mrsh_token *parameter(struct mrsh_parser *state) {
+	char c = parser_read_char(state);
+	assert(c == '$');
+
+	size_t token_len = peek_token(state);
+	if (token_len == 0) {
+		// TODO: ${expression}
+		parser_set_error(state, "expected a parameter");
+		return NULL;
+	}
+
+	char *name = malloc(token_len + 1);
+	memcpy(name, state->peek, token_len);
+	name[token_len] = '\0';
+
+	struct mrsh_token_parameter *tp =
+		mrsh_token_parameter_create(name, NULL, NULL);
+	return &tp->token;
+}
+
 /**
  * Append a new string token to `children` with the contents of `buf`, and reset
  * `buf`.
@@ -273,7 +298,17 @@ static struct mrsh_token *word(struct mrsh_parser *state, bool no_keyword) {
 			break;
 		}
 
-		if (c == '$' || c == '`') {
+		if (c == '$') {
+			push_buffer_token_string(&children, &buf);
+			struct mrsh_token *t = parameter(state);
+			if (t == NULL) {
+				return NULL;
+			}
+			mrsh_array_add(&children, t);
+			continue;
+		}
+
+		if (c == '`') {
 			// TODO
 			fprintf(stderr, "not yet implemented\n");
 			exit(EXIT_FAILURE);
@@ -436,11 +471,6 @@ static bool token(struct mrsh_parser *state, const char *str) {
 	parser_read(state, NULL, len);
 	next_symbol(state);
 	return true;
-}
-
-static void parser_set_error(struct mrsh_parser *state, const char *msg) {
-	fprintf(stderr, "mrsh:%d: syntax error: %s\n", state->lineno, msg);
-	exit(EXIT_FAILURE);
 }
 
 static bool expect_token(struct mrsh_parser *state, const char *str) {

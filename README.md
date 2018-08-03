@@ -14,6 +14,13 @@ ninja -C build
 build/mrsh
 ```
 
+## Contributing
+
+Either [send GitHub pull requests][1] or [send patches on the mailing list][2].
+
 ## License
 
 MIT
+
+[1]: https://github.com/emersion/mrsh
+[2]: https://lists.sr.ht/%7Eemersion/public-inbox

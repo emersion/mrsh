@@ -27,6 +27,7 @@ executable(
 		'builtin/colon.c',
 		'builtin/exit.c',
 		'builtin/times.c',
+		'builtin/set.c',
 		'main.c',
 		'parser.c',
 		'shell/process.c',

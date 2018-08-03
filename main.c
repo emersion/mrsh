@@ -9,18 +9,18 @@
 #include <unistd.h>
 
 int main(int argc, char *argv[]) {
-	bool noexec = false;
-
 	struct mrsh_state state = {0};
 	mrsh_state_init(&state);
 
 	FILE *input = stdin;
 
+	// TODO: argument parsing should be handled by the set builtin
+
 	int opt;
 	while ((opt = getopt(argc, argv, "c:ns")) != -1) {
 		switch (opt) {
 		case 'n':
-			noexec = true;
+			state.options |= MRSH_OPT_NOEXEC;
 			break;
 		case 'c':
 			input = fmemopen(optarg, strlen(optarg), "r");
@@ -54,7 +54,7 @@ int main(int argc, char *argv[]) {
 			state.exit = EXIT_SUCCESS;
 			break;
 		}
-		if (noexec) {
+		if ((state.options & MRSH_OPT_NOEXEC)) {
 			mrsh_program_print(prog);
 		} else {
 			mrsh_run_program(&state, prog);

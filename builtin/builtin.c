@@ -14,6 +14,7 @@ static struct builtin_map builtins[] = {
 	// Keep alpha sorted
 	{ ":", builtin_colon },
 	{ "exit", builtin_exit },
+	{ "set", builtin_set },
 	{ "times", builtin_times },
 };
 

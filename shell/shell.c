@@ -1,8 +1,11 @@
 #include <assert.h>
+#include <unistd.h>
 #include "shell.h"
 
 void mrsh_state_init(struct mrsh_state *state) {
 	state->exit = -1;
+	state->interactive = isatty(STDIN_FILENO);
+	state->options = state->interactive ? MRSH_OPT_INTERACTIVE : 0;
 }
 
 static struct task *handle_simple_command(struct mrsh_simple_command *sc) {

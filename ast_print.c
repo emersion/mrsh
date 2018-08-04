@@ -108,14 +108,17 @@ static void print_simple_command(struct mrsh_simple_command *cmd,
 		const char *prefix) {
 	printf("simple_command\n");
 
-	bool last = cmd->arguments.len == 0 && cmd->io_redirects.len == 0
-		&& cmd->assignments.len == 0;
-	char sub_prefix[make_sub_prefix(prefix, last, NULL)];
-	make_sub_prefix(prefix, last, sub_prefix);
+	char sub_prefix[make_sub_prefix(prefix, false, NULL)];
 
-	print_prefix(prefix, last);
-	printf("name ─ ");
-	print_token(cmd->name, sub_prefix);
+	if (cmd->name != NULL) {
+		bool last = cmd->arguments.len == 0 && cmd->io_redirects.len == 0
+			&& cmd->assignments.len == 0;
+		make_sub_prefix(prefix, last, sub_prefix);
+
+		print_prefix(prefix, last);
+		printf("name ─ ");
+		print_token(cmd->name, sub_prefix);
+	}
 
 	for (size_t i = 0; i < cmd->arguments.len; ++i) {
 		struct mrsh_token *arg = cmd->arguments.data[i];

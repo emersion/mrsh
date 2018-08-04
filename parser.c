@@ -192,11 +192,11 @@ static struct mrsh_token *parameter(struct mrsh_parser *state) {
 	char c = parser_read_char(state);
 	assert(c == '$');
 
+	// TODO: ${expression}
+
 	size_t name_len = peek_name(state);
 	if (name_len == 0) {
-		// TODO: ${expression}
-		parser_set_error(state, "expected a parameter");
-		return NULL;
+		name_len = 1;
 	}
 
 	char *name = malloc(name_len + 1);
@@ -246,9 +246,6 @@ static struct mrsh_token *double_quotes(struct mrsh_parser *state) {
 		if (c == '$') {
 			push_buffer_token_string(&children, &buf);
 			struct mrsh_token *t = parameter(state);
-			if (t == NULL) {
-				return NULL;
-			}
 			mrsh_array_add(&children, t);
 			continue;
 		}

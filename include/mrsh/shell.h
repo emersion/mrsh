@@ -4,6 +4,7 @@
 #include <mrsh/ast.h>
 #include <mrsh/hashtable.h>
 #include <stdint.h>
+#include <stdio.h>
 
 enum mrsh_option {
 	// -a: When this option is on, the export attribute shall be set for each
@@ -59,6 +60,9 @@ enum mrsh_option {
 struct mrsh_state {
 	int exit;
 	uint32_t options; // enum mrsh_option
+	FILE *input;
+	char **argv;
+	int argc;
 	bool interactive;
 	struct mrsh_hashtable variables; // char *
 };

@@ -1,6 +1,7 @@
 #define _POSIX_C_SOURCE 200809L
 #include <assert.h>
 #include <stdlib.h>
+#include <stdio.h>
 #include <string.h>
 #include <unistd.h>
 #include <errno.h>
@@ -104,6 +105,24 @@ static bool task_token_command_start(struct task_token *tt,
 	}
 }
 
+static const char *parameter_get_value(struct mrsh_state *state, char *name) {
+	static char value[16];
+	char *end;
+	long lvalue = strtol(name, &end, 10);
+	// Special cases
+	if (strcmp(name, "#") == 0) {
+		sprintf(value, "%d", state->argc);
+		return value;
+	} else if (!end[0]) {
+		if (state->argc < lvalue) {
+			return NULL;
+		}
+		return state->argv[lvalue];
+	}
+	// User-set cases
+	return (const char *)mrsh_hashtable_get(&state->variables, name);
+}
+
 static int task_token_poll(struct task *task, struct context *ctx) {
 	struct task_token *tt = (struct task_token *)task;
 	struct mrsh_token *token = *tt->token_ptr;
@@ -114,8 +133,7 @@ static int task_token_poll(struct task *task, struct context *ctx) {
 	case MRSH_TOKEN_PARAMETER:;
 		struct mrsh_token_parameter *tp = mrsh_token_get_parameter(token);
 		assert(tp != NULL);
-		const char *value =
-			mrsh_hashtable_get(&ctx->state->variables, tp->name);
+		const char *value = parameter_get_value(ctx->state, tp->name);
 		if (value == NULL) {
 			value = "";
 		}

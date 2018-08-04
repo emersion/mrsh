@@ -1,3 +1,5 @@
+#define _POSIX_C_SOURCE 200809L
+#include <errno.h>
 #include <mrsh/builtin.h>
 #include <mrsh/shell.h>
 #include <stdbool.h>
@@ -50,8 +52,24 @@ static const struct option_map *find_long_option(const char *opt) {
 	return NULL;
 }
 
-int builtin_set(struct mrsh_state *state, int argc, char *argv[]) {
-	if (argc == 1) {
+static char **argv_dup(char *argv_0, int argc, char *argv[]) {
+	char **_argv = malloc((argc + 1) * sizeof(char *));
+	_argv[0] = argv_0;
+	for (int i = 1; i < argc; ++i) {
+		_argv[i] = strdup(argv[i - 1]);
+	}
+	return _argv;
+}
+
+static void argv_free(int argc, char **argv) {
+	for (int i = 0; i < argc; ++i) {
+		free(argv[i]);
+	}
+	free(argv);
+}
+
+int set(struct mrsh_state *state, int argc, char *argv[], bool cmdline) {
+	if (argc == 1 && !cmdline) {
 		// TODO: Print all shell variables
 		return EXIT_FAILURE;
 	}
@@ -61,6 +79,7 @@ int builtin_set(struct mrsh_state *state, int argc, char *argv[]) {
 	for (i = 1; i < argc; ++i) {
 		if (strcmp(argv[i], "--") == 0) {
 			force_positional = true;
+			++i;
 			break;
 		}
 		if (argv[i][0] != '-' && argv[i][0] != '+') {
@@ -71,7 +90,8 @@ int builtin_set(struct mrsh_state *state, int argc, char *argv[]) {
 			return EXIT_FAILURE;
 		}
 		const struct option_map *option;
-		if (argv[i][1] == 'o') {
+		switch (argv[i][1]) {
+		case 'o':
 			if (i + 1 == argc) {
 				fprintf(stderr, set_usage);
 				return EXIT_FAILURE;
@@ -88,25 +108,63 @@ int builtin_set(struct mrsh_state *state, int argc, char *argv[]) {
 			}
 			++i;
 			continue;
-		}
-		for (int j = 1; argv[i][j]; ++j) {
-			option = find_option(argv[i][j]);
-			if (!option) {
+		case 'c':
+			if (!cmdline) {
 				fprintf(stderr, set_usage);
 				return EXIT_FAILURE;
 			}
-			if (argv[i][0] == '-') {
-				state->options |= option->value;
-			} else {
-				state->options &= ~option->value;
+			state->input = fmemopen(argv[i + 1], strlen(argv[i + 1]), "r");
+			++i;
+			if (!state->input) {
+				fprintf(stderr, "fmemopen failed: %s", strerror(errno));
+				return EXIT_FAILURE;
 			}
+			break;
+		case 's':
+			state->input = stdin;
+			break;
+		default:
+			for (int j = 1; argv[i][j]; ++j) {
+				option = find_option(argv[i][j]);
+				if (!option) {
+					fprintf(stderr, set_usage);
+					return EXIT_FAILURE;
+				}
+				if (argv[i][0] == '-') {
+					state->options |= option->value;
+				} else {
+					state->options &= ~option->value;
+				}
+			}
+			break;
 		}
 	}
 
 	if (i != argc || force_positional) {
-		// TODO: Assign remaining arguments to positional parameters, and set $#
-		return EXIT_FAILURE;
+		char *argv_0;
+		if (cmdline) {
+			argv_0 = strdup(argv[i++]);
+			state->input = fopen(argv_0, "r");
+			if (!state->input) {
+				fprintf(stderr, "could not open %s for reading: %s",
+						argv_0, strerror(errno));
+				return EXIT_FAILURE;
+			}
+		} else {
+			argv_0 = strdup(state->argv[0]);
+		}
+		argv_free(state->argc, state->argv);
+		state->argc = argc - i + 1;
+		state->argv = argv_dup(argv_0, state->argc, &argv[i]);
+	} else if (cmdline) {
+		// No args given, but we need to initialize state->argv
+		state->argc = 1;
+		state->argv = argv_dup(strdup(argv[0]), 1, argv);
 	}
 
 	return EXIT_SUCCESS;
+}
+
+int builtin_set(struct mrsh_state *state, int argc, char *argv[]) {
+	return set(state, argc, argv, false);
 }

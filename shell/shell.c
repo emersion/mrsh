@@ -7,6 +7,7 @@ void mrsh_state_init(struct mrsh_state *state) {
 	state->exit = -1;
 	state->interactive = isatty(STDIN_FILENO);
 	state->options = state->interactive ? MRSH_OPT_INTERACTIVE : 0;
+	state->input = stdin;
 }
 
 static void state_variable_finish_iterator(const char *key, void *value,

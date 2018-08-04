@@ -236,7 +236,7 @@ static struct mrsh_token *parameter(struct mrsh_parser *state) {
 	}
 
 	char *name = malloc(token_len + 1);
-	memcpy(name, state->peek, token_len);
+	parser_read(state, name, token_len);
 	name[token_len] = '\0';
 
 	struct mrsh_token_parameter *tp =

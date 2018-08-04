@@ -197,6 +197,28 @@ static struct mrsh_token *double_quotes(struct mrsh_parser *state) {
 	return &tl->token;
 }
 
+static size_t peek_name(struct mrsh_parser *state) {
+	// In the shell command language, a word consisting solely of underscores,
+	// digits, and alphabetics from the portable character set. The first
+	// character of a name is not a digit.
+
+	size_t i = 0;
+	while (true) {
+		parser_peek(state, NULL, i + 1);
+
+		char c = state->peek[i];
+		if (c != '_' && !isalnum(c)) {
+			break;
+		} else if (i == 0 && isdigit(c)) {
+			break;
+		}
+
+		++i;
+	}
+
+	return i;
+}
+
 static size_t peek_token(struct mrsh_parser *state) {
 	size_t i = 0;
 	while (true) {
@@ -228,16 +250,16 @@ static struct mrsh_token *parameter(struct mrsh_parser *state) {
 	char c = parser_read_char(state);
 	assert(c == '$');
 
-	size_t token_len = peek_token(state);
-	if (token_len == 0) {
+	size_t name_len = peek_name(state);
+	if (name_len == 0) {
 		// TODO: ${expression}
 		parser_set_error(state, "expected a parameter");
 		return NULL;
 	}
 
-	char *name = malloc(token_len + 1);
-	parser_read(state, name, token_len);
-	name[token_len] = '\0';
+	char *name = malloc(name_len + 1);
+	parser_read(state, name, name_len);
+	name[name_len] = '\0';
 
 	struct mrsh_token_parameter *tp =
 		mrsh_token_parameter_create(name, NULL, NULL);
@@ -580,27 +602,18 @@ static struct mrsh_assignment *assignment_word(struct mrsh_parser *state) {
 		return NULL;
 	}
 
-	// In the shell command language, a word consisting solely of underscores,
-	// digits, and alphabetics from the portable character set. The first
-	// character of a name is not a digit.
-	size_t i = 0;
-	while (true) {
-		parser_peek(state, NULL, i + 1);
-
-		char c = state->peek[i];
-		if (i > 0 && c == '=') {
-			break;
-		} else if (c != '_' && !isalnum(c)) {
-			return NULL;
-		} else if (i == 0 && isdigit(c)) {
-			return NULL;
-		}
-
-		++i;
+	size_t name_len = peek_name(state);
+	if (name_len == 0) {
+		return NULL;
 	}
 
-	char *name = strndup(state->peek, i);
-	parser_read(state, NULL, i + 1);
+	parser_peek(state, NULL, name_len + 1);
+	if (state->peek[name_len] != '=') {
+		return NULL;
+	}
+
+	char *name = strndup(state->peek, name_len);
+	parser_read(state, NULL, name_len + 1);
 	struct mrsh_token *value = word(state, false);
 	next_symbol(state);
 

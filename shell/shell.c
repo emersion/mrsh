@@ -1,4 +1,5 @@
 #include <assert.h>
+#include <stdlib.h>
 #include <unistd.h>
 #include "shell.h"
 
@@ -8,18 +9,46 @@ void mrsh_state_init(struct mrsh_state *state) {
 	state->options = state->interactive ? MRSH_OPT_INTERACTIVE : 0;
 }
 
+static void state_variable_finish_iterator(const char *key, void *value,
+		void *user_data) {
+	free(value);
+}
+
+void mrsh_state_finish(struct mrsh_state *state) {
+	mrsh_hashtable_for_each(&state->variables,
+		state_variable_finish_iterator, NULL);
+	mrsh_hashtable_finish(&state->variables);
+}
+
 static struct task *handle_simple_command(struct mrsh_simple_command *sc) {
+	struct task *task_list = task_list_create();
+
+	for (size_t i = 0; i < sc->assignments.len; ++i) {
+		struct mrsh_assignment *assign = sc->assignments.data[i];
+		task_list_add(task_list, task_token_create(&assign->value));
+	}
+
 	if (sc->name == NULL) {
-		// TODO: task that sets variable
-		return task_list_create();
+		task_list_add(task_list, task_assignment_create(&sc->assignments));
+		return task_list;
 	}
 
-	struct task *task = task_builtin_create(sc);
-	if (task != NULL) {
-		return task;
+	task_list_add(task_list, task_token_create(&sc->name));
+
+	for (size_t i = 0; i < sc->arguments.len; ++i) {
+		struct mrsh_token **arg_ptr =
+			(struct mrsh_token **)&sc->arguments.data[i];
+		task_list_add(task_list, task_token_create(arg_ptr));
 	}
 
-	return task_process_create(sc);
+	for (size_t i = 0; i < sc->io_redirects.len; ++i) {
+		struct mrsh_io_redirect *redir = sc->io_redirects.data[i];
+		task_list_add(task_list, task_token_create(&redir->filename));
+	}
+
+	task_list_add(task_list, task_command_create(sc));
+
+	return task_list;
 }
 
 static struct task *handle_node(struct mrsh_node *node);

@@ -49,9 +49,7 @@ void task_destroy(struct task *task);
 int task_poll(struct task *task, struct context *ctx);
 int task_run(struct task *task, struct context *ctx);
 
-struct task *task_builtin_create(struct mrsh_simple_command *sc);
-
-struct task *task_process_create(struct mrsh_simple_command *sc);
+struct task *task_command_create(struct mrsh_simple_command *sc);
 
 struct task *task_list_create(void);
 void task_list_add(struct task *task, struct task *child);
@@ -66,3 +64,12 @@ struct task *task_binop_create(enum mrsh_binop_type type,
 	struct task *left, struct task *right);
 
 struct task *task_async_create(struct task *async);
+
+struct task *task_assignment_create(struct mrsh_array *assignments);
+
+/**
+ * Creates a task that mutates `token_ptr`, executing all substitutions. After
+ * the task has finished, the token tree is guaranteed to only contain token
+ * lists and token strings.
+ */
+struct task *task_token_create(struct mrsh_token **token_ptr);

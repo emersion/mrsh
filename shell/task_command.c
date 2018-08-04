@@ -1,24 +1,32 @@
 #define _POSIX_C_SOURCE 200112L
 #include <assert.h>
-#include <stdlib.h>
-#include <fcntl.h>
 #include <errno.h>
-#include <unistd.h>
+#include <fcntl.h>
+#include <mrsh/builtin.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 #include "shell.h"
 
-struct task_process {
+struct task_command {
 	struct task task;
 	struct mrsh_simple_command *sc;
 	bool started;
+	bool builtin;
+	char *name;
+
+	// only if not a builtin
 	struct process process;
 };
 
-static void task_process_destroy(struct task *task) {
-	struct task_process *tp = (struct task_process *)task;
-	process_finish(&tp->process);
-	free(tp);
+static void task_command_destroy(struct task *task) {
+	struct task_command *tc = (struct task_command *)task;
+	free(tc->name);
+	if (!tc->builtin) {
+		process_finish(&tc->process);
+	}
+	free(tc);
 }
 
 static int parse_fd(const char *str) {
@@ -36,9 +44,34 @@ static int parse_fd(const char *str) {
 	return fd;
 }
 
-static bool task_process_start(struct task *task, struct context *ctx) {
-	struct task_process *tp = (struct task_process *)task;
-	struct mrsh_simple_command *sc = tp->sc;
+static int task_builtin_poll(struct task *task, struct context *ctx) {
+	struct task_command *tc = (struct task_command *)task;
+	struct mrsh_simple_command *sc = tc->sc;
+
+	assert(!tc->started);
+	tc->started = true;
+
+	int argc = 1 + sc->arguments.len;
+	char *argv[argc + 1];
+	argv[0] = mrsh_token_str(sc->name);
+	for (size_t i = 0; i < sc->arguments.len; ++i) {
+		struct mrsh_token *token = sc->arguments.data[i];
+		argv[i + 1] = mrsh_token_str(token);
+	}
+	argv[argc] = NULL;
+
+	// TODO: redirections
+	int ret = mrsh_run_builtin(ctx->state, argc, argv);
+
+	for (int i = 0; i < argc; ++i) {
+		free(argv[i]);
+	}
+
+	return ret;
+}
+
+static bool task_process_start(struct task_command *tc, struct context *ctx) {
+	struct mrsh_simple_command *sc = tc->sc;
 
 	pid_t pid = fork();
 	if (pid < 0) {
@@ -136,32 +169,48 @@ static bool task_process_start(struct task *task, struct context *ctx) {
 			close(ctx->stdout_fileno);
 		}
 
-		process_init(&tp->process, pid);
+		process_init(&tc->process, pid);
 		return true;
 	}
 }
 
 static int task_process_poll(struct task *task, struct context *ctx) {
-	struct task_process *tp = (struct task_process *)task;
+	struct task_command *tc = (struct task_command *)task;
 
-	if (!tp->started) {
-		if (!task_process_start(task, ctx)) {
+	if (!tc->started) {
+		if (!task_process_start(tc, ctx)) {
 			return TASK_STATUS_ERROR;
 		}
-		tp->started = true;
+		tc->started = true;
 	}
 
-	return process_poll(&tp->process);
+	return process_poll(&tc->process);
 }
 
-static const struct task_interface task_process_impl = {
-	.destroy = task_process_destroy,
-	.poll = task_process_poll,
+static int task_command_poll(struct task *task, struct context *ctx) {
+	struct task_command *tc = (struct task_command *)task;
+	struct mrsh_simple_command *sc = tc->sc;
+
+	if (tc->name == NULL) {
+		tc->name = mrsh_token_str(sc->name);
+		tc->builtin = mrsh_has_builtin(tc->name);
+	}
+
+	if (tc->builtin) {
+		return task_builtin_poll(task, ctx);
+	} else {
+		return task_process_poll(task, ctx);
+	}
+}
+
+static const struct task_interface task_command_impl = {
+	.destroy = task_command_destroy,
+	.poll = task_command_poll,
 };
 
-struct task *task_process_create(struct mrsh_simple_command *sc) {
-	struct task_process *tp = calloc(1, sizeof(struct task_process));
-	task_init(&tp->task, &task_process_impl);
-	tp->sc = sc;
-	return &tp->task;
+struct task *task_command_create(struct mrsh_simple_command *sc) {
+	struct task_command *tc = calloc(1, sizeof(struct task_command));
+	task_init(&tc->task, &task_command_impl);
+	tc->sc = sc;
+	return &tc->task;
 }

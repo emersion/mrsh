@@ -63,6 +63,7 @@ int main(int argc, char *argv[]) {
 	}
 
 	mrsh_parser_destroy(parser);
+	mrsh_state_finish(&state);
 	fclose(input);
 	return state.exit;
 }

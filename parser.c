@@ -139,64 +139,6 @@ static struct mrsh_token *single_quotes(struct mrsh_parser *state) {
 	return &ts->token;
 }
 
-static struct mrsh_token *double_quotes(struct mrsh_parser *state) {
-	char c = parser_read_char(state);
-	assert(c == '"');
-
-	struct mrsh_array children = {0};
-
-	struct buffer buf = {0};
-
-	while (true) {
-		char c = parser_peek_char(state);
-		if (c == '\0') {
-			fprintf(stderr, "double quotes not terminated\n");
-			exit(EXIT_FAILURE);
-		}
-		if (c == '"') {
-			parser_read_char(state);
-			break;
-		}
-
-		if (c == '$' || c == '`') {
-			// TODO
-			fprintf(stderr, "not yet implemented\n");
-			exit(EXIT_FAILURE);
-		}
-
-		if (c == '\\') {
-			// Quoted backslash
-			char next[2];
-			parser_peek(state, next, sizeof(next));
-			switch (next[1]) {
-			case '$':
-			case '`':
-			case '"':
-			case '\\':
-				parser_read_char(state);
-				c = next[1];
-				break;
-			}
-
-			if (next[1] == '\n') {
-				parser_read(state, NULL, 2 * sizeof(char));
-				continue;
-			}
-		}
-
-		parser_read_char(state);
-		buffer_append_char(&buf, c);
-	}
-
-	buffer_append_char(&buf, '\0');
-	char *data = buffer_steal(&buf);
-	struct mrsh_token_string *ts = mrsh_token_string_create(data, false);
-	mrsh_array_add(&children, &ts->token);
-
-	struct mrsh_token_list *tl = mrsh_token_list_create(&children, true);
-	return &tl->token;
-}
-
 static size_t peek_name(struct mrsh_parser *state) {
 	// In the shell command language, a word consisting solely of underscores,
 	// digits, and alphabetics from the portable character set. The first
@@ -283,6 +225,71 @@ static void push_buffer_token_string(struct mrsh_array *children,
 	mrsh_array_add(children, &ts->token);
 }
 
+static struct mrsh_token *double_quotes(struct mrsh_parser *state) {
+	char c = parser_read_char(state);
+	assert(c == '"');
+
+	struct mrsh_array children = {0};
+	struct buffer buf = {0};
+
+	while (true) {
+		char c = parser_peek_char(state);
+		if (c == '\0') {
+			fprintf(stderr, "double quotes not terminated\n");
+			exit(EXIT_FAILURE);
+		}
+		if (c == '"') {
+			parser_read_char(state);
+			break;
+		}
+
+		if (c == '$') {
+			push_buffer_token_string(&children, &buf);
+			struct mrsh_token *t = parameter(state);
+			if (t == NULL) {
+				return NULL;
+			}
+			mrsh_array_add(&children, t);
+			continue;
+		}
+
+		if (c == '`') {
+			// TODO
+			fprintf(stderr, "not yet implemented\n");
+			exit(EXIT_FAILURE);
+		}
+
+		if (c == '\\') {
+			// Quoted backslash
+			char next[2];
+			parser_peek(state, next, sizeof(next));
+			switch (next[1]) {
+			case '$':
+			case '`':
+			case '"':
+			case '\\':
+				parser_read_char(state);
+				c = next[1];
+				break;
+			}
+
+			if (next[1] == '\n') {
+				parser_read(state, NULL, 2 * sizeof(char));
+				continue;
+			}
+		}
+
+		parser_read_char(state);
+		buffer_append_char(&buf, c);
+	}
+
+	push_buffer_token_string(&children, &buf);
+	buffer_finish(&buf);
+
+	struct mrsh_token_list *tl = mrsh_token_list_create(&children, true);
+	return &tl->token;
+}
+
 static struct mrsh_token *word(struct mrsh_parser *state, bool no_keyword) {
 	if (state->sym != TOKEN) {
 		return NULL;
@@ -304,7 +311,6 @@ static struct mrsh_token *word(struct mrsh_parser *state, bool no_keyword) {
 	}
 
 	struct mrsh_array children = {0};
-
 	struct buffer buf = {0};
 
 	if (token_len > 0) {

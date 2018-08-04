@@ -19,6 +19,10 @@ void mrsh_state_finish(struct mrsh_state *state) {
 	mrsh_hashtable_for_each(&state->variables,
 		state_variable_finish_iterator, NULL);
 	mrsh_hashtable_finish(&state->variables);
+	for (int i = 0; i < state->argc; ++i) {
+		free(state->argv[i]);
+	}
+	free(state->argv);
 }
 
 static struct task *handle_simple_command(struct mrsh_simple_command *sc) {

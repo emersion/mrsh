@@ -2,7 +2,7 @@
 #include <mrsh/array.h>
 #include <stdlib.h>
 
-#define INITIAL_SIZE 32
+#define INITIAL_SIZE 8
 
 ssize_t mrsh_array_add(struct mrsh_array *array, void *value) {
 	assert(array->len <= array->cap);
@@ -12,7 +12,7 @@ ssize_t mrsh_array_add(struct mrsh_array *array, void *value) {
 		if (new_cap < INITIAL_SIZE) {
 			new_cap = INITIAL_SIZE;
 		}
-		void *new_data = realloc(array->data, new_cap);
+		void *new_data = realloc(array->data, new_cap * sizeof(void *));
 		if (new_data == NULL) {
 			return -1;
 		}

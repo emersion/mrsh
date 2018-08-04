@@ -4,7 +4,7 @@
 
 #include "buffer.h"
 
-char *buffer_add(struct buffer *buf, size_t size) {
+char *buffer_reserve(struct buffer *buf, size_t size) {
 	size_t new_len = buf->len + size;
 	if (new_len > buf->cap) {
 		size_t new_cap = 2 * buf->cap;
@@ -23,8 +23,16 @@ char *buffer_add(struct buffer *buf, size_t size) {
 		buf->cap = new_cap;
 	}
 
-	void *data = &buf->data[buf->len];
-	buf->len = new_len;
+	return &buf->data[buf->len];
+}
+
+char *buffer_add(struct buffer *buf, size_t size) {
+	char *data = buffer_reserve(buf, size);
+	if (data == NULL) {
+		return NULL;
+	}
+
+	buf->len += size;
 	return data;
 }
 

@@ -52,6 +52,12 @@ static void print_token(struct mrsh_token *token, const char *prefix) {
 			print_token(tp->arg, sub_prefix);
 		}
 		break;
+	case MRSH_TOKEN_COMMAND:;
+		struct mrsh_token_command *tc = mrsh_token_get_command(token);
+		assert(tc != NULL);
+		printf("token_command%s %s\n",
+			tc->back_quoted ? " (quoted)" : "", tc->command);
+		break;
 	case MRSH_TOKEN_LIST:;
 		struct mrsh_token_list *tl = mrsh_token_get_list(token);
 		assert(tl != NULL);

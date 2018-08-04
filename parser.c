@@ -208,6 +208,48 @@ static struct mrsh_token *parameter(struct mrsh_parser *state) {
 	return &tp->token;
 }
 
+static struct mrsh_token *back_quotes(struct mrsh_parser *state) {
+	// TODO: support nested back-quotes
+
+	char c = parser_read_char(state);
+	assert(c == '`');
+
+	struct buffer buf = {0};
+
+	while (true) {
+		char c = parser_peek_char(state);
+		if (c == '\0') {
+			fprintf(stderr, "back quotes not terminated\n");
+			exit(EXIT_FAILURE);
+		}
+		if (c == '`') {
+			parser_read_char(state);
+			break;
+		}
+		if (c == '\\') {
+			// Quoted backslash
+			char next[2];
+			parser_peek(state, next, sizeof(next));
+			switch (next[1]) {
+			case '$':
+			case '`':
+			case '\\':
+				parser_read_char(state);
+				c = next[1];
+				break;
+			}
+		}
+
+		parser_read_char(state);
+		buffer_append_char(&buf, c);
+	}
+
+	buffer_append_char(&buf, '\0');
+	char *data = buffer_steal(&buf);
+	struct mrsh_token_command *tc = mrsh_token_command_create(data, true);
+	return &tc->token;
+}
+
 /**
  * Append a new string token to `children` with the contents of `buf`, and reset
  * `buf`.
@@ -334,9 +376,10 @@ static struct mrsh_token *word(struct mrsh_parser *state, bool no_keyword) {
 		}
 
 		if (c == '`') {
-			// TODO
-			fprintf(stderr, "not yet implemented\n");
-			exit(EXIT_FAILURE);
+			push_buffer_token_string(&children, &buf);
+			struct mrsh_token *t = back_quotes(state);
+			mrsh_array_add(&children, t);
+			continue;
 		}
 
 		// Quoting
@@ -944,6 +987,9 @@ static bool expect_complete_command(struct mrsh_parser *state,
 
 static struct mrsh_program *program(struct mrsh_parser *state) {
 	struct mrsh_program *prog = calloc(1, sizeof(struct mrsh_program));
+	if (prog == NULL) {
+		return NULL;
+	}
 
 	linebreak(state);
 	if (eof(state)) {
@@ -967,9 +1013,6 @@ static struct mrsh_program *program(struct mrsh_parser *state) {
 	}
 
 	linebreak(state);
-	if (eof(state)) {
-		assert(false);
-	}
 	return prog;
 }
 

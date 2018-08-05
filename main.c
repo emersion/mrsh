@@ -21,12 +21,28 @@ static void print_ps1(struct mrsh_state *state) {
 	fflush(stderr);
 }
 
+extern char **environ;
+
 int main(int argc, char *argv[]) {
 	struct mrsh_state state = {0};
 	mrsh_state_init(&state);
 
 	if (set(&state, argc, argv, true) != EXIT_SUCCESS) {
 		return EXIT_FAILURE;
+	}
+
+	int i = 0;
+	while (environ[i]) {
+		char *eql = strchr(environ[i], '=');
+		size_t klen = eql - environ[i] + 1;
+		char *key = malloc(klen);
+		char *val = malloc(strlen(&eql[1]) + 1);
+		strncpy(key, environ[i], klen - 1);
+		key[klen - 1] = 0;
+		strcpy(val, &eql[1]);
+		mrsh_hashtable_set(&state.variables, key, val);
+		free(key);
+		++i;
 	}
 
 	struct mrsh_parser *parser = mrsh_parser_create(state.input);

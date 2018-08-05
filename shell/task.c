@@ -36,6 +36,10 @@ int task_run(struct task *task, struct context *ctx) {
 		int ret = task_poll(task, ctx);
 		if (ret != TASK_STATUS_WAIT) {
 			ctx->state->last_status = ret;
+			if (ret != EXIT_SUCCESS
+					&& (ctx->state->options & MRSH_OPT_ERREXIT)) {
+				ctx->state->exit = ret;
+			}
 			return ret;
 		}
 

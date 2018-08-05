@@ -150,6 +150,11 @@ static int task_token_poll(struct task *task, struct context *ctx) {
 		assert(tp != NULL);
 		const char *value = parameter_get_value(ctx->state, tp->name);
 		if (value == NULL) {
+			if ((ctx->state->options & MRSH_OPT_NOUNSET)) {
+				fprintf(stderr, "%s: %s: unbound variable\n",
+						ctx->state->argv[0], tp->name);
+				return TASK_STATUS_ERROR;
+			}
 			value = "";
 		}
 		struct mrsh_token_string *ts =

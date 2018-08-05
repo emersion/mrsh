@@ -80,6 +80,7 @@ enum mrsh_command_type {
 	MRSH_SIMPLE_COMMAND,
 	MRSH_BRACE_GROUP,
 	MRSH_IF_CLAUSE,
+	MRSH_FUNCTION_DEFINITION,
 };
 
 /**
@@ -130,6 +131,17 @@ struct mrsh_if_clause {
 	struct mrsh_array condition; // struct mrsh_command_list *
 	struct mrsh_array body; // struct mrsh_command_list *
 	struct mrsh_command *else_part; // can be NULL
+};
+
+/**
+ * A function definition is a type of command. The format is:
+ *
+ *   fname ( ) compound-command [io-redirect ...]
+ */
+struct mrsh_function_definition {
+	struct mrsh_command command;
+	char *name;
+	struct mrsh_command *body;
 };
 
 enum mrsh_node_type {
@@ -211,10 +223,14 @@ struct mrsh_simple_command *mrsh_simple_command_create(struct mrsh_token *name,
 struct mrsh_brace_group *mrsh_brace_group_create(struct mrsh_array *body);
 struct mrsh_if_clause *mrsh_if_clause_create(struct mrsh_array *condition,
 	struct mrsh_array *body, struct mrsh_command *else_part);
+struct mrsh_function_definition *mrsh_function_definition_create(char *name,
+	struct mrsh_command *body);
 struct mrsh_simple_command *mrsh_command_get_simple_command(
 	struct mrsh_command *cmd);
 struct mrsh_brace_group *mrsh_command_get_brace_group(struct mrsh_command *cmd);
 struct mrsh_if_clause *mrsh_command_get_if_clause(struct mrsh_command *cmd);
+struct mrsh_function_definition *mrsh_command_get_function_definition(
+	struct mrsh_command *cmd);
 
 struct mrsh_pipeline *mrsh_pipeline_create(struct mrsh_array *commands,
 	bool bang);

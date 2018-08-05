@@ -99,6 +99,8 @@ static struct task *handle_command(struct mrsh_command *cmd) {
 		struct mrsh_if_clause *ic = mrsh_command_get_if_clause(cmd);
 		assert(ic != NULL);
 		return handle_if_clause(ic);
+	case MRSH_FUNCTION_DEFINITION:
+		assert(false); // TODO: implement this
 	}
 	assert(false);
 }

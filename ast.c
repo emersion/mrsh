@@ -110,6 +110,13 @@ void mrsh_command_destroy(struct mrsh_command *cmd) {
 		mrsh_command_destroy(ic->else_part);
 		free(ic);
 		return;
+	case MRSH_FUNCTION_DEFINITION:;
+		struct mrsh_function_definition *fd =
+			mrsh_command_get_function_definition(cmd);
+		free(fd->name);
+		mrsh_command_destroy(fd->body);
+		free(fd);
+		return;
 	}
 	assert(0);
 }
@@ -254,6 +261,16 @@ struct mrsh_if_clause *mrsh_if_clause_create(struct mrsh_array *condition,
 	return group;
 }
 
+struct mrsh_function_definition *mrsh_function_definition_create(char *name,
+		struct mrsh_command *body) {
+	struct mrsh_function_definition *def =
+		calloc(1, sizeof(struct mrsh_function_definition));
+	def->command.type = MRSH_FUNCTION_DEFINITION;
+	def->name = name;
+	def->body = body;
+	return def;
+}
+
 struct mrsh_simple_command *mrsh_command_get_simple_command(
 		struct mrsh_command *cmd) {
 	if (cmd->type != MRSH_SIMPLE_COMMAND) {
@@ -275,6 +292,14 @@ struct mrsh_if_clause *mrsh_command_get_if_clause(struct mrsh_command *cmd) {
 		return NULL;
 	}
 	return (struct mrsh_if_clause *)cmd;
+}
+
+struct mrsh_function_definition *mrsh_command_get_function_definition(
+		struct mrsh_command *cmd) {
+	if (cmd->type != MRSH_FUNCTION_DEFINITION) {
+		return NULL;
+	}
+	return (struct mrsh_function_definition *)cmd;
 }
 
 struct mrsh_pipeline *mrsh_pipeline_create(struct mrsh_array *commands,

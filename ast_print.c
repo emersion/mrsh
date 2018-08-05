@@ -209,6 +209,12 @@ static void print_if_clause(struct mrsh_if_clause *ic, const char *prefix) {
 	}
 }
 
+static void print_function_definition(struct mrsh_function_definition *fd,
+		const char *prefix) {
+	printf("function_definition %s ─ ", fd->name);
+	print_command(fd->body, prefix);
+}
+
 static void print_command(struct mrsh_command *cmd, const char *prefix) {
 	switch (cmd->type) {
 	case MRSH_SIMPLE_COMMAND:;
@@ -225,6 +231,12 @@ static void print_command(struct mrsh_command *cmd, const char *prefix) {
 		struct mrsh_if_clause *ic = mrsh_command_get_if_clause(cmd);
 		assert(ic != NULL);
 		print_if_clause(ic, prefix);
+		break;
+	case MRSH_FUNCTION_DEFINITION:;
+		struct mrsh_function_definition *fd =
+			mrsh_command_get_function_definition(cmd);
+		assert(fd != NULL);
+		print_function_definition(fd, prefix);
 		break;
 	}
 }

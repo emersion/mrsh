@@ -871,23 +871,82 @@ error_cond:
 	return NULL;
 }
 
-static struct mrsh_command *command(struct mrsh_parser *state) {
+static struct mrsh_command *compound_command(struct mrsh_parser *state);
+
+static struct mrsh_function_definition *function_definition(
+		struct mrsh_parser *state) {
+	size_t name_len = peek_name(state);
+	if (name_len == 0) {
+		return NULL;
+	}
+
+	size_t i = name_len;
+	while (true) {
+		parser_peek(state, NULL, i + 1);
+
+		char c = state->peek[i];
+		if (c == '(') {
+			break;
+		} else if (!isblank(c)) {
+			return NULL;
+		}
+
+		++i;
+	}
+
+	char *name = malloc(name_len + 1);
+	parser_read(state, name, name_len);
+	name[name_len] = '\0';
+	next_symbol(state);
+
+	if (!expect_token(state, "(") || !expect_token(state, ")")) {
+		return NULL;
+	}
+
+	linebreak(state);
+
+	struct mrsh_command *cmd = compound_command(state);
+	if (cmd == NULL) {
+		parser_set_error(state, "expected a compount command");
+		return NULL;
+	}
+
+	// TODO: compound_command redirect_list
+
+	return mrsh_function_definition_create(name, cmd);
+}
+
+static struct mrsh_command *compound_command(struct mrsh_parser *state) {
 	struct mrsh_brace_group *bg = brace_group(state);
-	if (bg) {
+	if (bg != NULL) {
 		return &bg->command;
 	}
 
 	struct mrsh_if_clause *ic = if_clause(state);
-	if (ic) {
+	if (ic != NULL) {
 		return &ic->command;
 	}
 
 	// TODO: subshell for_clause case_clause while_clause until_clause
+
+	struct mrsh_function_definition *fd = function_definition(state);
+	if (fd != NULL) {
+		return &fd->command;
+	}
+
+	return NULL;
+}
+
+static struct mrsh_command *command(struct mrsh_parser *state) {
+	struct mrsh_command *cmd = compound_command(state);
+	if (cmd != NULL) {
+		return cmd;
+	}
+
 	// TODO: compound_command redirect_list
-	// TODO: function_definition
 
 	struct mrsh_simple_command *sc = simple_command(state);
-	if (sc) {
+	if (sc != NULL) {
 		return &sc->command;
 	}
 

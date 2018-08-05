@@ -76,6 +76,7 @@ struct mrsh_parser {
 	char *peek;
 	size_t peek_len, peek_cap;
 
+	bool has_sym;
 	enum symbol_name sym;
 	int lineno;
 };

@@ -18,6 +18,7 @@ static void print_ps1(struct mrsh_state *state) {
 		// TODO: Replace ! with next history ID
 	}
 	fprintf(stderr, "%s", ps1);
+	fflush(stderr);
 }
 
 int main(int argc, char *argv[]) {
@@ -28,11 +29,11 @@ int main(int argc, char *argv[]) {
 		return EXIT_FAILURE;
 	}
 
-	if (state.interactive) {
-		print_ps1(&state);
-	}
 	struct mrsh_parser *parser = mrsh_parser_create(state.input);
 	while (state.exit == -1) {
+		if (state.interactive) {
+			print_ps1(&state);
+		}
 		struct mrsh_program *prog = mrsh_parse_line(parser);
 		if (prog == NULL) {
 			state.exit = EXIT_SUCCESS;
@@ -44,9 +45,6 @@ int main(int argc, char *argv[]) {
 			mrsh_run_program(&state, prog);
 		}
 		mrsh_program_destroy(prog);
-		if (state.interactive) {
-			print_ps1(&state);
-		}
 	}
 
 	mrsh_parser_destroy(parser);

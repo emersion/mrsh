@@ -11,8 +11,6 @@
 #include "buffer.h"
 #include "parser.h"
 
-static void next_symbol(struct mrsh_parser *state);
-
 struct mrsh_parser *mrsh_parser_create(FILE *f) {
 	struct mrsh_parser *state = calloc(1, sizeof(struct mrsh_parser));
 
@@ -23,7 +21,6 @@ struct mrsh_parser *mrsh_parser_create(FILE *f) {
 	state->peek_len = 0;
 
 	state->lineno = 1;
-	next_symbol(state);
 
 	return state;
 }
@@ -110,6 +107,62 @@ static bool is_operator_start(char c) {
 static void parser_set_error(struct mrsh_parser *state, const char *msg) {
 	fprintf(stderr, "mrsh:%d: syntax error: %s\n", state->lineno, msg);
 	exit(EXIT_FAILURE);
+}
+
+// See section 2.3 Token Recognition
+static void next_symbol(struct mrsh_parser *state) {
+	state->has_sym = true;
+
+	char c = parser_peek_char(state);
+
+	if (c == '\0') {
+		state->sym = EOF_TOKEN;
+		return;
+	}
+	if (c == '\n') {
+		state->sym = NEWLINE;
+		return;
+	}
+
+	if (is_operator_start(c)) {
+		char next[OPERATOR_MAX_LEN];
+		for (size_t i = 0; i < sizeof(operators)/sizeof(operators[0]); ++i) {
+			const char *str = operators[i].str;
+			size_t n = strlen(str);
+			size_t n_read = parser_peek(state, next, n);
+			if (n_read == n && strncmp(next, str, n) == 0) {
+				state->sym = operators[i].name;
+				return;
+			}
+		}
+	}
+
+	if (isblank(c)) {
+		parser_read_char(state);
+		next_symbol(state);
+		return;
+	}
+
+	if (c == '#') {
+		while (true) {
+			char c = parser_peek_char(state);
+			if (c == '\0' || c == '\n') {
+				break;
+			}
+			parser_read_char(state);
+		}
+		next_symbol(state);
+		return;
+	}
+
+	state->sym = TOKEN;
+}
+
+static enum symbol_name get_symbol(struct mrsh_parser *state) {
+	if (!state->has_sym) {
+		next_symbol(state);
+	}
+	return state->sym;
 }
 
 static struct mrsh_token *single_quotes(struct mrsh_parser *state) {
@@ -329,8 +382,12 @@ static struct mrsh_token *double_quotes(struct mrsh_parser *state) {
 	return &tl->token;
 }
 
+static bool symbol(struct mrsh_parser *state, enum symbol_name sym) {
+	return get_symbol(state) == sym;
+}
+
 static struct mrsh_token *word(struct mrsh_parser *state, bool no_keyword) {
-	if (state->sym != TOKEN) {
+	if (!symbol(state, TOKEN)) {
 		return NULL;
 	}
 
@@ -428,59 +485,12 @@ static struct mrsh_token *word(struct mrsh_parser *state, bool no_keyword) {
 	}
 }
 
-// See section 2.3 Token Recognition
-static void next_symbol(struct mrsh_parser *state) {
-	char c = parser_peek_char(state);
-
-	if (c == '\0') {
-		state->sym = EOF_TOKEN;
-		return;
-	}
-	if (c == '\n') {
-		state->sym = NEWLINE;
-		return;
-	}
-
-	if (is_operator_start(c)) {
-		char next[OPERATOR_MAX_LEN];
-		for (size_t i = 0; i < sizeof(operators)/sizeof(operators[0]); ++i) {
-			const char *str = operators[i].str;
-			size_t n = strlen(str);
-			size_t n_read = parser_peek(state, next, n);
-			if (n_read == n && strncmp(next, str, n) == 0) {
-				state->sym = operators[i].name;
-				return;
-			}
-		}
-	}
-
-	if (isblank(c)) {
-		parser_read_char(state);
-		next_symbol(state);
-		return;
-	}
-
-	if (c == '#') {
-		while (true) {
-			char c = parser_peek_char(state);
-			if (c == '\0' || c == '\n') {
-				break;
-			}
-			parser_read_char(state);
-		}
-		next_symbol(state);
-		return;
-	}
-
-	state->sym = TOKEN;
-}
-
 static bool eof(struct mrsh_parser *state) {
-	return state->sym == EOF_TOKEN;
+	return symbol(state, EOF_TOKEN);
 }
 
 static bool newline(struct mrsh_parser *state) {
-	if (state->sym != NEWLINE) {
+	if (!symbol(state, NEWLINE)) {
 		return false;
 	}
 	char c = parser_read_char(state);
@@ -499,7 +509,7 @@ static const char *operator_str(enum symbol_name sym) {
 }
 
 static bool operator(struct mrsh_parser *state, enum symbol_name sym) {
-	if (state->sym != sym) {
+	if (!symbol(state, sym)) {
 		return false;
 	}
 
@@ -514,7 +524,7 @@ static bool operator(struct mrsh_parser *state, enum symbol_name sym) {
 }
 
 static bool token(struct mrsh_parser *state, const char *str) {
-	if (state->sym != TOKEN) {
+	if (!symbol(state, TOKEN)) {
 		return false;
 	}
 
@@ -587,7 +597,7 @@ static struct mrsh_token *filename(struct mrsh_parser *state) {
 
 static bool io_file(struct mrsh_parser *state,
 		struct mrsh_io_redirect *redir) {
-	enum symbol_name sym = state->sym;
+	enum symbol_name sym = get_symbol(state);
 	if (token(state, "<")) {
 		redir->op = strdup("<");
 	} else if (token(state, ">")) {
@@ -644,7 +654,7 @@ static struct mrsh_io_redirect *io_redirect(struct mrsh_parser *state) {
 }
 
 static struct mrsh_assignment *assignment_word(struct mrsh_parser *state) {
-	if (state->sym != TOKEN) {
+	if (!symbol(state, TOKEN)) {
 		return NULL;
 	}
 

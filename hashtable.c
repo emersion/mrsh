@@ -46,9 +46,10 @@ void *mrsh_hashtable_set(struct mrsh_hashtable *table, const char *key,
 		entry = calloc(1, sizeof(struct mrsh_hashtable_entry));
 		entry->hash = hash;
 		entry->key = strdup(key);
-		table->buckets[bucket] = entry;
 		if (previous != NULL) {
 			previous->next = entry;
+		} else {
+			table->buckets[bucket] = entry;
 		}
 	}
 

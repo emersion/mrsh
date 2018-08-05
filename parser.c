@@ -350,9 +350,10 @@ static struct mrsh_token *double_quotes(struct mrsh_parser *state) {
 		}
 
 		if (c == '`') {
-			// TODO
-			fprintf(stderr, "not yet implemented\n");
-			exit(EXIT_FAILURE);
+			push_buffer_token_string(&children, &buf);
+			struct mrsh_token *t = back_quotes(state);
+			mrsh_array_add(&children, t);
+			continue;
 		}
 
 		if (c == '\\') {

@@ -65,6 +65,7 @@ struct mrsh_state {
 	int argc;
 	bool interactive;
 	struct mrsh_hashtable variables; // char *
+	int last_status;
 };
 
 void mrsh_state_init(struct mrsh_state *state);

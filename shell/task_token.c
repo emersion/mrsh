@@ -10,6 +10,7 @@
 
 #include "buffer.h"
 #include "shell.h"
+#include "builtin.h"
 
 #define TOKEN_COMMAND_READ_SIZE 128
 
@@ -110,9 +111,23 @@ static const char *parameter_get_value(struct mrsh_state *state, char *name) {
 	char *end;
 	long lvalue = strtol(name, &end, 10);
 	// Special cases
-	if (strcmp(name, "#") == 0) {
+	if (strcmp(name, "@") == 0) {
+		// TODO
+	} else if (strcmp(name, "*") == 0) {
+		// TODO
+	} else if (strcmp(name, "#") == 0) {
 		sprintf(value, "%d", state->argc);
 		return value;
+	} else if (strcmp(name, "?") == 0) {
+		sprintf(value, "%d", state->last_status);
+		return value;
+	} else if (strcmp(name, "-") == 0) {
+		return print_options(state);
+	} else if (strcmp(name, "$") == 0) {
+		sprintf(value, "%d", (int)getpid());
+		return value;
+	} else if (strcmp(name, "!") == 0) {
+		// TODO
 	} else if (!end[0]) {
 		if (state->argc < lvalue) {
 			return NULL;

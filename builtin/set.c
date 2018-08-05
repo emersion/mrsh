@@ -34,6 +34,18 @@ static const struct option_map options[] = {
 	{ "xtrace", 'x', MRSH_OPT_XTRACE },
 };
 
+const char *print_options(struct mrsh_state *state) {
+	static char opts[sizeof(options) / sizeof(options[0]) + 1];
+	int i = 0;
+	for (size_t j = 0; j < sizeof(options) / sizeof(options[0]); ++j) {
+		if (options[j].short_name && (state->options & options[j].value)) {
+			opts[i++] = options[j].short_name;
+		}
+	}
+	opts[i] = 0;
+	return opts;
+}
+
 static const struct option_map *find_option(char opt) {
 	for (size_t i = 0; i < sizeof(options) / sizeof(options[0]); ++i) {
 		if (options[i].short_name && options[i].short_name == opt) {
@@ -145,6 +157,8 @@ int set(struct mrsh_state *state, int argc, char *argv[], bool cmdline) {
 		if (cmdline) {
 			argv_0 = strdup(argv[i++]);
 			state->input = fopen(argv_0, "r");
+			// TODO: Turn off -m if the user didn't explicitly set it
+			state->interactive = false;
 			if (!state->input) {
 				fprintf(stderr, "could not open %s for reading: %s",
 						argv_0, strerror(errno));

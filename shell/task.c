@@ -35,6 +35,7 @@ int task_run(struct task *task, struct context *ctx) {
 	while (true) {
 		int ret = task_poll(task, ctx);
 		if (ret != TASK_STATUS_WAIT) {
+			ctx->state->last_status = ret;
 			return ret;
 		}
 

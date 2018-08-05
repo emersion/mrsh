@@ -490,6 +490,10 @@ static struct mrsh_token *word(struct mrsh_parser *state, bool no_keyword) {
 	}
 }
 
+struct mrsh_token *mrsh_parse_token(struct mrsh_parser *state) {
+	return word(state, false);
+}
+
 static bool eof(struct mrsh_parser *state) {
 	return symbol(state, EOF_TOKEN);
 }

@@ -9,15 +9,36 @@
 #include <unistd.h>
 #include "builtin.h"
 
+char *expand_ps1(struct mrsh_state *state, const char *ps1) {
+	FILE *f = fmemopen((void *)ps1, strlen(ps1), "r");
+	if (f == NULL) {
+		return NULL;
+	}
+
+	struct mrsh_parser *parser = mrsh_parser_create(f);
+	struct mrsh_token *token = mrsh_parse_token(parser);
+	mrsh_parser_destroy(parser);
+	fclose(f);
+	if (token == NULL) {
+		return NULL;
+	}
+
+	mrsh_run_token(state, &token);
+
+	return mrsh_token_str(token);
+}
+
 static void print_ps1(struct mrsh_state *state) {
 	const char *ps1 = mrsh_hashtable_get(&state->variables, "PS1");
-	if (!ps1) {
-		ps1 = getuid() ? "$ " : "# ";
-	} else {
-		// TODO: Run ps1 through shell expansion
+	if (ps1 != NULL) {
+		char *expanded_ps1 = expand_ps1(state, ps1);
 		// TODO: Replace ! with next history ID
+		fprintf(stderr, "%s", expanded_ps1);
+		free(expanded_ps1);
+	} else {
+		fprintf(stderr, "%s", getuid() ? "$ " : "# ");
 	}
-	fprintf(stderr, "%s", ps1);
+
 	fflush(stderr);
 }
 

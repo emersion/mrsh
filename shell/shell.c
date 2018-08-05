@@ -148,3 +148,16 @@ int mrsh_run_program(struct mrsh_state *state, struct mrsh_program *prog) {
 	task_destroy(task);
 	return ret;
 }
+
+int mrsh_run_token(struct mrsh_state *state, struct mrsh_token **token) {
+	struct task *task = task_token_create(token);
+
+	struct context ctx = {
+		.state = state,
+		.stdin_fileno = -1,
+		.stdout_fileno = -1,
+	};
+	int ret = task_run(task, &ctx);
+	task_destroy(task);
+	return ret;
+}

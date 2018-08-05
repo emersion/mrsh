@@ -165,6 +165,10 @@ static enum symbol_name get_symbol(struct mrsh_parser *state) {
 	return state->sym;
 }
 
+static void consume_symbol(struct mrsh_parser *state) {
+	state->has_sym = false;
+}
+
 static struct mrsh_token *single_quotes(struct mrsh_parser *state) {
 	char c = parser_read_char(state);
 	assert(c == '\'');
@@ -473,7 +477,7 @@ static struct mrsh_token *word(struct mrsh_parser *state, bool no_keyword) {
 	push_buffer_token_string(&children, &buf);
 	buffer_finish(&buf);
 
-	next_symbol(state);
+	consume_symbol(state);
 
 	if (children.len == 1) {
 		struct mrsh_token *token = children.data[0];
@@ -495,7 +499,7 @@ static bool newline(struct mrsh_parser *state) {
 	}
 	char c = parser_read_char(state);
 	assert(c == '\n');
-	next_symbol(state);
+	consume_symbol(state);
 	return true;
 }
 
@@ -519,7 +523,7 @@ static bool operator(struct mrsh_parser *state, enum symbol_name sym) {
 	char buf[OPERATOR_MAX_LEN];
 	parser_read(state, buf, strlen(str));
 	assert(strncmp(str, buf, strlen(str)) == 0);
-	next_symbol(state);
+	consume_symbol(state);
 	return true;
 }
 
@@ -536,7 +540,7 @@ static bool token(struct mrsh_parser *state, const char *str) {
 			return false;
 		}
 		parser_read_char(state);
-		next_symbol(state);
+		consume_symbol(state);
 		return true;
 	}
 
@@ -547,7 +551,7 @@ static bool token(struct mrsh_parser *state, const char *str) {
 	// assert(isalpha(str[i]));
 
 	parser_read(state, NULL, len);
-	next_symbol(state);
+	consume_symbol(state);
 	return true;
 }
 
@@ -629,7 +633,7 @@ static int io_number(struct mrsh_parser *state) {
 	}
 
 	parser_read_char(state);
-	next_symbol(state);
+	consume_symbol(state);
 	return strtol(buf, NULL, 10);
 }
 
@@ -671,7 +675,7 @@ static struct mrsh_assignment *assignment_word(struct mrsh_parser *state) {
 	char *name = strndup(state->peek, name_len);
 	parser_read(state, NULL, name_len + 1);
 	struct mrsh_token *value = word(state, false);
-	next_symbol(state);
+	consume_symbol(state);
 
 	struct mrsh_assignment *assign = calloc(1, sizeof(struct mrsh_assignment));
 	assign->name = name;
@@ -907,7 +911,7 @@ static struct mrsh_function_definition *function_definition(
 	char *name = malloc(name_len + 1);
 	parser_read(state, name, name_len);
 	name[name_len] = '\0';
-	next_symbol(state);
+	consume_symbol(state);
 
 	if (!expect_token(state, "(") || !expect_token(state, ")")) {
 		return NULL;
@@ -1086,8 +1090,7 @@ static struct mrsh_program *program(struct mrsh_parser *state) {
 }
 
 struct mrsh_program *mrsh_parse_line(struct mrsh_parser *state) {
-	linebreak(state);
-	if (eof(state)) {
+	if (eof(state) || newline(state)) {
 		return NULL;
 	}
 
@@ -1100,6 +1103,11 @@ struct mrsh_program *mrsh_parse_line(struct mrsh_parser *state) {
 		mrsh_program_destroy(prog);
 		return NULL;
 	}
+	if (!eof(state) && !newline(state)) {
+		mrsh_program_destroy(prog);
+		parser_set_error(state, "expected a newline");
+		return NULL;
+	}
 
 	return prog;
 }
@@ -1109,4 +1117,8 @@ struct mrsh_program *mrsh_parse(FILE *f) {
 	struct mrsh_program *prog = program(state);
 	mrsh_parser_destroy(state);
 	return prog;
+}
+
+bool mrsh_parser_eof(struct mrsh_parser *state) {
+	return state->has_sym && state->sym == EOF_TOKEN;
 }

@@ -36,8 +36,12 @@ int main(int argc, char *argv[]) {
 		}
 		struct mrsh_program *prog = mrsh_parse_line(parser);
 		if (prog == NULL) {
-			state.exit = EXIT_SUCCESS;
-			break;
+			if (mrsh_parser_eof(parser)) {
+				state.exit = EXIT_SUCCESS;
+				break;
+			} else {
+				continue;
+			}
 		}
 		if ((state.options & MRSH_OPT_NOEXEC)) {
 			mrsh_program_print(prog);

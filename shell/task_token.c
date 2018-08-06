@@ -96,6 +96,13 @@ static bool task_token_command_start(struct task_token *tt,
 
 		close(fds[0]);
 
+		// Trim newlines at the end
+		ssize_t i = buf.len - 1;
+		while (i >= 0 && buf.data[i] == '\n') {
+			buf.data[i] = '\0';
+			--i;
+		}
+
 		buffer_append_char(&buf, '\0');
 		char *str = buffer_steal(&buf);
 		buffer_finish(&buf);

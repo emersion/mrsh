@@ -19,12 +19,16 @@ int process_poll(struct process *proc) {
 	return WEXITSTATUS(proc->stat);
 }
 
+static void array_remove(struct mrsh_array *array, size_t i) {
+	memmove(&array->data[i], &array->data[i + 1],
+		(array->len - i - 1) * sizeof(void *));
+	--array->len;
+}
+
 static void process_remove(struct process *proc) {
 	for (size_t i = 0; i < running_processes.len; ++i) {
 		if (running_processes.data[i] == proc) {
-			memmove(&running_processes.data[i], &running_processes.data[i + 1],
-				running_processes.len - i - 1);
-			--running_processes.len;
+			array_remove(&running_processes, i);
 			break;
 		}
 	}

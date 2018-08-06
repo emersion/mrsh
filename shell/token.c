@@ -13,6 +13,12 @@ static void _split_fields(struct mrsh_array *fields, struct buffer *buf,
 	case MRSH_TOKEN_STRING:;
 		struct mrsh_token_string *ts = mrsh_token_get_string(token);
 		assert(ts != NULL);
+
+		if (double_quoted) {
+			buffer_append(buf, ts->str, strlen(ts->str));
+			return;
+		}
+
 		const char *cur = ts->str;
 		const char *next = cur;
 		while (true) {

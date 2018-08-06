@@ -73,3 +73,10 @@ struct task *task_assignment_create(struct mrsh_array *assignments);
  * lists and token strings.
  */
 struct task *task_token_create(struct mrsh_token **token_ptr);
+
+/**
+ * Performs field splitting on `token`, writing fields to `fields`. This should
+ * be done after expansions/substitutions.
+ */
+void split_fields(struct mrsh_array *fields, struct mrsh_token *token,
+	const char *ifs);

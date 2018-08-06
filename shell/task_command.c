@@ -14,7 +14,7 @@ struct task_command {
 	struct mrsh_simple_command *sc;
 	bool started;
 	bool builtin;
-	char *name;
+	struct mrsh_array args;
 
 	// only if not a builtin
 	struct process process;
@@ -22,7 +22,10 @@ struct task_command {
 
 static void task_command_destroy(struct task *task) {
 	struct task_command *tc = (struct task_command *)task;
-	free(tc->name);
+	for (size_t i = 0; i < tc->args.len; ++i) {
+		free(tc->args.data[i]);
+	}
+	mrsh_array_finish(&tc->args);
 	if (!tc->builtin) {
 		process_finish(&tc->process);
 	}
@@ -44,30 +47,28 @@ static int parse_fd(const char *str) {
 	return fd;
 }
 
+static void get_args(struct mrsh_array *args, struct mrsh_simple_command *sc,
+		struct context *ctx) {
+	const char *ifs = mrsh_hashtable_get(&ctx->state->variables, "IFS");
+	split_fields(args, sc->name, ifs);
+	for (size_t i = 0; i < sc->arguments.len; ++i) {
+		struct mrsh_token *token = sc->arguments.data[i];
+		split_fields(args, token, ifs);
+	}
+	assert(args->len > 0);
+	mrsh_array_add(args, NULL);
+}
+
 static int task_builtin_poll(struct task *task, struct context *ctx) {
 	struct task_command *tc = (struct task_command *)task;
-	struct mrsh_simple_command *sc = tc->sc;
 
 	assert(!tc->started);
 	tc->started = true;
 
-	int argc = 1 + sc->arguments.len;
-	char *argv[argc + 1];
-	argv[0] = mrsh_token_str(sc->name);
-	for (size_t i = 0; i < sc->arguments.len; ++i) {
-		struct mrsh_token *token = sc->arguments.data[i];
-		argv[i + 1] = mrsh_token_str(token);
-	}
-	argv[argc] = NULL;
-
 	// TODO: redirections
-	int ret = mrsh_run_builtin(ctx->state, argc, argv);
-
-	for (int i = 0; i < argc; ++i) {
-		free(argv[i]);
-	}
-
-	return ret;
+	int argc = tc->args.len - 1;
+	char **argv = (char **)tc->args.data;
+	return mrsh_run_builtin(ctx->state, argc, argv);
 }
 
 static bool task_process_start(struct task_command *tc, struct context *ctx) {
@@ -78,14 +79,7 @@ static bool task_process_start(struct task_command *tc, struct context *ctx) {
 		fprintf(stderr, "failed to fork(): %s\n", strerror(errno));
 		return false;
 	} else if (pid == 0) {
-		int argc = 1 + sc->arguments.len;
-		char *argv[argc + 1];
-		argv[0] = mrsh_token_str(sc->name);
-		for (size_t i = 0; i < sc->arguments.len; ++i) {
-			struct mrsh_token *token = sc->arguments.data[i];
-			argv[i + 1] = mrsh_token_str(token);
-		}
-		argv[argc] = NULL;
+		char **argv = (char **)tc->args.data;
 
 		for (size_t i = 0; i < sc->assignments.len; ++i) {
 			struct mrsh_assignment *assign = sc->assignments.data[i];
@@ -191,9 +185,10 @@ static int task_command_poll(struct task *task, struct context *ctx) {
 	struct task_command *tc = (struct task_command *)task;
 	struct mrsh_simple_command *sc = tc->sc;
 
-	if (tc->name == NULL) {
-		tc->name = mrsh_token_str(sc->name);
-		tc->builtin = mrsh_has_builtin(tc->name);
+	if (!tc->started) {
+		get_args(&tc->args, sc, ctx);
+		const char *argv_0 = (char *)tc->args.data[0];
+		tc->builtin = mrsh_has_builtin(argv_0);
 	}
 
 	if (tc->builtin) {

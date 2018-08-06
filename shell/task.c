@@ -43,6 +43,7 @@ int task_run(struct task *task, struct context *ctx) {
 			return ret;
 		}
 
+		errno = 0;
 		int stat;
 		pid_t pid = waitpid(0, &stat, 0);
 		if (pid == -1) {

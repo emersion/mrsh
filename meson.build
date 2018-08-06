@@ -42,6 +42,7 @@ executable(
 		'shell/task_command.c',
 		'shell/task_token.c',
 		'shell/task.c',
+		'shell/token.c',
 	]),
 	include_directories: [mrsh_inc],
 	install: true,

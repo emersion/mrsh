@@ -36,7 +36,7 @@ char *buffer_add(struct buffer *buf, size_t size) {
 	return data;
 }
 
-bool buffer_append(struct buffer *buf, char *data, size_t size) {
+bool buffer_append(struct buffer *buf, const char *data, size_t size) {
 	char *dst = buffer_add(buf, size);
 	if (dst == NULL) {
 		return false;

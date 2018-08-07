@@ -6,9 +6,14 @@
 #include "buffer.h"
 #include "shell.h"
 
+struct split_fields_data {
+	const char *ifs, *ifs_non_space;
+	bool in_ifs, in_ifs_non_space;
+};
+
 static void _split_fields(struct mrsh_array *fields, struct buffer *buf,
-		struct mrsh_token *token, const char *ifs, const char *ifs_non_space,
-		bool double_quoted) {
+		struct mrsh_token *token, bool double_quoted,
+		struct split_fields_data *data) {
 	switch (token->type) {
 	case MRSH_TOKEN_STRING:;
 		struct mrsh_token_string *ts = mrsh_token_get_string(token);
@@ -16,29 +21,28 @@ static void _split_fields(struct mrsh_array *fields, struct buffer *buf,
 
 		if (double_quoted) {
 			buffer_append(buf, ts->str, strlen(ts->str));
+			data->in_ifs = data->in_ifs_non_space = false;
 			return;
 		}
 
-		const char *cur = ts->str;
-		const char *next = cur;
-		while (true) {
-			next = strpbrk(cur, ifs);
-			if (next == NULL) {
-				buffer_append(buf, cur, strlen(cur));
-				break;
+		size_t len = strlen(ts->str);
+		for (size_t i = 0; i < len; ++i) {
+			char c = ts->str[i];
+			if (strchr(data->ifs, c) == NULL) {
+				buffer_append_char(buf, c);
+				data->in_ifs = data->in_ifs_non_space = false;
+				continue;
 			}
 
-			buffer_append(buf, cur, next - cur);
-
-			// TODO: ifs_non_space
-
-			if (buf->len > 0) {
+			bool is_ifs_non_space = strchr(data->ifs_non_space, c) != NULL;
+			if (!data->in_ifs || (is_ifs_non_space && data->in_ifs_non_space)) {
 				buffer_append_char(buf, '\0');
 				char *str = buffer_steal(buf);
 				mrsh_array_add(fields, str);
+				data->in_ifs = true;
+			} else if (is_ifs_non_space) {
+				data->in_ifs_non_space = true;
 			}
-
-			cur = next + 1;
 		}
 		break;
 	case MRSH_TOKEN_LIST:;
@@ -46,8 +50,8 @@ static void _split_fields(struct mrsh_array *fields, struct buffer *buf,
 		assert(tl != NULL);
 		for (size_t i = 0; i < tl->children.len; ++i) {
 			struct mrsh_token *child = tl->children.data[i];
-			_split_fields(fields, buf, child, ifs, ifs_non_space,
-				double_quoted || tl->double_quoted);
+			_split_fields(fields, buf, child,
+				double_quoted || tl->double_quoted, data);
 		}
 		break;
 	default:
@@ -75,10 +79,17 @@ void split_fields(struct mrsh_array *fields, struct mrsh_token *token,
 	}
 
 	struct buffer buf = {0};
-	_split_fields(fields, &buf, token, ifs, ifs_non_space, false);
-	buffer_append_char(&buf, '\0');
-	char *str = buffer_steal(&buf);
-	mrsh_array_add(fields, str);
+	struct split_fields_data data = {
+		.ifs = ifs,
+		.ifs_non_space = ifs_non_space,
+		.in_ifs = true,
+	};
+	_split_fields(fields, &buf, token, false, &data);
+	if (!data.in_ifs) {
+		buffer_append_char(&buf, '\0');
+		char *str = buffer_steal(&buf);
+		mrsh_array_add(fields, str);
+	}
 	buffer_finish(&buf);
 
 	free(ifs_non_space);

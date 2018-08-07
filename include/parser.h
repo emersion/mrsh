@@ -71,7 +71,7 @@ static const char *keywords[] = {
 };
 
 struct mrsh_parser {
-	FILE *f;
+	FILE *f; // can be NULL
 
 	char *peek;
 	size_t peek_len, peek_cap;

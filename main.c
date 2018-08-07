@@ -10,15 +10,10 @@
 #include "builtin.h"
 
 char *expand_ps1(struct mrsh_state *state, const char *ps1) {
-	FILE *f = fmemopen((void *)ps1, strlen(ps1), "r");
-	if (f == NULL) {
-		return NULL;
-	}
-
-	struct mrsh_parser *parser = mrsh_parser_create(f);
+	struct mrsh_parser *parser =
+		mrsh_parser_create_from_buffer(ps1, strlen(ps1));
 	struct mrsh_token *token = mrsh_parse_token(parser);
 	mrsh_parser_destroy(parser);
-	fclose(f);
 	if (token == NULL) {
 		return NULL;
 	}

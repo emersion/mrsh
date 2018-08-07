@@ -25,6 +25,19 @@ struct mrsh_parser *mrsh_parser_create(FILE *f) {
 	return state;
 }
 
+struct mrsh_parser *mrsh_parser_create_from_buffer(const char *buf, size_t len) {
+	struct mrsh_parser *state = calloc(1, sizeof(struct mrsh_parser));
+
+	state->peek_cap = state->peek_len = len;
+	state->peek = malloc(len + 1);
+	memcpy(state->peek, buf, len);
+	state->peek[len] = '\0';
+
+	state->lineno = 1;
+
+	return state;
+}
+
 void mrsh_parser_destroy(struct mrsh_parser *state) {
 	if (state == NULL) {
 		return;
@@ -34,7 +47,7 @@ void mrsh_parser_destroy(struct mrsh_parser *state) {
 }
 
 static size_t parser_peek(struct mrsh_parser *state, char *buf, size_t size) {
-	if (size > state->peek_len) {
+	if (size > state->peek_len && state->f != NULL) {
 		if (size > state->peek_cap) {
 			state->peek = realloc(state->peek, size);
 			if (state->peek == NULL) {
@@ -57,6 +70,9 @@ static size_t parser_peek(struct mrsh_parser *state, char *buf, size_t size) {
 				return 0;
 			}
 		}
+	}
+	if (size > state->peek_len && state->f == NULL) {
+		size = state->peek_len;
 	}
 
 	if (buf != NULL) {

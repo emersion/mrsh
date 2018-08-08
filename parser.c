@@ -234,7 +234,7 @@ static size_t peek_name(struct mrsh_parser *state) {
 	return i;
 }
 
-static size_t peek_token(struct mrsh_parser *state) {
+static size_t peek_token(struct mrsh_parser *state, char end) {
 	size_t i = 0;
 	while (true) {
 		parser_peek(state, NULL, i + 1);
@@ -253,7 +253,7 @@ static size_t peek_token(struct mrsh_parser *state) {
 			return 0;
 		}
 
-		if (is_operator_start(c) || isblank(c)) {
+		if (is_operator_start(c) || isblank(c) || c == end) {
 			return i;
 		}
 
@@ -261,9 +261,122 @@ static size_t peek_token(struct mrsh_parser *state) {
 	}
 }
 
+static struct mrsh_token *word(struct mrsh_parser *state, bool no_keyword,
+	char end);
+
+static struct mrsh_token *token_list(struct mrsh_parser *state, char end) {
+	struct mrsh_array children = {0};
+
+	while (true) {
+		if (parser_peek_char(state) == end) {
+			break;
+		}
+
+		struct mrsh_token *child = word(state, false, end);
+		if (child == NULL) {
+			break;
+		}
+		mrsh_array_add(&children, child);
+
+		struct buffer buf = {0};
+		while (true) {
+			char c = parser_peek_char(state);
+			if (!isblank(c)) {
+				break;
+			}
+			buffer_append_char(&buf, parser_read_char(state));
+		}
+		if (buf.len == 0) {
+			break; // word() ended on a non-blank char, stop here
+		}
+		buffer_append_char(&buf, '\0');
+		struct mrsh_token_string *ts =
+			mrsh_token_string_create(buffer_steal(&buf), false);
+		mrsh_array_add(&children, &ts->token);
+		buffer_finish(&buf);
+	}
+
+	if (children.len == 0) {
+		return NULL;
+	} else if (children.len == 1) {
+		struct mrsh_token *child = children.data[0];
+		mrsh_array_finish(&children);
+		return child;
+	} else {
+		struct mrsh_token_list *tl = mrsh_token_list_create(&children, false);
+		return &tl->token;
+	}
+}
+
+static struct mrsh_token *parameter_expression(struct mrsh_parser *state) {
+	char c = parser_read_char(state);
+	assert(c == '{');
+
+	// TODO: ${#parameter}
+
+	size_t name_len = peek_name(state);
+	if (name_len == 0) {
+		parser_set_error(state, "expected a parameter");
+		return NULL;
+	}
+
+	char *name = malloc(name_len + 1);
+	parser_read(state, name, name_len);
+	name[name_len] = '\0';
+
+	char *op = NULL;
+	struct mrsh_token *arg = NULL;
+	if (parser_peek_char(state) != '}') {
+		char next[2];
+		parser_peek(state, next, sizeof(next));
+		bool two_letter_op = false;
+		switch (next[0]) {
+		case ':':
+			if (strchr("-=?+", next[1]) == NULL) {
+				parser_set_error(state, "expected a parameter operation");
+				return NULL;
+			}
+			two_letter_op = true;
+			break;
+		case '-':
+		case '=':
+		case '?':
+		case '+':
+			break;
+		case '%':
+		case '#':
+			two_letter_op = next[1] == next[0];
+			break;
+		default:
+			parser_set_error(state, "expected a parameter operation");
+			return NULL;
+		}
+
+		size_t op_len = two_letter_op ? 2 : 1;
+		char *op = malloc(op_len + 1);
+		parser_read(state, op, op_len);
+		op[op_len] = '\0';
+
+		arg = token_list(state, '}');
+	}
+
+	if (parser_read_char(state) != '}') {
+		parser_set_error(state, "expected end of parameter");
+		return NULL;
+	}
+
+	struct mrsh_token_parameter *tp =
+		mrsh_token_parameter_create(name, op, arg);
+	return &tp->token;
+}
+
 static struct mrsh_token *parameter(struct mrsh_parser *state) {
 	char c = parser_read_char(state);
 	assert(c == '$');
+
+	if (parser_peek_char(state) == '{') {
+		return parameter_expression(state);
+	}
 
 	// TODO: ${expression}
 
@@ -407,16 +520,18 @@ static bool symbol(struct mrsh_parser *state, enum symbol_name sym) {
 	return get_symbol(state) == sym;
 }
 
-static struct mrsh_token *word(struct mrsh_parser *state, bool no_keyword) {
+static struct mrsh_token *word(struct mrsh_parser *state, bool no_keyword,
+		char end) {
 	if (!symbol(state, TOKEN)) {
 		return NULL;
 	}
 
-	if (is_operator_start(parser_peek_char(state))) {
+	if (is_operator_start(parser_peek_char(state))
+			|| parser_peek_char(state) == end) {
 		return NULL;
 	}
 
-	size_t token_len = peek_token(state);
+	size_t token_len = peek_token(state, end);
 	if (no_keyword) {
 		// TODO: optimize this
 		for (size_t i = 0; i < sizeof(keywords)/sizeof(keywords[0]); ++i) {
@@ -439,7 +554,7 @@ static struct mrsh_token *word(struct mrsh_parser *state, bool no_keyword) {
 
 	while (true) {
 		char c = parser_peek_char(state);
-		if (c == '\0' || c == '\n') {
+		if (c == '\0' || c == '\n' || c == end) {
 			break;
 		}
 
@@ -507,7 +622,7 @@ static struct mrsh_token *word(struct mrsh_parser *state, bool no_keyword) {
 }
 
 struct mrsh_token *mrsh_parse_token(struct mrsh_parser *state) {
-	return word(state, false);
+	return token_list(state, 0);
 }
 
 static bool eof(struct mrsh_parser *state) {
@@ -565,7 +680,7 @@ static bool token(struct mrsh_parser *state, const char *str) {
 		return true;
 	}
 
-	size_t token_len = peek_token(state);
+	size_t token_len = peek_token(state, 0);
 	if (len != token_len || strncmp(state->peek, str, token_len) != 0) {
 		return false;
 	}
@@ -617,7 +732,7 @@ static bool io_here(struct mrsh_parser *state) {
 
 static struct mrsh_token *filename(struct mrsh_parser *state) {
 	// TODO: Apply rule 2
-	return word(state, false);
+	return word(state, false, 0);
 }
 
 static bool io_file(struct mrsh_parser *state,
@@ -695,7 +810,7 @@ static struct mrsh_assignment *assignment_word(struct mrsh_parser *state) {
 
 	char *name = strndup(state->peek, name_len);
 	parser_read(state, NULL, name_len + 1);
-	struct mrsh_token *value = word(state, false);
+	struct mrsh_token *value = word(state, false, 0);
 	consume_symbol(state);
 
 	struct mrsh_assignment *assign = calloc(1, sizeof(struct mrsh_assignment));
@@ -729,7 +844,7 @@ static bool cmd_suffix(struct mrsh_parser *state,
 		return true;
 	}
 
-	struct mrsh_token *arg = word(state, false);
+	struct mrsh_token *arg = word(state, false, 0);
 	if (arg != NULL) {
 		mrsh_array_add(&cmd->arguments, arg);
 		return true;
@@ -747,7 +862,7 @@ static struct mrsh_simple_command *simple_command(struct mrsh_parser *state) {
 	}
 
 	// TODO: alias substitution
-	cmd.name = word(state, true);
+	cmd.name = word(state, true, 0);
 	if (cmd.name == NULL && !has_prefix) {
 		return NULL;
 	} else if (cmd.name != NULL) {

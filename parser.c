@@ -353,7 +353,7 @@ static struct mrsh_token *parameter_expression(struct mrsh_parser *state) {
 		}
 
 		size_t op_len = two_letter_op ? 2 : 1;
-		char *op = malloc(op_len + 1);
+		op = malloc(op_len + 1);
 		parser_read(state, op, op_len);
 		op[op_len] = '\0';
 

@@ -39,6 +39,12 @@ struct task {
 	int status; // last task status
 };
 
+enum tilde_expansion {
+	TILDE_EXPANSION_NONE,
+	TILDE_EXPANSION_NAME,
+	TILDE_EXPANSION_ASSIGNMENT,
+};
+
 void process_init(struct process *process, pid_t pid);
 void process_finish(struct process *process);
 int process_poll(struct process *process);
@@ -72,8 +78,13 @@ struct task *task_assignment_create(struct mrsh_array *assignments);
  * the task has finished, the token tree is guaranteed to only contain token
  * lists and token strings.
  */
-struct task *task_token_create(struct mrsh_token **token_ptr);
+struct task *task_token_create(struct mrsh_token **token_ptr,
+	enum tilde_expansion tilde_expansion);
 
+/**
+ * Performs tilde expansion.
+ */
+void expand_tilde(struct mrsh_state *state, char **str_ptr);
 /**
  * Performs field splitting on `token`, writing fields to `fields`. This should
  * be done after expansions/substitutions.

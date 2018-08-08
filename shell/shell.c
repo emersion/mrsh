@@ -30,7 +30,8 @@ static struct task *handle_simple_command(struct mrsh_simple_command *sc) {
 
 	for (size_t i = 0; i < sc->assignments.len; ++i) {
 		struct mrsh_assignment *assign = sc->assignments.data[i];
-		task_list_add(task_list, task_token_create(&assign->value));
+		task_list_add(task_list,
+			task_token_create(&assign->value, TILDE_EXPANSION_ASSIGNMENT));
 	}
 
 	if (sc->name == NULL) {
@@ -38,17 +39,20 @@ static struct task *handle_simple_command(struct mrsh_simple_command *sc) {
 		return task_list;
 	}
 
-	task_list_add(task_list, task_token_create(&sc->name));
+	task_list_add(task_list,
+		task_token_create(&sc->name, TILDE_EXPANSION_NAME));
 
 	for (size_t i = 0; i < sc->arguments.len; ++i) {
 		struct mrsh_token **arg_ptr =
 			(struct mrsh_token **)&sc->arguments.data[i];
-		task_list_add(task_list, task_token_create(arg_ptr));
+		task_list_add(task_list,
+			task_token_create(arg_ptr, TILDE_EXPANSION_NAME));
 	}
 
 	for (size_t i = 0; i < sc->io_redirects.len; ++i) {
 		struct mrsh_io_redirect *redir = sc->io_redirects.data[i];
-		task_list_add(task_list, task_token_create(&redir->filename));
+		task_list_add(task_list,
+			task_token_create(&redir->filename, TILDE_EXPANSION_NAME));
 	}
 
 	task_list_add(task_list, task_command_create(sc));
@@ -150,7 +154,7 @@ int mrsh_run_program(struct mrsh_state *state, struct mrsh_program *prog) {
 }
 
 int mrsh_run_token(struct mrsh_state *state, struct mrsh_token **token) {
-	struct task *task = task_token_create(token);
+	struct task *task = task_token_create(token, TILDE_EXPANSION_NAME);
 
 	struct context ctx = {
 		.state = state,

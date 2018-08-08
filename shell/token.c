@@ -1,10 +1,58 @@
+#define _POSIX_C_SOURCE 200809L
 #include <assert.h>
+#include <ctype.h>
+#include <pwd.h>
+#include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
-#include <stdbool.h>
-#include <ctype.h>
 #include "buffer.h"
 #include "shell.h"
+
+void expand_tilde(struct mrsh_state *state, char **str_ptr) {
+	char *str = *str_ptr;
+	if (str[0] != '~') {
+		return;
+	}
+
+	const char *end = str + strlen(str);
+	const char *slash = strchr(str, '/');
+	if (slash == NULL) {
+		slash = end;
+	}
+
+	char *name = NULL;
+	if (slash > str + 1) {
+		name = strndup(str + 1, slash - str - 1);
+	}
+
+	const char *dir = NULL;
+	if (name == NULL) {
+		dir = mrsh_hashtable_get(&state->variables, "HOME");
+	} else {
+		struct passwd *pw = getpwnam(name);
+		if (pw != NULL) {
+			dir = pw->pw_dir;
+		}
+	}
+	free(name);
+
+	if (dir == NULL) {
+		return;
+	}
+
+	size_t dir_len = strlen(dir);
+	size_t trailing_len = end - slash;
+	char *expanded = malloc(dir_len + trailing_len + 1);
+	if (expanded == NULL) {
+		return;
+	}
+	memcpy(expanded, dir, dir_len);
+	memcpy(expanded + dir_len, slash, trailing_len);
+	expanded[dir_len + trailing_len] = '\0';
+
+	free(str);
+	*str_ptr = expanded;
+}
 
 struct split_fields_data {
 	const char *ifs, *ifs_non_space;

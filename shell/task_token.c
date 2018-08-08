@@ -17,6 +17,7 @@
 struct task_token {
 	struct task task;
 	struct mrsh_token **token_ptr;
+	enum tilde_expansion tilde_expansion;
 
 	// only if it's a command
 	bool started;
@@ -150,8 +151,14 @@ static int task_token_poll(struct task *task, struct context *ctx) {
 	struct mrsh_token *token = *tt->token_ptr;
 
 	switch (token->type) {
-	case MRSH_TOKEN_STRING:
-		return 0; // Nothing to do
+	case MRSH_TOKEN_STRING:;
+		struct mrsh_token_string *ts = mrsh_token_get_string(token);
+		assert(ts != NULL);
+		if (!ts->single_quoted && tt->tilde_expansion != TILDE_EXPANSION_NONE) {
+			// TODO: TILDE_EXPANSION_ASSIGNMENT
+			expand_tilde(ctx->state, &ts->str);
+		}
+		return 0;
 	case MRSH_TOKEN_PARAMETER:;
 		struct mrsh_token_parameter *tp = mrsh_token_get_parameter(token);
 		assert(tp != NULL);
@@ -164,9 +171,9 @@ static int task_token_poll(struct task *task, struct context *ctx) {
 			}
 			value = "";
 		}
-		struct mrsh_token_string *ts =
+		struct mrsh_token_string *replacement =
 			mrsh_token_string_create(strdup(value), false);
-		task_token_swap(tt, &ts->token);
+		task_token_swap(tt, &replacement->token);
 		return 0;
 	case MRSH_TOKEN_COMMAND:;
 		struct mrsh_token_command *tc = mrsh_token_get_command(token);
@@ -190,7 +197,8 @@ static const struct task_interface task_token_impl = {
 	.poll = task_token_poll,
 };
 
-struct task *task_token_create(struct mrsh_token **token_ptr) {
+struct task *task_token_create(struct mrsh_token **token_ptr,
+		enum tilde_expansion tilde_expansion) {
 	struct mrsh_token *token = *token_ptr;
 
 	if (token->type == MRSH_TOKEN_LIST) {
@@ -200,7 +208,11 @@ struct task *task_token_create(struct mrsh_token **token_ptr) {
 		for (size_t i = 0; i < tl->children.len; ++i) {
 			struct mrsh_token **child_ptr =
 				(struct mrsh_token **)&tl->children.data[i];
-			task_list_add(task_list, task_token_create(child_ptr));
+			if (i > 0 || tl->double_quoted) {
+				tilde_expansion = TILDE_EXPANSION_NONE;
+			}
+			task_list_add(task_list,
+				task_token_create(child_ptr, tilde_expansion));
 		}
 		return task_list;
 	}
@@ -208,5 +220,6 @@ struct task *task_token_create(struct mrsh_token **token_ptr) {
 	struct task_token *tt = calloc(1, sizeof(struct task_token));
 	task_init(&tt->task, &task_token_impl);
 	tt->token_ptr = token_ptr;
+	tt->tilde_expansion = tilde_expansion;
 	return &tt->task;
 }

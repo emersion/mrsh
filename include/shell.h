@@ -6,13 +6,37 @@ struct context {
 	int stdout_fileno;
 };
 
+/**
+ * This struct is used to track child processes.
+ */
 struct process {
 	pid_t pid;
 	bool finished;
 	int stat;
 };
 
-struct task;
+#define TASK_STATUS_WAIT -1
+#define TASK_STATUS_ERROR -2
+
+struct task_interface;
+
+/**
+ * Tasks abstract away operations that need to be done by the shell. When the
+ * shell executes a command, it walks the AST and translates it to a tree of
+ * tasks to execute.
+ *
+ * Tasks are required for operations that are executed in parallel without
+ * subshells. POSIX allows for instance nested pipelines:
+ *
+ *   echo abc | { cat | cat; } | cat
+ *
+ * In this case the shell should not block before executing the last `cat`
+ * command.
+ */
+struct task {
+	const struct task_interface *impl;
+	int status; // last task status
+};
 
 struct task_interface {
 	/**
@@ -31,17 +55,12 @@ struct task_interface {
 	void (*destroy)(struct task *task);
 };
 
-#define TASK_STATUS_WAIT -1
-#define TASK_STATUS_ERROR -2
-
-struct task {
-	const struct task_interface *impl;
-	int status; // last task status
-};
-
 enum tilde_expansion {
+	// Don't perform tilde expansion at all
 	TILDE_EXPANSION_NONE,
+	// Only expand at the begining of words
 	TILDE_EXPANSION_NAME,
+	// Expand at the begining of words and after semicolons
 	TILDE_EXPANSION_ASSIGNMENT,
 };
 
@@ -82,7 +101,7 @@ struct task *task_token_create(struct mrsh_token **token_ptr,
 	enum tilde_expansion tilde_expansion);
 
 /**
- * Performs tilde expansion.
+ * Performs tilde expansion. It leaves the string as-is in case of error.
  */
 void expand_tilde(struct mrsh_state *state, char **str_ptr);
 /**

@@ -3,6 +3,8 @@
 #include <sys/wait.h>
 #include "shell.h"
 
+// TODO: don't use a global
+// TODO: use a linked list instead
 static struct mrsh_array running_processes = {0};
 
 void process_init(struct process *proc, pid_t pid) {

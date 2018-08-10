@@ -121,6 +121,8 @@ static bool is_operator_start(char c) {
 }
 
 static void parser_set_error(struct mrsh_parser *state, const char *msg) {
+	state->here_documents.len = 0;
+
 	fprintf(stderr, "mrsh:%d: syntax error: %s\n", state->lineno, msg);
 	exit(EXIT_FAILURE);
 }

@@ -52,7 +52,11 @@ void mrsh_io_redirect_destroy(struct mrsh_io_redirect *redir) {
 	}
 	free(redir->op);
 	mrsh_token_destroy(redir->name);
-	free(redir->here_document);
+	for (size_t i = 0; i < redir->here_document.len; ++i) {
+		char *line = redir->here_document.data[i];
+		free(line);
+	}
+	mrsh_array_finish(&redir->here_document);
 	free(redir);
 }
 

@@ -741,7 +741,6 @@ static bool io_here(struct mrsh_parser *state, struct mrsh_io_redirect *redir) {
 	}
 	// TODO: check redir->name only contains token strings and lists
 
-	mrsh_array_add(&state->here_documents, redir);
 	return true;
 }
 
@@ -799,10 +798,17 @@ static struct mrsh_io_redirect *io_redirect(struct mrsh_parser *state) {
 
 	redir.io_number = io_number(state);
 
-	if (io_file(state, &redir) || io_here(state, &redir)) {
+	if (io_file(state, &redir)) {
 		struct mrsh_io_redirect *redir_ptr =
 			calloc(1, sizeof(struct mrsh_io_redirect));
 		memcpy(redir_ptr, &redir, sizeof(struct mrsh_io_redirect));
+		return redir_ptr;
+	}
+	if (io_here(state, &redir)) {
+		struct mrsh_io_redirect *redir_ptr =
+			calloc(1, sizeof(struct mrsh_io_redirect));
+		memcpy(redir_ptr, &redir, sizeof(struct mrsh_io_redirect));
+		mrsh_array_add(&state->here_documents, redir_ptr);
 		return redir_ptr;
 	}
 
@@ -1193,6 +1199,40 @@ static struct mrsh_command_list *list(struct mrsh_parser *state) {
 	return cmd;
 }
 
+static bool expect_here_document(struct mrsh_parser *state,
+		struct mrsh_io_redirect *redir, const char *delim) {
+	size_t delim_len = strlen(delim);
+
+	struct buffer buf = {0};
+	while (true) {
+		while (true) {
+			char c = parser_peek_char(state);
+			if (c == '\0' || c == '\n') {
+				break;
+			}
+
+			buffer_append_char(&buf, parser_read_char(state));
+		}
+
+		if (buf.len == delim_len && memcmp(buf.data, delim, delim_len) == 0) {
+			break;
+		}
+		if (eof(state)) {
+			parser_set_error(state, "unterminated here-document");
+			return false;
+		}
+		bool ok = newline(state);
+		assert(ok);
+
+		buffer_append_char(&buf, '\0');
+		char *str = buffer_steal(&buf);
+		mrsh_array_add(&redir->here_document, str);
+	}
+	buffer_finish(&buf);
+
+	return true;
+}
+
 static bool expect_complete_command(struct mrsh_parser *state,
 		struct mrsh_array *cmds) {
 	struct mrsh_command_list *l = list(state);
@@ -1211,7 +1251,24 @@ static bool expect_complete_command(struct mrsh_parser *state,
 	}
 
 	if (state->here_documents.len > 0) {
-		assert(false); // TODO
+		for (size_t i = 0; i < state->here_documents.len; ++i) {
+			struct mrsh_io_redirect *redir = state->here_documents.data[i];
+
+			if (!newline(state)) {
+				parser_set_error(state,
+					"expected a newline followed by a here-document");
+				return false;
+			}
+
+			char *delim = mrsh_token_str(redir->name);
+			bool ok = expect_here_document(state, redir, delim);
+			free(delim);
+			if (!ok) {
+				return false;
+			}
+		}
+
+		state->here_documents.len = 0;
 	}
 
 	return true;

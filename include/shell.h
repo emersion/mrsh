@@ -64,6 +64,8 @@ enum tilde_expansion {
 	TILDE_EXPANSION_ASSIGNMENT,
 };
 
+int create_anonymous_file(void);
+
 void process_init(struct process *process, pid_t pid);
 void process_finish(struct process *process);
 int process_poll(struct process *process);

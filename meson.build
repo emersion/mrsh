@@ -14,6 +14,10 @@ project(
 add_project_arguments('-Wno-unused-parameter', language: 'c')
 add_project_arguments('-Wno-missing-braces', language: 'c')
 
+cc = meson.get_compiler('c')
+
+rt = cc.find_library('rt')
+
 mrsh_inc = include_directories('include')
 
 executable(
@@ -33,17 +37,19 @@ executable(
 		'parser.c',
 		'shell/process.c',
 		'shell/shell.c',
+		'shell/shm.c',
 		'shell/task_assignment.c',
 		'shell/task_async.c',
 		'shell/task_binop.c',
+		'shell/task_command.c',
 		'shell/task_if_clause.c',
 		'shell/task_list.c',
 		'shell/task_pipeline.c',
-		'shell/task_command.c',
 		'shell/task_token.c',
 		'shell/task.c',
 		'shell/token.c',
 	]),
 	include_directories: [mrsh_inc],
+	dependencies: [rt],
 	install: true,
 )

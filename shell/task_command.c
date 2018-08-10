@@ -47,6 +47,37 @@ static int parse_fd(const char *str) {
 	return fd;
 }
 
+static int create_here_document_file(struct mrsh_array *lines) {
+	int fd = create_anonymous_file();
+	if (fd < 0) {
+		return fd;
+	}
+
+	for (size_t i = 0; i < lines->len; ++i) {
+		const char *line = lines->data[i];
+
+		if (write(fd, line, strlen(line)) < 0) {
+			fprintf(stderr, "write() failed: %s\n", strerror(errno));
+			close(fd);
+			return -1;
+		}
+
+		if (write(fd, "\n", sizeof(char)) < 0) {
+			fprintf(stderr, "write() failed: %s\n", strerror(errno));
+			close(fd);
+			return -1;
+		}
+	}
+
+	if (lseek(fd, 0, SEEK_SET) < 0) {
+		fprintf(stderr, "lseek() failed: %s\n", strerror(errno));
+		close(fd);
+		return -1;
+	}
+
+	return fd;
+}
+
 static void get_args(struct mrsh_array *args, struct mrsh_simple_command *sc,
 		struct context *ctx) {
 	const char *ifs = mrsh_hashtable_get(&ctx->state->variables, "IFS");
@@ -124,6 +155,10 @@ static bool task_process_start(struct task_command *tc, struct context *ctx) {
 				// TODO: parse "-"
 				fd = parse_fd(filename);
 				default_redir_fd = STDOUT_FILENO;
+			} else if (strcmp(redir->op, "<<") == 0
+					|| strcmp(redir->op, "<<-") == 0) {
+				fd = create_here_document_file(&redir->here_document);
+				default_redir_fd = STDIN_FILENO;
 			} else {
 				assert(false);
 			}

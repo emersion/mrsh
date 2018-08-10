@@ -54,9 +54,12 @@ static int create_here_document_file(struct mrsh_array *lines) {
 	}
 
 	for (size_t i = 0; i < lines->len; ++i) {
-		const char *line = lines->data[i];
+		struct mrsh_token *line = lines->data[i];
 
-		if (write(fd, line, strlen(line)) < 0) {
+		char *line_str = mrsh_token_str(line);
+		ssize_t n_written = write(fd, line_str, strlen(line_str));
+		free(line_str);
+		if (n_written < 0) {
 			fprintf(stderr, "write() failed: %s\n", strerror(errno));
 			close(fd);
 			return -1;

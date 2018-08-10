@@ -53,6 +53,12 @@ static struct task *handle_simple_command(struct mrsh_simple_command *sc) {
 		struct mrsh_io_redirect *redir = sc->io_redirects.data[i];
 		task_list_add(task_list,
 			task_token_create(&redir->name, TILDE_EXPANSION_NAME));
+		for (size_t j = 0; j < redir->here_document.len; ++j) {
+			struct mrsh_token **line_token_ptr =
+				(struct mrsh_token **)&redir->here_document.data[j];
+			task_list_add(task_list,
+				task_token_create(line_token_ptr, TILDE_EXPANSION_NAME));
+		}
 	}
 
 	task_list_add(task_list, task_command_create(sc));

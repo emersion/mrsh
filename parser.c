@@ -310,7 +310,8 @@ static struct mrsh_token *token_list(struct mrsh_parser *state, char end) {
 	}
 }
 
-static struct mrsh_token *parameter_expression(struct mrsh_parser *state) {
+static struct mrsh_token *expect_parameter_expression(
+		struct mrsh_parser *state) {
 	char c = parser_read_char(state);
 	assert(c == '{');
 
@@ -372,12 +373,12 @@ static struct mrsh_token *parameter_expression(struct mrsh_parser *state) {
 	return &tp->token;
 }
 
-static struct mrsh_token *parameter(struct mrsh_parser *state) {
+static struct mrsh_token *expect_parameter(struct mrsh_parser *state) {
 	char c = parser_read_char(state);
 	assert(c == '$');
 
 	if (parser_peek_char(state) == '{') {
-		return parameter_expression(state);
+		return expect_parameter_expression(state);
 	}
 
 	// TODO: ${expression}
@@ -475,7 +476,7 @@ static struct mrsh_token *double_quotes(struct mrsh_parser *state) {
 
 		if (c == '$') {
 			push_buffer_token_string(&children, &buf);
-			struct mrsh_token *t = parameter(state);
+			struct mrsh_token *t = expect_parameter(state);
 			mrsh_array_add(&children, t);
 			continue;
 		}
@@ -562,7 +563,7 @@ static struct mrsh_token *word(struct mrsh_parser *state, bool no_keyword,
 
 		if (c == '$') {
 			push_buffer_token_string(&children, &buf);
-			struct mrsh_token *t = parameter(state);
+			struct mrsh_token *t = expect_parameter(state);
 			if (t == NULL) {
 				return NULL;
 			}
@@ -1201,9 +1202,93 @@ static struct mrsh_command_list *list(struct mrsh_parser *state) {
 	return cmd;
 }
 
+static struct mrsh_token *here_document_line(struct mrsh_parser *state) {
+	struct mrsh_array children = {0};
+	struct buffer buf = {0};
+
+	while (true) {
+		char c = parser_peek_char(state);
+		if (c == '\0') {
+			break;
+		}
+
+		if (c == '$') {
+			push_buffer_token_string(&children, &buf);
+			struct mrsh_token *t = expect_parameter(state);
+			if (t == NULL) {
+				return NULL;
+			}
+			mrsh_array_add(&children, t);
+			continue;
+		}
+
+		if (c == '`') {
+			push_buffer_token_string(&children, &buf);
+			struct mrsh_token *t = back_quotes(state);
+			mrsh_array_add(&children, t);
+			continue;
+		}
+
+		if (c == '\\') {
+			// Here-document backslash, same semantics as quoted backslash
+			// except double-quotes are not special
+			char next[2];
+			parser_peek(state, next, sizeof(next));
+			switch (next[1]) {
+			case '$':
+			case '`':
+			case '\\':
+				parser_read_char(state);
+				c = next[1];
+				break;
+			}
+		}
+
+		parser_read_char(state);
+		buffer_append_char(&buf, c);
+	}
+
+	push_buffer_token_string(&children, &buf);
+	buffer_finish(&buf);
+
+	if (children.len == 1) {
+		struct mrsh_token *token = children.data[0];
+		mrsh_array_finish(&children); // TODO: don't allocate this array
+		return token;
+	} else {
+		struct mrsh_token_list *tl = mrsh_token_list_create(&children, false);
+		return &tl->token;
+	}
+}
+
+static bool is_token_quoted(struct mrsh_token *token) {
+	switch (token->type) {
+	case MRSH_TOKEN_STRING:;
+		struct mrsh_token_string *ts = mrsh_token_get_string(token);
+		assert(ts != NULL);
+		return ts->single_quoted;
+	case MRSH_TOKEN_LIST:;
+		struct mrsh_token_list *tl = mrsh_token_get_list(token);
+		assert(tl != NULL);
+		if (tl->double_quoted) {
+			return true;
+		}
+		for (size_t i = 0; i < tl->children.len; ++i) {
+			struct mrsh_token *child = tl->children.data[i];
+			if (is_token_quoted(child)) {
+				return true;
+			}
+		}
+		return false;
+	default:
+		assert(false);
+	}
+}
+
 static bool expect_here_document(struct mrsh_parser *state,
 		struct mrsh_io_redirect *redir, const char *delim) {
 	bool trim_tabs = strcmp(redir->op, "<<-") == 0;
+	bool expand_lines = !is_token_quoted(redir->name);
 
 	struct buffer buf = {0};
 	while (true) {
@@ -1235,7 +1320,19 @@ static bool expect_here_document(struct mrsh_parser *state,
 		bool ok = newline(state);
 		assert(ok);
 
-		mrsh_array_add(&redir->here_document, strdup(line));
+		struct mrsh_token *token;
+		if (expand_lines) {
+			struct mrsh_parser *subparser =
+				mrsh_parser_create_from_buffer(line, strlen(line));
+			token = here_document_line(subparser);
+			mrsh_parser_destroy(subparser);
+		} else {
+			struct mrsh_token_string *ts =
+				mrsh_token_string_create(strdup(line), true);
+			token = &ts->token;
+		}
+
+		mrsh_array_add(&redir->here_document, token);
 	}
 	buffer_finish(&buf);
 

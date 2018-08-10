@@ -1203,10 +1203,11 @@ static struct mrsh_command_list *list(struct mrsh_parser *state) {
 
 static bool expect_here_document(struct mrsh_parser *state,
 		struct mrsh_io_redirect *redir, const char *delim) {
-	size_t delim_len = strlen(delim);
+	bool trim_tabs = strcmp(redir->op, "<<-") == 0;
 
 	struct buffer buf = {0};
 	while (true) {
+		buf.len = 0;
 		while (true) {
 			char c = parser_peek_char(state);
 			if (c == '\0' || c == '\n') {
@@ -1215,8 +1216,16 @@ static bool expect_here_document(struct mrsh_parser *state,
 
 			buffer_append_char(&buf, parser_read_char(state));
 		}
+		buffer_append_char(&buf, '\0');
 
-		if (buf.len == delim_len && memcmp(buf.data, delim, delim_len) == 0) {
+		const char *line = buf.data;
+		if (trim_tabs) {
+			while (line[0] == '\t') {
+				++line;
+			}
+		}
+
+		if (strcmp(line, delim) == 0) {
 			break;
 		}
 		if (eof(state)) {
@@ -1226,9 +1235,7 @@ static bool expect_here_document(struct mrsh_parser *state,
 		bool ok = newline(state);
 		assert(ok);
 
-		buffer_append_char(&buf, '\0');
-		char *str = buffer_steal(&buf);
-		mrsh_array_add(&redir->here_document, str);
+		mrsh_array_add(&redir->here_document, strdup(line));
 	}
 	buffer_finish(&buf);
 

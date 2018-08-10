@@ -51,7 +51,8 @@ void mrsh_io_redirect_destroy(struct mrsh_io_redirect *redir) {
 		return;
 	}
 	free(redir->op);
-	mrsh_token_destroy(redir->filename);
+	mrsh_token_destroy(redir->name);
+	free(redir->here_document);
 	free(redir);
 }
 

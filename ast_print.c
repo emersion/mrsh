@@ -91,8 +91,8 @@ static void print_io_redirect(struct mrsh_io_redirect *redir,
 	make_sub_prefix(prefix, true, sub_prefix);
 
 	print_prefix(prefix, true);
-	printf("filename ─ ");
-	print_token(redir->filename, sub_prefix);
+	printf("name ─ ");
+	print_token(redir->name, sub_prefix);
 }
 
 static void print_assignment(struct mrsh_assignment *assign,

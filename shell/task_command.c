@@ -99,7 +99,7 @@ static bool task_process_start(struct task_command *tc, struct context *ctx) {
 			struct mrsh_io_redirect *redir = sc->io_redirects.data[i];
 
 			// TODO: filename expansions
-			char *filename = mrsh_token_str(redir->filename);
+			char *filename = mrsh_token_str(redir->name);
 
 			int fd, default_redir_fd;
 			errno = 0;

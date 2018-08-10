@@ -60,12 +60,13 @@ struct mrsh_token_list {
 };
 
 /**
- * An IO redirection operator. The format is: `[io_number]op filename`.
+ * An IO redirection operator. The format is: `[io_number]op name`.
  */
 struct mrsh_io_redirect {
 	int io_number; // -1 if unspecified
-	char *op; // one of <, >, >|, >>, <&, <>
-	struct mrsh_token *filename;
+	char *op; // one of <, >, >|, >>, <&, <>, <<, <<-
+	struct mrsh_token *name; // filename or here-document delimiter
+	char *here_document; // only for << and <<-
 };
 
 /**

@@ -32,7 +32,9 @@ struct symbol {
 	char *str;
 };
 
+// Keep sorted from the longest to the shortest
 static const struct symbol operators[] = {
+	{ DLESSDASH, "<<-" },
 	{ AND_IF, "&&" },
 	{ OR_IF, "||" },
 	{ DSEMI, ";;" },
@@ -41,8 +43,6 @@ static const struct symbol operators[] = {
 	{ LESSAND, "<&" },
 	{ GREATAND, ">&" },
 	{ LESSGREAT, "<>" },
-	{ DLESSDASH, "<<-" },
-
 	{ CLOBBER, ">|" },
 };
 
@@ -79,6 +79,8 @@ struct mrsh_parser {
 	bool has_sym;
 	enum symbol_name sym;
 	int lineno;
+
+	struct mrsh_array here_documents;
 };
 
 #endif

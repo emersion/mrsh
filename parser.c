@@ -726,8 +726,23 @@ static int separator_op(struct mrsh_parser *state) {
 	return -1;
 }
 
-static bool io_here(struct mrsh_parser *state) {
-	return false; // TODO
+static bool io_here(struct mrsh_parser *state, struct mrsh_io_redirect *redir) {
+	enum symbol_name sym = get_symbol(state);
+	if (!operator(state, DLESS) && !operator(state, DLESSDASH)) {
+		return false;
+	}
+	redir->op = strdup(operator_str(sym));
+
+	redir->name = word(state, false, 0);
+	if (redir->name == NULL) {
+		parser_set_error(state,
+			"expected a name after IO here-document redirection operator");
+		return false;
+	}
+	// TODO: check redir->name only contains token strings and lists
+
+	mrsh_array_add(&state->here_documents, redir);
+	return true;
 }
 
 static struct mrsh_token *filename(struct mrsh_parser *state) {
@@ -752,8 +767,14 @@ static bool io_file(struct mrsh_parser *state,
 		return false;
 	}
 
-	redir->filename = filename(state);
-	return redir->filename != NULL;
+	redir->name = filename(state);
+	if (redir->name == NULL) {
+		parser_set_error(state,
+			"expected a filename after IO file redirection operator");
+		return false;
+	}
+
+	return true;
 }
 
 static int io_number(struct mrsh_parser *state) {
@@ -778,18 +799,16 @@ static struct mrsh_io_redirect *io_redirect(struct mrsh_parser *state) {
 
 	redir.io_number = io_number(state);
 
-	if (io_file(state, &redir)) {
+	if (io_file(state, &redir) || io_here(state, &redir)) {
 		struct mrsh_io_redirect *redir_ptr =
 			calloc(1, sizeof(struct mrsh_io_redirect));
 		memcpy(redir_ptr, &redir, sizeof(struct mrsh_io_redirect));
 		return redir_ptr;
 	}
 
-	if (io_here(state)) {
-		return NULL; // TODO
+	if (redir.io_number >= 0) {
+		parser_set_error(state, "expected an IO redirect after IO number");
 	}
-
-	assert(redir.io_number < 0);
 	return NULL;
 }
 
@@ -1189,6 +1208,10 @@ static bool expect_complete_command(struct mrsh_parser *state,
 			break;
 		}
 		mrsh_array_add(cmds, l);
+	}
+
+	if (state->here_documents.len > 0) {
+		assert(false); // TODO
 	}
 
 	return true;

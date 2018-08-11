@@ -1,4 +1,4 @@
-image: alpine
+image: alpine/edge
 packages:
   - gcc
   - clang

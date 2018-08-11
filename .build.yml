@@ -1,0 +1,15 @@
+image: archlinux
+packages:
+  - gcc
+  - clang
+sources:
+  - https://github.com/emersion/mrsh
+tasks:
+  - setup: |
+      mkdir mrsh/build-{gcc,clang}
+      CC=gcc meson mrsh/build-gcc
+      CC=clang meson mrsh/build-clang
+  - gcc: |
+      ninja -C mrsh/build-gcc
+  - clang: |
+      ninja -C mrsh/build-clang

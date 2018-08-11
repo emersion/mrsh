@@ -49,6 +49,8 @@ struct mrsh_parser {
 	enum symbol_name sym;
 
 	struct mrsh_array here_documents;
+
+	mrsh_parser_alias_func_t alias;
 };
 
 size_t parser_peek(struct mrsh_parser *state, char *buf, size_t size);

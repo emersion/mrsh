@@ -83,6 +83,66 @@ static int separator_op(struct mrsh_parser *state) {
 	return -1;
 }
 
+static size_t peek_alias(struct mrsh_parser *state) {
+	size_t n = peek_word(state, 0);
+
+	for (size_t i = 0; i < n; ++i) {
+		char c = state->buf.data[i];
+		switch (c) {
+		case '_':
+		case '!':
+		case '%':
+		case ',':
+		case '@':
+			break;
+		default:
+			if (!isalnum(c)) {
+				return 0;
+			}
+		}
+	}
+
+	return n;
+}
+
+static void apply_aliases(struct mrsh_parser *state) {
+	if (state->alias == NULL) {
+		return;
+	}
+
+	while (true) {
+		if (!symbol(state, TOKEN)) {
+			return;
+		}
+
+		size_t alias_len = peek_alias(state);
+		if (alias_len == 0) {
+			return;
+		}
+
+		char *name = strndup(state->buf.data, alias_len);
+		const char *repl = state->alias(name);
+		free(name);
+		if (repl == NULL) {
+			return;
+		}
+
+		size_t trailing_len = state->buf.len - alias_len;
+		size_t repl_len = strlen(repl);
+		if (repl_len > alias_len) {
+			buffer_reserve(&state->buf, repl_len - alias_len);
+		}
+		memmove(&state->buf.data[repl_len], &state->buf.data[alias_len],
+			state->buf.len - alias_len);
+		memcpy(state->buf.data, repl, repl_len);
+		state->buf.len = repl_len + trailing_len;
+
+		// TODO: fixup state->pos
+
+		consume_symbol(state);
+	}
+}
+
 static bool io_here(struct mrsh_parser *state, struct mrsh_io_redirect *redir) {
 	enum symbol_name sym = get_symbol(state);
 	if (!operator(state, DLESS) && !operator(state, DLESSDASH)) {
@@ -219,6 +279,8 @@ static bool cmd_prefix(struct mrsh_parser *state,
 }
 
 static struct mrsh_word *cmd_name(struct mrsh_parser *state) {
+	apply_aliases(state);
+
 	size_t word_len = peek_word(state, 0);
 	if (word_len == 0) {
 		return word(state, 0);
@@ -494,6 +556,8 @@ static struct mrsh_command *compound_command(struct mrsh_parser *state) {
 }
 
 static struct mrsh_command *command(struct mrsh_parser *state) {
+	apply_aliases(state);
+
 	struct mrsh_command *cmd = compound_command(state);
 	if (cmd != NULL) {
 		return cmd;

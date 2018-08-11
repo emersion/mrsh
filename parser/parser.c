@@ -253,3 +253,8 @@ bool newline_list(struct mrsh_parser *state) {
 bool mrsh_parser_eof(struct mrsh_parser *state) {
 	return state->has_sym && state->sym == EOF_TOKEN;
 }
+
+void mrsh_parser_set_alias(struct mrsh_parser *state,
+		mrsh_parser_alias_func_t alias) {
+	state->alias = alias;
+}

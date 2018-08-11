@@ -2,6 +2,7 @@ image: archlinux
 packages:
   - gcc
   - clang
+  - meson
 sources:
   - https://github.com/emersion/mrsh
 tasks:

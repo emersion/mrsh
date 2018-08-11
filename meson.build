@@ -20,9 +20,11 @@ rt = cc.find_library('rt')
 
 mrsh_inc = include_directories('include')
 
-executable(
-	'mrsh',
-	files([
+install_subdir('include/mrsh', install_dir: get_option('includedir'))
+
+lib_mrsh = library(
+	meson.project_name(),
+	files(
 		'array.c',
 		'ast_print.c',
 		'ast.c',
@@ -33,10 +35,24 @@ executable(
 		'builtin/set.c',
 		'builtin/times.c',
 		'hashtable.c',
-		'main.c',
 		'parser/parser.c',
 		'parser/program.c',
 		'parser/word.c',
+	),
+	include_directories: mrsh_inc,
+	version: meson.project_version(),
+	install: true,
+)
+
+mrsh = declare_dependency(
+	link_with: lib_mrsh,
+	include_directories: mrsh_inc,
+)
+
+executable(
+	'mrsh',
+	files([
+		'main.c',
 		'shell/process.c',
 		'shell/shell.c',
 		'shell/shm.c',
@@ -52,6 +68,15 @@ executable(
 		'shell/word.c',
 	]),
 	include_directories: [mrsh_inc],
-	dependencies: [rt],
+	dependencies: [rt, mrsh],
 	install: true,
+)
+
+pkgconfig = import('pkgconfig')
+pkgconfig.generate(
+	libraries: lib_mrsh,
+	version: meson.project_version(),
+	filebase: meson.project_name(),
+	name: meson.project_name(),
+	description: 'POSIX shell library',
 )

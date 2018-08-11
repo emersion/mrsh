@@ -12,7 +12,7 @@
 #include "parser.h"
 
 static const char *operator_str(enum symbol_name sym) {
-	for (size_t i = 0; i < sizeof(operators)/sizeof(operators[0]); ++i) {
+	for (size_t i = 0; i < operators_len; ++i) {
 		if (operators[i].name == sym) {
 			return operators[i].str;
 		}
@@ -28,7 +28,7 @@ static bool operator(struct mrsh_parser *state, enum symbol_name sym) {
 	const char *str = operator_str(sym);
 	assert(str != NULL);
 
-	char buf[OPERATOR_MAX_LEN];
+	char buf[operators_max_str_len];
 	parser_read(state, buf, strlen(str));
 	assert(strncmp(str, buf, strlen(str)) == 0);
 	consume_symbol(state);
@@ -225,7 +225,7 @@ static struct mrsh_word *cmd_name(struct mrsh_parser *state) {
 	}
 
 	// TODO: optimize this
-	for (size_t i = 0; i < sizeof(keywords)/sizeof(keywords[0]); ++i) {
+	for (size_t i = 0; i < keywords_len; ++i) {
 		if (strlen(keywords[i]) == word_len &&
 				strncmp(state->buf.data, keywords[i], word_len) == 0) {
 			return NULL;

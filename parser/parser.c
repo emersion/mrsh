@@ -11,6 +11,47 @@
 #include "buffer.h"
 #include "parser.h"
 
+// Keep sorted from the longest to the shortest
+const struct symbol operators[] = {
+	{ DLESSDASH, "<<-" },
+	{ AND_IF, "&&" },
+	{ OR_IF, "||" },
+	{ DSEMI, ";;" },
+	{ DLESS, "<<" },
+	{ DGREAT, ">>" },
+	{ LESSAND, "<&" },
+	{ GREATAND, ">&" },
+	{ LESSGREAT, "<>" },
+	{ CLOBBER, ">|" },
+};
+
+const size_t operators_len = sizeof(operators) / sizeof(operators[0]);
+const size_t operators_max_str_len = 3;
+
+const char *keywords[] = {
+	"if",
+	"then",
+	"else",
+	"elif",
+	"fi",
+	"do",
+	"done",
+
+	"case",
+	"esac",
+	"while",
+	"until",
+	"for",
+
+	"{",
+	"}",
+	"!",
+
+	"in",
+};
+
+const size_t keywords_len = sizeof(keywords) / sizeof(keywords[0]);
+
 static struct mrsh_parser *parser_create(void) {
 	struct mrsh_parser *state = calloc(1, sizeof(struct mrsh_parser));
 	state->pos.line = state->pos.column = 1;
@@ -132,8 +173,8 @@ static void next_symbol(struct mrsh_parser *state) {
 	}
 
 	if (is_operator_start(c)) {
-		char next[OPERATOR_MAX_LEN];
-		for (size_t i = 0; i < sizeof(operators)/sizeof(operators[0]); ++i) {
+		char next[operators_max_str_len];
+		for (size_t i = 0; i < operators_len; ++i) {
 			const char *str = operators[i].str;
 			size_t n = strlen(str);
 			size_t n_read = parser_peek(state, next, n);

@@ -32,43 +32,12 @@ struct symbol {
 	char *str;
 };
 
-// Keep sorted from the longest to the shortest
-const struct symbol operators[] = {
-	{ DLESSDASH, "<<-" },
-	{ AND_IF, "&&" },
-	{ OR_IF, "||" },
-	{ DSEMI, ";;" },
-	{ DLESS, "<<" },
-	{ DGREAT, ">>" },
-	{ LESSAND, "<&" },
-	{ GREATAND, ">&" },
-	{ LESSGREAT, "<>" },
-	{ CLOBBER, ">|" },
-};
+extern const struct symbol operators[];
+extern const size_t operators_len;
+extern const size_t operators_max_str_len;
 
-#define OPERATOR_MAX_LEN 3
-
-const char *keywords[] = {
-	"if",
-	"then",
-	"else",
-	"elif",
-	"fi",
-	"do",
-	"done",
-
-	"case",
-	"esac",
-	"while",
-	"until",
-	"for",
-
-	"{",
-	"}",
-	"!",
-
-	"in",
-};
+extern const char *keywords[];
+extern const size_t keywords_len;
 
 struct mrsh_parser {
 	FILE *f; // can be NULL

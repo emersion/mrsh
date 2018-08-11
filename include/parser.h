@@ -33,7 +33,7 @@ struct symbol {
 };
 
 // Keep sorted from the longest to the shortest
-static const struct symbol operators[] = {
+const struct symbol operators[] = {
 	{ DLESSDASH, "<<-" },
 	{ AND_IF, "&&" },
 	{ OR_IF, "||" },
@@ -48,7 +48,7 @@ static const struct symbol operators[] = {
 
 #define OPERATOR_MAX_LEN 3
 
-static const char *keywords[] = {
+const char *keywords[] = {
 	"if",
 	"then",
 	"else",

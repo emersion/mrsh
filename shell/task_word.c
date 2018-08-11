@@ -1,16 +1,17 @@
 #define _POSIX_C_SOURCE 200809L
 #include <assert.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
-#include <unistd.h>
 #include <errno.h>
-#include <stdio.h>
 #include <mrsh/parser.h>
+#include <stdio.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/mman.h>
+#include <unistd.h>
 
 #include "buffer.h"
-#include "shell.h"
 #include "builtin.h"
+#include "shell.h"
 
 #define TOKEN_COMMAND_READ_SIZE 128
 
@@ -22,7 +23,23 @@ struct task_word {
 	// only if it's a command
 	bool started;
 	struct process process;
+	int fd;
 };
+
+static bool read_full(int fd, char *buf, size_t size) {
+	size_t n_read = 0;
+	do {
+		ssize_t n = read(fd, buf, size - n_read);
+		if (n < 0 && errno == EINTR) {
+			continue;
+		} else if (n < 0) {
+			fprintf(stderr, "failed to read(): %s\n", strerror(errno));
+			return false;
+		}
+		n_read += n;
+	} while (n_read < size);
+	return true;
+}
 
 static void task_word_swap(struct task_word *tt,
 		struct mrsh_word *new_word) {
@@ -36,9 +53,10 @@ static bool task_word_command_start(struct task_word *tt,
 	struct mrsh_word_command *wc = mrsh_word_get_command(word);
 	assert(wc != NULL);
 
-	int fds[2];
-	if (pipe(fds) != 0) {
-		fprintf(stderr, "failed to pipe(): %s\n", strerror(errno));
+	int fd = create_anonymous_file();
+	if (fd < 0) {
+		fprintf(stderr, "failed to create anonymous file: %s\n",
+			strerror(errno));
 		return false;
 	}
 
@@ -47,8 +65,7 @@ static bool task_word_command_start(struct task_word *tt,
 		fprintf(stderr, "failed to fork(): %s\n", strerror(errno));
 		return false;
 	} else if (pid == 0) {
-		close(fds[0]);
-		dup2(fds[1], STDOUT_FILENO);
+		dup2(fd, STDOUT_FILENO);
 
 		if (ctx->stdin_fileno >= 0) {
 			close(ctx->stdin_fileno);
@@ -57,14 +74,14 @@ static bool task_word_command_start(struct task_word *tt,
 			close(ctx->stdout_fileno);
 		}
 
-		FILE *f = fmemopen(wc->command, strlen(wc->command), "r");
-		if (f == NULL) {
-			fprintf(stderr, "failed to fmemopen(): %s", strerror(errno));
+		struct mrsh_parser *parser =
+			mrsh_parser_create_from_buffer(wc->command, strlen(wc->command));
+		if (parser == NULL) {
+			fprintf(stderr, "failed to create parser");
 			exit(EXIT_FAILURE);
 		}
-
-		struct mrsh_program *prog = mrsh_parse(f);
-		fclose(f);
+		struct mrsh_program *prog = mrsh_parse_program(parser);
+		mrsh_parser_destroy(parser);
 		if (prog == NULL) {
 			exit(EXIT_SUCCESS);
 		}
@@ -76,40 +93,8 @@ static bool task_word_command_start(struct task_word *tt,
 
 		exit(state.exit >= 0 ? state.exit : EXIT_SUCCESS);
 	} else {
-		close(fds[1]);
 		process_init(&tt->process, pid);
-
-		// TODO: don't block here
-		struct buffer buf = {0};
-		while (true) {
-			char *out = buffer_reserve(&buf, TOKEN_COMMAND_READ_SIZE);
-			ssize_t n_read = read(fds[0], out, TOKEN_COMMAND_READ_SIZE - 1);
-			if (n_read < 0) {
-				buffer_finish(&buf);
-				close(fds[0]);
-				fprintf(stderr, "failed to read(): %s", strerror(errno));
-				return false;
-			} else if (n_read == 0) {
-				break;
-			}
-			buf.len += n_read;
-		}
-
-		close(fds[0]);
-
-		// Trim newlines at the end
-		ssize_t i = buf.len - 1;
-		while (i >= 0 && buf.data[i] == '\n') {
-			buf.data[i] = '\0';
-			--i;
-		}
-
-		buffer_append_char(&buf, '\0');
-		char *str = buffer_steal(&buf);
-		buffer_finish(&buf);
-
-		struct mrsh_word_string *ws = mrsh_word_string_create(str, false);
-		task_word_swap(tt, &ws->word);
+		tt->fd = fd;
 		return true;
 	}
 }
@@ -186,7 +171,40 @@ static int task_word_poll(struct task *task, struct context *ctx) {
 			tt->started = true;
 		}
 
-		return process_poll(&tt->process);
+		int ret = process_poll(&tt->process);
+		if (ret != TASK_STATUS_WAIT) {
+			off_t size = lseek(tt->fd, 0, SEEK_END);
+			if (size < 0) {
+				fprintf(stderr, "failed to lseek(): %s\n", strerror(errno));
+				return TASK_STATUS_ERROR;
+			}
+			lseek(tt->fd, 0, SEEK_SET);
+
+			char *buf = malloc(size + 1);
+			if (buf == NULL) {
+				fprintf(stderr, "failed to malloc(): %s\n", strerror(errno));
+				return TASK_STATUS_ERROR;
+			}
+
+			if (!read_full(tt->fd, buf, size)) {
+				return TASK_STATUS_ERROR;
+			}
+			buf[size] = '\0';
+
+			close(tt->fd);
+			tt->fd = -1;
+
+			// Trim newlines at the end
+			ssize_t i = size - 1;
+			while (i >= 0 && buf[i] == '\n') {
+				buf[i] = '\0';
+				--i;
+			}
+
+			struct mrsh_word_string *ws = mrsh_word_string_create(buf, false);
+			task_word_swap(tt, &ws->word);
+		}
+		return ret;
 	case MRSH_WORD_LIST:
 		assert(0);
 	}

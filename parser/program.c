@@ -829,9 +829,6 @@ struct mrsh_program *mrsh_parse_line(struct mrsh_parser *state) {
 	return prog;
 }
 
-struct mrsh_program *mrsh_parse(FILE *f) {
-	struct mrsh_parser *state = mrsh_parser_create(f);
-	struct mrsh_program *prog = program(state);
-	mrsh_parser_destroy(state);
-	return prog;
+struct mrsh_program *mrsh_parse_program(struct mrsh_parser *state) {
+	return program(state);
 }

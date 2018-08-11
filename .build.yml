@@ -7,10 +7,13 @@ sources:
   - https://github.com/emersion/mrsh
 tasks:
   - setup: |
-      mkdir mrsh/build-{gcc,clang}
-      CC=gcc meson mrsh/build-gcc
-      CC=clang meson mrsh/build-clang
+      cd mrsh
+      mkdir build-{gcc,clang}
+      CC=gcc meson build-gcc
+      CC=clang meson build-clang
   - gcc: |
-      ninja -C mrsh/build-gcc
+      cd mrsh
+      ninja -C build-gcc
   - clang: |
-      ninja -C mrsh/build-clang
+      cd mrsh
+      ninja -C build-clang

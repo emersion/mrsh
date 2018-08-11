@@ -82,4 +82,24 @@ struct mrsh_parser {
 	struct mrsh_array here_documents;
 };
 
+size_t parser_peek(struct mrsh_parser *state, char *buf, size_t size);
+char parser_peek_char(struct mrsh_parser *state);
+size_t parser_read(struct mrsh_parser *state, char *buf, size_t size);
+char parser_read_char(struct mrsh_parser *state);
+void parser_set_error(struct mrsh_parser *state, const char *msg);
+bool is_operator_start(char c);
+enum symbol_name get_symbol(struct mrsh_parser *state);
+void consume_symbol(struct mrsh_parser *state);
+bool symbol(struct mrsh_parser *state, enum symbol_name sym);
+bool eof(struct mrsh_parser *state);
+bool newline(struct mrsh_parser *state);
+void linebreak(struct mrsh_parser *state);
+bool newline_list(struct mrsh_parser *state);
+
+size_t peek_name(struct mrsh_parser *state);
+size_t peek_token(struct mrsh_parser *state, char end);
+struct mrsh_token *expect_parameter(struct mrsh_parser *state);
+struct mrsh_token *back_quotes(struct mrsh_parser *state);
+struct mrsh_token *word(struct mrsh_parser *state, char end);
+
 #endif

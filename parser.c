@@ -13,25 +13,16 @@
 
 struct mrsh_parser *mrsh_parser_create(FILE *f) {
 	struct mrsh_parser *state = calloc(1, sizeof(struct mrsh_parser));
-
 	state->f = f;
-
-	state->peek_cap = 128;
-	state->peek = malloc(state->peek_cap);
-	state->peek_len = 0;
-
 	state->lineno = 1;
-
 	return state;
 }
 
 struct mrsh_parser *mrsh_parser_create_from_buffer(const char *buf, size_t len) {
 	struct mrsh_parser *state = calloc(1, sizeof(struct mrsh_parser));
 
-	state->peek_cap = state->peek_len = len;
-	state->peek = malloc(len + 1);
-	memcpy(state->peek, buf, len);
-	state->peek[len] = '\0';
+	buffer_append(&state->buf, buf, len);
+	buffer_append_char(&state->buf, '\0');
 
 	state->lineno = 1;
 
@@ -42,41 +33,32 @@ void mrsh_parser_destroy(struct mrsh_parser *state) {
 	if (state == NULL) {
 		return;
 	}
-	free(state->peek);
+	buffer_finish(&state->buf);
 	free(state);
 }
 
 static size_t parser_peek(struct mrsh_parser *state, char *buf, size_t size) {
-	if (size > state->peek_len && state->f != NULL) {
-		if (size > state->peek_cap) {
-			state->peek = realloc(state->peek, size);
-			if (state->peek == NULL) {
-				state->peek_cap = 0;
-				return 0;
-			}
-			state->peek_cap = size;
-		}
-
-		size_t n_more = size - state->peek_len;
-		size_t n_read =
-			fread(state->peek + state->peek_len, 1, n_more, state->f);
-		state->peek_len += n_read;
+	if (state->f != NULL && size > state->buf.len) {
+		size_t n_more = size - state->buf.len;
+		char *dst = buffer_reserve(&state->buf, n_more);
+		size_t n_read = fread(dst, 1, n_more, state->f);
+		state->buf.len += n_read;
 		if (n_read < n_more) {
 			if (feof(state->f)) {
-				state->peek[state->peek_len] = '\0';
-				state->peek_len++;
-				size = state->peek_len;
+				buffer_append_char(&state->buf, '\0');
+				size = state->buf.len;
 			} else {
+				// TODO: better error handling
 				return 0;
 			}
 		}
 	}
-	if (size > state->peek_len && state->f == NULL) {
-		size = state->peek_len;
+	if (state->f == NULL && size > state->buf.len) {
+		size = state->buf.len;
 	}
 
 	if (buf != NULL) {
-		memcpy(buf, state->peek, size);
+		memcpy(buf, state->buf.data, size);
 	}
 	return size;
 }
@@ -91,12 +73,12 @@ static size_t parser_read(struct mrsh_parser *state, char *buf, size_t size) {
 	size_t n = parser_peek(state, buf, size);
 	if (n > 0) {
 		for (size_t i = 0; i < n; ++i) {
-			if (state->peek[i] == '\n') {
+			if (state->buf.data[i] == '\n') {
 				++state->lineno;
 			}
 		}
-		memmove(state->peek, state->peek + n, state->peek_len - n);
-		state->peek_len -= n;
+		memmove(state->buf.data, state->buf.data + n, state->buf.len - n);
+		state->buf.len -= n;
 	}
 	return n;
 }
@@ -223,7 +205,7 @@ static size_t peek_name(struct mrsh_parser *state) {
 	while (true) {
 		parser_peek(state, NULL, i + 1);
 
-		char c = state->peek[i];
+		char c = state->buf.data[i];
 		if (c != '_' && !isalnum(c)) {
 			break;
 		} else if (i == 0 && isdigit(c)) {
@@ -241,7 +223,7 @@ static size_t peek_token(struct mrsh_parser *state, char end) {
 	while (true) {
 		parser_peek(state, NULL, i + 1);
 
-		char c = state->peek[i];
+		char c = state->buf.data[i];
 
 		switch (c) {
 		case '\0':
@@ -664,7 +646,7 @@ static bool token(struct mrsh_parser *state, const char *str) {
 	}
 
 	size_t token_len = peek_token(state, 0);
-	if (len != token_len || strncmp(state->peek, str, token_len) != 0) {
+	if (len != token_len || strncmp(state->buf.data, str, token_len) != 0) {
 		return false;
 	}
 	// assert(isalpha(str[i]));
@@ -812,11 +794,11 @@ static struct mrsh_assignment *assignment_word(struct mrsh_parser *state) {
 	}
 
 	parser_peek(state, NULL, name_len + 1);
-	if (state->peek[name_len] != '=') {
+	if (state->buf.data[name_len] != '=') {
 		return NULL;
 	}
 
-	char *name = strndup(state->peek, name_len);
+	char *name = strndup(state->buf.data, name_len);
 	parser_read(state, NULL, name_len + 1);
 	struct mrsh_token *value = word(state, 0);
 	consume_symbol(state);
@@ -853,7 +835,7 @@ static struct mrsh_token *cmd_name(struct mrsh_parser *state) {
 	// TODO: optimize this
 	for (size_t i = 0; i < sizeof(keywords)/sizeof(keywords[0]); ++i) {
 		if (strlen(keywords[i]) == token_len &&
-				strncmp(state->peek, keywords[i], token_len) == 0) {
+				strncmp(state->buf.data, keywords[i], token_len) == 0) {
 			return NULL;
 		}
 	}
@@ -1066,7 +1048,7 @@ static struct mrsh_function_definition *function_definition(
 	while (true) {
 		parser_peek(state, NULL, i + 1);
 
-		char c = state->peek[i];
+		char c = state->buf.data[i];
 		if (c == '(') {
 			break;
 		} else if (!isblank(c)) {

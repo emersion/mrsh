@@ -22,56 +22,56 @@ static void print_prefix(const char *prefix, bool last) {
 	printf("%s%s", prefix, last ? L_LAST : L_VAL);
 }
 
-static void print_token(struct mrsh_token *token, const char *prefix) {
-	switch (token->type) {
-	case MRSH_TOKEN_STRING:;
-		struct mrsh_token_string *ts = mrsh_token_get_string(token);
-		assert(ts != NULL);
-		printf("token_string%s %s\n",
-			ts->single_quoted ? " (quoted)" : "", ts->str);
+static void print_word(struct mrsh_word *word, const char *prefix) {
+	switch (word->type) {
+	case MRSH_WORD_STRING:;
+		struct mrsh_word_string *ws = mrsh_word_get_string(word);
+		assert(ws != NULL);
+		printf("word_string%s %s\n",
+			ws->single_quoted ? " (quoted)" : "", ws->str);
 		break;
-	case MRSH_TOKEN_PARAMETER:;
-		struct mrsh_token_parameter *tp = mrsh_token_get_parameter(token);
-		assert(tp != NULL);
-		printf("token_parameter\n");
+	case MRSH_WORD_PARAMETER:;
+		struct mrsh_word_parameter *wp = mrsh_word_get_parameter(word);
+		assert(wp != NULL);
+		printf("word_parameter\n");
 
-		print_prefix(prefix, tp->op == NULL && tp->arg == NULL);
-		printf("name %s\n", tp->name);
+		print_prefix(prefix, wp->op == NULL && wp->arg == NULL);
+		printf("name %s\n", wp->name);
 
-		if (tp->op != NULL) {
-			print_prefix(prefix, tp->arg == NULL);
-			printf("op %s\n", tp->op);
+		if (wp->op != NULL) {
+			print_prefix(prefix, wp->arg == NULL);
+			printf("op %s\n", wp->op);
 		}
 
-		if (tp->arg != NULL) {
+		if (wp->arg != NULL) {
 			char sub_prefix[make_sub_prefix(prefix, true, NULL)];
 			make_sub_prefix(prefix, true, sub_prefix);
 
 			print_prefix(prefix, true);
 			printf("arg ─ ");
-			print_token(tp->arg, sub_prefix);
+			print_word(wp->arg, sub_prefix);
 		}
 		break;
-	case MRSH_TOKEN_COMMAND:;
-		struct mrsh_token_command *tc = mrsh_token_get_command(token);
-		assert(tc != NULL);
-		printf("token_command%s %s\n",
-			tc->back_quoted ? " (quoted)" : "", tc->command);
+	case MRSH_WORD_COMMAND:;
+		struct mrsh_word_command *wc = mrsh_word_get_command(word);
+		assert(wc != NULL);
+		printf("word_command%s %s\n",
+			wc->back_quoted ? " (quoted)" : "", wc->command);
 		break;
-	case MRSH_TOKEN_LIST:;
-		struct mrsh_token_list *tl = mrsh_token_get_list(token);
-		assert(tl != NULL);
-		printf("token_list%s\n", tl->double_quoted ? " (quoted)" : "");
+	case MRSH_WORD_LIST:;
+		struct mrsh_word_list *wl = mrsh_word_get_list(word);
+		assert(wl != NULL);
+		printf("word_list%s\n", wl->double_quoted ? " (quoted)" : "");
 
-		for (size_t i = 0; i < tl->children.len; ++i) {
-			struct mrsh_token *child = tl->children.data[i];
-			bool last = i == tl->children.len - 1;
+		for (size_t i = 0; i < wl->children.len; ++i) {
+			struct mrsh_word *child = wl->children.data[i];
+			bool last = i == wl->children.len - 1;
 
 			char sub_prefix[make_sub_prefix(prefix, last, NULL)];
 			make_sub_prefix(prefix, last, sub_prefix);
 
 			print_prefix(prefix, last);
-			print_token(child, sub_prefix);
+			print_word(child, sub_prefix);
 		}
 		break;
 	}
@@ -92,7 +92,7 @@ static void print_io_redirect(struct mrsh_io_redirect *redir,
 
 	print_prefix(prefix, true);
 	printf("name ─ ");
-	print_token(redir->name, sub_prefix);
+	print_word(redir->name, sub_prefix);
 }
 
 static void print_assignment(struct mrsh_assignment *assign,
@@ -107,7 +107,7 @@ static void print_assignment(struct mrsh_assignment *assign,
 
 	print_prefix(prefix, true);
 	printf("value ─ ");
-	print_token(assign->value, sub_prefix);
+	print_word(assign->value, sub_prefix);
 }
 
 static void print_simple_command(struct mrsh_simple_command *cmd,
@@ -123,11 +123,11 @@ static void print_simple_command(struct mrsh_simple_command *cmd,
 
 		print_prefix(prefix, last);
 		printf("name ─ ");
-		print_token(cmd->name, sub_prefix);
+		print_word(cmd->name, sub_prefix);
 	}
 
 	for (size_t i = 0; i < cmd->arguments.len; ++i) {
-		struct mrsh_token *arg = cmd->arguments.data[i];
+		struct mrsh_word *arg = cmd->arguments.data[i];
 		bool last = i == cmd->arguments.len - 1 && cmd->io_redirects.len == 0
 			&& cmd->assignments.len == 0;
 
@@ -135,7 +135,7 @@ static void print_simple_command(struct mrsh_simple_command *cmd,
 
 		print_prefix(prefix, last);
 		printf("argument %zu ─ ", i + 1);
-		print_token(arg, sub_prefix);
+		print_word(arg, sub_prefix);
 	}
 
 	for (size_t i = 0; i < cmd->io_redirects.len; ++i) {

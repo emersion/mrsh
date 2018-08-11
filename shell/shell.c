@@ -31,7 +31,7 @@ static struct task *handle_simple_command(struct mrsh_simple_command *sc) {
 	for (size_t i = 0; i < sc->assignments.len; ++i) {
 		struct mrsh_assignment *assign = sc->assignments.data[i];
 		task_list_add(task_list,
-			task_token_create(&assign->value, TILDE_EXPANSION_ASSIGNMENT));
+			task_word_create(&assign->value, TILDE_EXPANSION_ASSIGNMENT));
 	}
 
 	if (sc->name == NULL) {
@@ -40,24 +40,24 @@ static struct task *handle_simple_command(struct mrsh_simple_command *sc) {
 	}
 
 	task_list_add(task_list,
-		task_token_create(&sc->name, TILDE_EXPANSION_NAME));
+		task_word_create(&sc->name, TILDE_EXPANSION_NAME));
 
 	for (size_t i = 0; i < sc->arguments.len; ++i) {
-		struct mrsh_token **arg_ptr =
-			(struct mrsh_token **)&sc->arguments.data[i];
+		struct mrsh_word **arg_ptr =
+			(struct mrsh_word **)&sc->arguments.data[i];
 		task_list_add(task_list,
-			task_token_create(arg_ptr, TILDE_EXPANSION_NAME));
+			task_word_create(arg_ptr, TILDE_EXPANSION_NAME));
 	}
 
 	for (size_t i = 0; i < sc->io_redirects.len; ++i) {
 		struct mrsh_io_redirect *redir = sc->io_redirects.data[i];
 		task_list_add(task_list,
-			task_token_create(&redir->name, TILDE_EXPANSION_NAME));
+			task_word_create(&redir->name, TILDE_EXPANSION_NAME));
 		for (size_t j = 0; j < redir->here_document.len; ++j) {
-			struct mrsh_token **line_token_ptr =
-				(struct mrsh_token **)&redir->here_document.data[j];
+			struct mrsh_word **line_word_ptr =
+				(struct mrsh_word **)&redir->here_document.data[j];
 			task_list_add(task_list,
-				task_token_create(line_token_ptr, TILDE_EXPANSION_NAME));
+				task_word_create(line_word_ptr, TILDE_EXPANSION_NAME));
 		}
 	}
 
@@ -159,8 +159,8 @@ int mrsh_run_program(struct mrsh_state *state, struct mrsh_program *prog) {
 	return ret;
 }
 
-int mrsh_run_token(struct mrsh_state *state, struct mrsh_token **token) {
-	struct task *task = task_token_create(token, TILDE_EXPANSION_NAME);
+int mrsh_run_word(struct mrsh_state *state, struct mrsh_word **word) {
+	struct task *task = task_word_create(word, TILDE_EXPANSION_NAME);
 
 	struct context ctx = {
 		.state = state,

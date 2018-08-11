@@ -14,9 +14,9 @@
 
 #define TOKEN_COMMAND_READ_SIZE 128
 
-struct task_token {
+struct task_word {
 	struct task task;
-	struct mrsh_token **token_ptr;
+	struct mrsh_word **word_ptr;
 	enum tilde_expansion tilde_expansion;
 
 	// only if it's a command
@@ -24,17 +24,17 @@ struct task_token {
 	struct process process;
 };
 
-static void task_token_swap(struct task_token *tt,
-		struct mrsh_token *new_token) {
-	mrsh_token_destroy(*tt->token_ptr);
-	*tt->token_ptr = new_token;
+static void task_word_swap(struct task_word *tt,
+		struct mrsh_word *new_word) {
+	mrsh_word_destroy(*tt->word_ptr);
+	*tt->word_ptr = new_word;
 }
 
-static bool task_token_command_start(struct task_token *tt,
+static bool task_word_command_start(struct task_word *tt,
 		struct context *ctx) {
-	struct mrsh_token *token = *tt->token_ptr;
-	struct mrsh_token_command *tc = mrsh_token_get_command(token);
-	assert(tc != NULL);
+	struct mrsh_word *word = *tt->word_ptr;
+	struct mrsh_word_command *wc = mrsh_word_get_command(word);
+	assert(wc != NULL);
 
 	int fds[2];
 	if (pipe(fds) != 0) {
@@ -57,7 +57,7 @@ static bool task_token_command_start(struct task_token *tt,
 			close(ctx->stdout_fileno);
 		}
 
-		FILE *f = fmemopen(tc->command, strlen(tc->command), "r");
+		FILE *f = fmemopen(wc->command, strlen(wc->command), "r");
 		if (f == NULL) {
 			fprintf(stderr, "failed to fmemopen(): %s", strerror(errno));
 			exit(EXIT_FAILURE);
@@ -108,8 +108,8 @@ static bool task_token_command_start(struct task_token *tt,
 		char *str = buffer_steal(&buf);
 		buffer_finish(&buf);
 
-		struct mrsh_token_string *ts = mrsh_token_string_create(str, false);
-		task_token_swap(tt, &ts->token);
+		struct mrsh_word_string *ws = mrsh_word_string_create(str, false);
+		task_word_swap(tt, &ws->word);
 		return true;
 	}
 }
@@ -146,80 +146,80 @@ static const char *parameter_get_value(struct mrsh_state *state, char *name) {
 	return (const char *)mrsh_hashtable_get(&state->variables, name);
 }
 
-static int task_token_poll(struct task *task, struct context *ctx) {
-	struct task_token *tt = (struct task_token *)task;
-	struct mrsh_token *token = *tt->token_ptr;
+static int task_word_poll(struct task *task, struct context *ctx) {
+	struct task_word *tt = (struct task_word *)task;
+	struct mrsh_word *word = *tt->word_ptr;
 
-	switch (token->type) {
-	case MRSH_TOKEN_STRING:;
-		struct mrsh_token_string *ts = mrsh_token_get_string(token);
-		assert(ts != NULL);
-		if (!ts->single_quoted && tt->tilde_expansion != TILDE_EXPANSION_NONE) {
+	switch (word->type) {
+	case MRSH_WORD_STRING:;
+		struct mrsh_word_string *ws = mrsh_word_get_string(word);
+		assert(ws != NULL);
+		if (!ws->single_quoted && tt->tilde_expansion != TILDE_EXPANSION_NONE) {
 			// TODO: TILDE_EXPANSION_ASSIGNMENT
-			expand_tilde(ctx->state, &ts->str);
+			expand_tilde(ctx->state, &ws->str);
 		}
 		return 0;
-	case MRSH_TOKEN_PARAMETER:;
-		struct mrsh_token_parameter *tp = mrsh_token_get_parameter(token);
-		assert(tp != NULL);
-		const char *value = parameter_get_value(ctx->state, tp->name);
+	case MRSH_WORD_PARAMETER:;
+		struct mrsh_word_parameter *wp = mrsh_word_get_parameter(word);
+		assert(wp != NULL);
+		const char *value = parameter_get_value(ctx->state, wp->name);
 		if (value == NULL) {
 			if ((ctx->state->options & MRSH_OPT_NOUNSET)) {
 				fprintf(stderr, "%s: %s: unbound variable\n",
-						ctx->state->argv[0], tp->name);
+						ctx->state->argv[0], wp->name);
 				return TASK_STATUS_ERROR;
 			}
 			value = "";
 		}
-		struct mrsh_token_string *replacement =
-			mrsh_token_string_create(strdup(value), false);
-		task_token_swap(tt, &replacement->token);
+		struct mrsh_word_string *replacement =
+			mrsh_word_string_create(strdup(value), false);
+		task_word_swap(tt, &replacement->word);
 		return 0;
-	case MRSH_TOKEN_COMMAND:;
-		struct mrsh_token_command *tc = mrsh_token_get_command(token);
-		assert(tc != NULL);
+	case MRSH_WORD_COMMAND:;
+		struct mrsh_word_command *wc = mrsh_word_get_command(word);
+		assert(wc != NULL);
 
 		if (!tt->started) {
-			if (!task_token_command_start(tt, ctx)) {
+			if (!task_word_command_start(tt, ctx)) {
 				return TASK_STATUS_ERROR;
 			}
 			tt->started = true;
 		}
 
 		return process_poll(&tt->process);
-	case MRSH_TOKEN_LIST:
+	case MRSH_WORD_LIST:
 		assert(0);
 	}
 	assert(0);
 }
 
-static const struct task_interface task_token_impl = {
-	.poll = task_token_poll,
+static const struct task_interface task_word_impl = {
+	.poll = task_word_poll,
 };
 
-struct task *task_token_create(struct mrsh_token **token_ptr,
+struct task *task_word_create(struct mrsh_word **word_ptr,
 		enum tilde_expansion tilde_expansion) {
-	struct mrsh_token *token = *token_ptr;
+	struct mrsh_word *word = *word_ptr;
 
-	if (token->type == MRSH_TOKEN_LIST) {
-		struct mrsh_token_list *tl = mrsh_token_get_list(token);
-		assert(tl != NULL);
+	if (word->type == MRSH_WORD_LIST) {
+		struct mrsh_word_list *wl = mrsh_word_get_list(word);
+		assert(wl != NULL);
 		struct task *task_list = task_list_create();
-		for (size_t i = 0; i < tl->children.len; ++i) {
-			struct mrsh_token **child_ptr =
-				(struct mrsh_token **)&tl->children.data[i];
-			if (i > 0 || tl->double_quoted) {
+		for (size_t i = 0; i < wl->children.len; ++i) {
+			struct mrsh_word **child_ptr =
+				(struct mrsh_word **)&wl->children.data[i];
+			if (i > 0 || wl->double_quoted) {
 				tilde_expansion = TILDE_EXPANSION_NONE;
 			}
 			task_list_add(task_list,
-				task_token_create(child_ptr, tilde_expansion));
+				task_word_create(child_ptr, tilde_expansion));
 		}
 		return task_list;
 	}
 
-	struct task_token *tt = calloc(1, sizeof(struct task_token));
-	task_init(&tt->task, &task_token_impl);
-	tt->token_ptr = token_ptr;
+	struct task_word *tt = calloc(1, sizeof(struct task_word));
+	task_init(&tt->task, &task_word_impl);
+	tt->word_ptr = word_ptr;
 	tt->tilde_expansion = tilde_expansion;
 	return &tt->task;
 }

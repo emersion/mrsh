@@ -4,58 +4,58 @@
 #include <mrsh/array.h>
 #include <stdbool.h>
 
-enum mrsh_token_type {
-	MRSH_TOKEN_STRING,
-	MRSH_TOKEN_PARAMETER,
-	MRSH_TOKEN_COMMAND,
-	MRSH_TOKEN_LIST,
+enum mrsh_word_type {
+	MRSH_WORD_STRING,
+	MRSH_WORD_PARAMETER,
+	MRSH_WORD_COMMAND,
+	MRSH_WORD_LIST,
 };
 
 /**
- * A token can be:
+ * A word can be:
  * - An unquoted or a single-quoted string
- * - An unquoted or a double-quoted list of tokens
+ * - An unquoted or a double-quoted list of words
  */
-struct mrsh_token {
-	enum mrsh_token_type type;
+struct mrsh_word {
+	enum mrsh_word_type type;
 };
 
 /**
- * A string token is a type of token. It can be unquoted or single-quoted.
+ * A string word is a type of word. It can be unquoted or single-quoted.
  */
-struct mrsh_token_string {
-	struct mrsh_token token;
+struct mrsh_word_string {
+	struct mrsh_word word;
 	char *str;
 	bool single_quoted;
 };
 
 /**
- * A token parameter is a type of token candidate for parameter expansion. The
+ * A word parameter is a type of word candidate for parameter expansion. The
  * format is either `$name` or `${expression}`.
  */
-struct mrsh_token_parameter {
-	struct mrsh_token token;
+struct mrsh_word_parameter {
+	struct mrsh_word word;
 	char *name;
 	char *op; // can be NULL
-	struct mrsh_token *arg; // can be NULL
+	struct mrsh_word *arg; // can be NULL
 };
 
 /**
- * A token command is a type of token candidate for command substitution. The
+ * A word command is a type of word candidate for command substitution. The
  * format is either `` `command` `` or `$(command)`.
  */
-struct mrsh_token_command {
-	struct mrsh_token token;
+struct mrsh_word_command {
+	struct mrsh_word word;
 	char *command;
 	bool back_quoted;
 };
 
 /**
- * A token list is a type of token. It can be unquoted or double-quoted.
+ * A word list is a type of word. It can be unquoted or double-quoted.
  */
-struct mrsh_token_list {
-	struct mrsh_token token;
-	struct mrsh_array children; // struct mrsh_token *
+struct mrsh_word_list {
+	struct mrsh_word word;
+	struct mrsh_array children; // struct mrsh_word *
 	bool double_quoted;
 };
 
@@ -65,8 +65,8 @@ struct mrsh_token_list {
 struct mrsh_io_redirect {
 	int io_number; // -1 if unspecified
 	char *op; // one of <, >, >|, >>, <&, <>, <<, <<-
-	struct mrsh_token *name; // filename or here-document delimiter
-	struct mrsh_array here_document; // struct mrsh_token *, only for << and <<-
+	struct mrsh_word *name; // filename or here-document delimiter
+	struct mrsh_array here_document; // struct mrsh_word *, only for << and <<-
 };
 
 /**
@@ -74,7 +74,7 @@ struct mrsh_io_redirect {
  */
 struct mrsh_assignment {
 	char *name;
-	struct mrsh_token *value;
+	struct mrsh_word *value;
 };
 
 enum mrsh_command_type {
@@ -98,8 +98,8 @@ struct mrsh_command {
  */
 struct mrsh_simple_command {
 	struct mrsh_command command;
-	struct mrsh_token *name; // can be NULL if it contains only assignments
-	struct mrsh_array arguments; // struct mrsh_token *
+	struct mrsh_word *name; // can be NULL if it contains only assignments
+	struct mrsh_array arguments; // struct mrsh_word *
 	struct mrsh_array io_redirects; // struct mrsh_io_redirect *
 	struct mrsh_array assignments; // struct mrsh_assignment *
 };
@@ -199,26 +199,26 @@ struct mrsh_program {
 	struct mrsh_array body; // struct mrsh_command_list *
 };
 
-void mrsh_token_destroy(struct mrsh_token *token);
+void mrsh_word_destroy(struct mrsh_word *word);
 void mrsh_io_redirect_destroy(struct mrsh_io_redirect *redir);
 void mrsh_assignment_destroy(struct mrsh_assignment *assign);
 void mrsh_command_destroy(struct mrsh_command *cmd);
 void mrsh_node_destroy(struct mrsh_node *node);
 void mrsh_command_list_destroy(struct mrsh_command_list *l);
 void mrsh_program_destroy(struct mrsh_program *prog);
-struct mrsh_token_string *mrsh_token_string_create(char *str,
+struct mrsh_word_string *mrsh_word_string_create(char *str,
 	bool single_quoted);
-struct mrsh_token_parameter *mrsh_token_parameter_create(char *name, char *op,
-	struct mrsh_token *arg);
-struct mrsh_token_command *mrsh_token_command_create(char *command,
+struct mrsh_word_parameter *mrsh_word_parameter_create(char *name, char *op,
+	struct mrsh_word *arg);
+struct mrsh_word_command *mrsh_word_command_create(char *command,
 	bool back_quoted);
-struct mrsh_token_list *mrsh_token_list_create(struct mrsh_array *children,
+struct mrsh_word_list *mrsh_word_list_create(struct mrsh_array *children,
 	bool double_quoted);
-struct mrsh_token_string *mrsh_token_get_string(struct mrsh_token *token);
-struct mrsh_token_parameter *mrsh_token_get_parameter(struct mrsh_token *token);
-struct mrsh_token_command *mrsh_token_get_command(struct mrsh_token *token);
-struct mrsh_token_list *mrsh_token_get_list(struct mrsh_token *token);
-struct mrsh_simple_command *mrsh_simple_command_create(struct mrsh_token *name,
+struct mrsh_word_string *mrsh_word_get_string(struct mrsh_word *word);
+struct mrsh_word_parameter *mrsh_word_get_parameter(struct mrsh_word *word);
+struct mrsh_word_command *mrsh_word_get_command(struct mrsh_word *word);
+struct mrsh_word_list *mrsh_word_get_list(struct mrsh_word *word);
+struct mrsh_simple_command *mrsh_simple_command_create(struct mrsh_word *name,
 	struct mrsh_array *arguments, struct mrsh_array *io_redirects,
 	struct mrsh_array *assignments);
 struct mrsh_brace_group *mrsh_brace_group_create(struct mrsh_array *body);
@@ -240,7 +240,7 @@ struct mrsh_binop *mrsh_binop_create(enum mrsh_binop_type type,
 struct mrsh_pipeline *mrsh_node_get_pipeline(struct mrsh_node *node);
 struct mrsh_binop *mrsh_node_get_binop(struct mrsh_node *node);
 
-char *mrsh_token_str(struct mrsh_token *token);
+char *mrsh_word_str(struct mrsh_word *word);
 void mrsh_program_print(struct mrsh_program *prog);
 
 #endif

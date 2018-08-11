@@ -71,6 +71,6 @@ struct mrsh_state {
 void mrsh_state_init(struct mrsh_state *state);
 void mrsh_state_finish(struct mrsh_state *state);
 int mrsh_run_program(struct mrsh_state *state, struct mrsh_program *prog);
-int mrsh_run_token(struct mrsh_state *state, struct mrsh_token **token);
+int mrsh_run_word(struct mrsh_state *state, struct mrsh_word **word);
 
 #endif

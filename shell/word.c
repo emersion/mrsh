@@ -60,22 +60,22 @@ struct split_fields_data {
 };
 
 static void _split_fields(struct mrsh_array *fields, struct buffer *buf,
-		struct mrsh_token *token, bool double_quoted,
+		struct mrsh_word *word, bool double_quoted,
 		struct split_fields_data *data) {
-	switch (token->type) {
-	case MRSH_TOKEN_STRING:;
-		struct mrsh_token_string *ts = mrsh_token_get_string(token);
-		assert(ts != NULL);
+	switch (word->type) {
+	case MRSH_WORD_STRING:;
+		struct mrsh_word_string *ws = mrsh_word_get_string(word);
+		assert(ws != NULL);
 
 		if (double_quoted) {
-			buffer_append(buf, ts->str, strlen(ts->str));
+			buffer_append(buf, ws->str, strlen(ws->str));
 			data->in_ifs = data->in_ifs_non_space = false;
 			return;
 		}
 
-		size_t len = strlen(ts->str);
+		size_t len = strlen(ws->str);
 		for (size_t i = 0; i < len; ++i) {
-			char c = ts->str[i];
+			char c = ws->str[i];
 			if (strchr(data->ifs, c) == NULL) {
 				buffer_append_char(buf, c);
 				data->in_ifs = data->in_ifs_non_space = false;
@@ -93,13 +93,13 @@ static void _split_fields(struct mrsh_array *fields, struct buffer *buf,
 			}
 		}
 		break;
-	case MRSH_TOKEN_LIST:;
-		struct mrsh_token_list *tl = mrsh_token_get_list(token);
-		assert(tl != NULL);
-		for (size_t i = 0; i < tl->children.len; ++i) {
-			struct mrsh_token *child = tl->children.data[i];
+	case MRSH_WORD_LIST:;
+		struct mrsh_word_list *wl = mrsh_word_get_list(word);
+		assert(wl != NULL);
+		for (size_t i = 0; i < wl->children.len; ++i) {
+			struct mrsh_word *child = wl->children.data[i];
 			_split_fields(fields, buf, child,
-				double_quoted || tl->double_quoted, data);
+				double_quoted || wl->double_quoted, data);
 		}
 		break;
 	default:
@@ -107,12 +107,12 @@ static void _split_fields(struct mrsh_array *fields, struct buffer *buf,
 	}
 }
 
-void split_fields(struct mrsh_array *fields, struct mrsh_token *token,
+void split_fields(struct mrsh_array *fields, struct mrsh_word *word,
 		const char *ifs) {
 	if (ifs == NULL) {
 		ifs = " \t\n";
 	} else if (ifs[0] == '\0') {
-		char *str = mrsh_token_str(token);
+		char *str = mrsh_word_str(word);
 		mrsh_array_add(fields, str);
 		return;
 	}
@@ -132,7 +132,7 @@ void split_fields(struct mrsh_array *fields, struct mrsh_token *token,
 		.ifs_non_space = ifs_non_space,
 		.in_ifs = true,
 	};
-	_split_fields(fields, &buf, token, false, &data);
+	_split_fields(fields, &buf, word, false, &data);
 	if (!data.in_ifs) {
 		buffer_append_char(&buf, '\0');
 		char *str = buffer_steal(&buf);

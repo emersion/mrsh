@@ -52,8 +52,8 @@ static bool token(struct mrsh_parser *state, const char *str) {
 		return true;
 	}
 
-	size_t token_len = peek_token(state, 0);
-	if (len != token_len || strncmp(state->buf.data, str, token_len) != 0) {
+	size_t word_len = peek_word(state, 0);
+	if (len != word_len || strncmp(state->buf.data, str, word_len) != 0) {
 		return false;
 	}
 	// assert(isalpha(str[i]));
@@ -96,12 +96,12 @@ static bool io_here(struct mrsh_parser *state, struct mrsh_io_redirect *redir) {
 			"expected a name after IO here-document redirection operator");
 		return false;
 	}
-	// TODO: check redir->name only contains token strings and lists
+	// TODO: check redir->name only contains word strings and lists
 
 	return true;
 }
 
-static struct mrsh_token *filename(struct mrsh_parser *state) {
+static struct mrsh_word *filename(struct mrsh_parser *state) {
 	// TODO: Apply rule 2
 	return word(state, 0);
 }
@@ -192,7 +192,7 @@ static struct mrsh_assignment *assignment_word(struct mrsh_parser *state) {
 
 	char *name = strndup(state->buf.data, name_len);
 	parser_read(state, NULL, name_len + 1);
-	struct mrsh_token *value = word(state, 0);
+	struct mrsh_word *value = word(state, 0);
 	consume_symbol(state);
 
 	struct mrsh_assignment *assign = calloc(1, sizeof(struct mrsh_assignment));
@@ -218,28 +218,28 @@ static bool cmd_prefix(struct mrsh_parser *state,
 	return false;
 }
 
-static struct mrsh_token *cmd_name(struct mrsh_parser *state) {
-	size_t token_len = peek_token(state, 0);
-	if (token_len == 0) {
+static struct mrsh_word *cmd_name(struct mrsh_parser *state) {
+	size_t word_len = peek_word(state, 0);
+	if (word_len == 0) {
 		return word(state, 0);
 	}
 
 	// TODO: optimize this
 	for (size_t i = 0; i < sizeof(keywords)/sizeof(keywords[0]); ++i) {
-		if (strlen(keywords[i]) == token_len &&
-				strncmp(state->buf.data, keywords[i], token_len) == 0) {
+		if (strlen(keywords[i]) == word_len &&
+				strncmp(state->buf.data, keywords[i], word_len) == 0) {
 			return NULL;
 		}
 	}
 
 	// TODO: alias substitution
 
-	char *str = malloc(token_len + 1);
-	parser_read(state, str, token_len);
-	str[token_len] = '\0';
+	char *str = malloc(word_len + 1);
+	parser_read(state, str, word_len);
+	str[word_len] = '\0';
 
-	struct mrsh_token_string *ts = mrsh_token_string_create(str, false);
-	return &ts->token;
+	struct mrsh_word_string *ws = mrsh_word_string_create(str, false);
+	return &ws->word;
 }
 
 static bool cmd_suffix(struct mrsh_parser *state,
@@ -250,7 +250,7 @@ static bool cmd_suffix(struct mrsh_parser *state,
 		return true;
 	}
 
-	struct mrsh_token *arg = word(state, 0);
+	struct mrsh_word *arg = word(state, 0);
 	if (arg != NULL) {
 		mrsh_array_add(&cmd->arguments, arg);
 		return true;
@@ -581,10 +581,10 @@ static struct mrsh_command_list *list(struct mrsh_parser *state) {
 }
 
 /**
- * Append a new string token to `children` with the contents of `buf`, and reset
+ * Append a new string word to `children` with the contents of `buf`, and reset
  * `buf`.
  */
-static void push_buffer_token_string(struct mrsh_array *children,
+static void push_buffer_word_string(struct mrsh_array *children,
 		struct buffer *buf) {
 	if (buf->len == 0) {
 		return;
@@ -593,11 +593,11 @@ static void push_buffer_token_string(struct mrsh_array *children,
 	buffer_append_char(buf, '\0');
 
 	char *data = buffer_steal(buf);
-	struct mrsh_token_string *ts = mrsh_token_string_create(data, false);
-	mrsh_array_add(children, &ts->token);
+	struct mrsh_word_string *ws = mrsh_word_string_create(data, false);
+	mrsh_array_add(children, &ws->word);
 }
 
-static struct mrsh_token *here_document_line(struct mrsh_parser *state) {
+static struct mrsh_word *here_document_line(struct mrsh_parser *state) {
 	struct mrsh_array children = {0};
 	struct buffer buf = {0};
 
@@ -608,8 +608,8 @@ static struct mrsh_token *here_document_line(struct mrsh_parser *state) {
 		}
 
 		if (c == '$') {
-			push_buffer_token_string(&children, &buf);
-			struct mrsh_token *t = expect_parameter(state);
+			push_buffer_word_string(&children, &buf);
+			struct mrsh_word *t = expect_parameter(state);
 			if (t == NULL) {
 				return NULL;
 			}
@@ -618,8 +618,8 @@ static struct mrsh_token *here_document_line(struct mrsh_parser *state) {
 		}
 
 		if (c == '`') {
-			push_buffer_token_string(&children, &buf);
-			struct mrsh_token *t = back_quotes(state);
+			push_buffer_word_string(&children, &buf);
+			struct mrsh_word *t = back_quotes(state);
 			mrsh_array_add(&children, t);
 			continue;
 		}
@@ -643,34 +643,34 @@ static struct mrsh_token *here_document_line(struct mrsh_parser *state) {
 		buffer_append_char(&buf, c);
 	}
 
-	push_buffer_token_string(&children, &buf);
+	push_buffer_word_string(&children, &buf);
 	buffer_finish(&buf);
 
 	if (children.len == 1) {
-		struct mrsh_token *token = children.data[0];
+		struct mrsh_word *word = children.data[0];
 		mrsh_array_finish(&children); // TODO: don't allocate this array
-		return token;
+		return word;
 	} else {
-		struct mrsh_token_list *tl = mrsh_token_list_create(&children, false);
-		return &tl->token;
+		struct mrsh_word_list *wl = mrsh_word_list_create(&children, false);
+		return &wl->word;
 	}
 }
 
-static bool is_token_quoted(struct mrsh_token *token) {
-	switch (token->type) {
-	case MRSH_TOKEN_STRING:;
-		struct mrsh_token_string *ts = mrsh_token_get_string(token);
-		assert(ts != NULL);
-		return ts->single_quoted;
-	case MRSH_TOKEN_LIST:;
-		struct mrsh_token_list *tl = mrsh_token_get_list(token);
-		assert(tl != NULL);
-		if (tl->double_quoted) {
+static bool is_word_quoted(struct mrsh_word *word) {
+	switch (word->type) {
+	case MRSH_WORD_STRING:;
+		struct mrsh_word_string *ws = mrsh_word_get_string(word);
+		assert(ws != NULL);
+		return ws->single_quoted;
+	case MRSH_WORD_LIST:;
+		struct mrsh_word_list *wl = mrsh_word_get_list(word);
+		assert(wl != NULL);
+		if (wl->double_quoted) {
 			return true;
 		}
-		for (size_t i = 0; i < tl->children.len; ++i) {
-			struct mrsh_token *child = tl->children.data[i];
-			if (is_token_quoted(child)) {
+		for (size_t i = 0; i < wl->children.len; ++i) {
+			struct mrsh_word *child = wl->children.data[i];
+			if (is_word_quoted(child)) {
 				return true;
 			}
 		}
@@ -683,7 +683,7 @@ static bool is_token_quoted(struct mrsh_token *token) {
 static bool expect_here_document(struct mrsh_parser *state,
 		struct mrsh_io_redirect *redir, const char *delim) {
 	bool trim_tabs = strcmp(redir->op, "<<-") == 0;
-	bool expand_lines = !is_token_quoted(redir->name);
+	bool expand_lines = !is_word_quoted(redir->name);
 
 	struct buffer buf = {0};
 	while (true) {
@@ -715,19 +715,19 @@ static bool expect_here_document(struct mrsh_parser *state,
 		bool ok = newline(state);
 		assert(ok);
 
-		struct mrsh_token *token;
+		struct mrsh_word *word;
 		if (expand_lines) {
 			struct mrsh_parser *subparser =
 				mrsh_parser_create_from_buffer(line, strlen(line));
-			token = here_document_line(subparser);
+			word = here_document_line(subparser);
 			mrsh_parser_destroy(subparser);
 		} else {
-			struct mrsh_token_string *ts =
-				mrsh_token_string_create(strdup(line), true);
-			token = &ts->token;
+			struct mrsh_word_string *ws =
+				mrsh_word_string_create(strdup(line), true);
+			word = &ws->word;
 		}
 
-		mrsh_array_add(&redir->here_document, token);
+		mrsh_array_add(&redir->here_document, word);
 	}
 	buffer_finish(&buf);
 
@@ -761,7 +761,7 @@ static bool expect_complete_command(struct mrsh_parser *state,
 				return false;
 			}
 
-			char *delim = mrsh_token_str(redir->name);
+			char *delim = mrsh_word_str(redir->name);
 			bool ok = expect_here_document(state, redir, delim);
 			free(delim);
 			if (!ok) {

@@ -6,41 +6,41 @@
 #include "ast.h"
 #include "buffer.h"
 
-void mrsh_token_destroy(struct mrsh_token *token) {
-	if (token == NULL) {
+void mrsh_word_destroy(struct mrsh_word *word) {
+	if (word == NULL) {
 		return;
 	}
 
-	switch (token->type) {
-	case MRSH_TOKEN_STRING:;
-		struct mrsh_token_string *ts = mrsh_token_get_string(token);
-		assert(ts != NULL);
-		free(ts->str);
-		free(ts);
+	switch (word->type) {
+	case MRSH_WORD_STRING:;
+		struct mrsh_word_string *ws = mrsh_word_get_string(word);
+		assert(ws != NULL);
+		free(ws->str);
+		free(ws);
 		return;
-	case MRSH_TOKEN_PARAMETER:;
-		struct mrsh_token_parameter *tp = mrsh_token_get_parameter(token);
-		assert(tp != NULL);
-		free(tp->name);
-		free(tp->op);
-		mrsh_token_destroy(tp->arg);
-		free(tp);
+	case MRSH_WORD_PARAMETER:;
+		struct mrsh_word_parameter *wp = mrsh_word_get_parameter(word);
+		assert(wp != NULL);
+		free(wp->name);
+		free(wp->op);
+		mrsh_word_destroy(wp->arg);
+		free(wp);
 		return;
-	case MRSH_TOKEN_COMMAND:;
-		struct mrsh_token_command *tc = mrsh_token_get_command(token);
-		assert(tc != NULL);
-		free(tc->command);
-		free(tc);
+	case MRSH_WORD_COMMAND:;
+		struct mrsh_word_command *wc = mrsh_word_get_command(word);
+		assert(wc != NULL);
+		free(wc->command);
+		free(wc);
 		return;
-	case MRSH_TOKEN_LIST:;
-		struct mrsh_token_list *tl = mrsh_token_get_list(token);
-		assert(tl != NULL);
-		for (size_t i = 0; i < tl->children.len; ++i) {
-			struct mrsh_token *child = tl->children.data[i];
-			mrsh_token_destroy(child);
+	case MRSH_WORD_LIST:;
+		struct mrsh_word_list *wl = mrsh_word_get_list(word);
+		assert(wl != NULL);
+		for (size_t i = 0; i < wl->children.len; ++i) {
+			struct mrsh_word *child = wl->children.data[i];
+			mrsh_word_destroy(child);
 		}
-		mrsh_array_finish(&tl->children);
-		free(tl);
+		mrsh_array_finish(&wl->children);
+		free(wl);
 		return;
 	}
 	assert(false);
@@ -51,10 +51,10 @@ void mrsh_io_redirect_destroy(struct mrsh_io_redirect *redir) {
 		return;
 	}
 	free(redir->op);
-	mrsh_token_destroy(redir->name);
+	mrsh_word_destroy(redir->name);
 	for (size_t i = 0; i < redir->here_document.len; ++i) {
-		struct mrsh_token *line = redir->here_document.data[i];
-		mrsh_token_destroy(line);
+		struct mrsh_word *line = redir->here_document.data[i];
+		mrsh_word_destroy(line);
 	}
 	mrsh_array_finish(&redir->here_document);
 	free(redir);
@@ -65,7 +65,7 @@ void mrsh_assignment_destroy(struct mrsh_assignment *assign) {
 		return;
 	}
 	free(assign->name);
-	mrsh_token_destroy(assign->value);
+	mrsh_word_destroy(assign->value);
 	free(assign);
 }
 
@@ -85,10 +85,10 @@ void mrsh_command_destroy(struct mrsh_command *cmd) {
 	switch (cmd->type) {
 	case MRSH_SIMPLE_COMMAND:;
 		struct mrsh_simple_command *sc = mrsh_command_get_simple_command(cmd);
-		mrsh_token_destroy(sc->name);
+		mrsh_word_destroy(sc->name);
 		for (size_t i = 0; i < sc->arguments.len; ++i) {
-			struct mrsh_token *arg = sc->arguments.data[i];
-			mrsh_token_destroy(arg);
+			struct mrsh_word *arg = sc->arguments.data[i];
+			mrsh_word_destroy(arg);
 		}
 		mrsh_array_finish(&sc->arguments);
 		for (size_t i = 0; i < sc->io_redirects.len; ++i) {
@@ -169,74 +169,74 @@ void mrsh_program_destroy(struct mrsh_program *prog) {
 	free(prog);
 }
 
-struct mrsh_token_string *mrsh_token_string_create(char *str,
+struct mrsh_word_string *mrsh_word_string_create(char *str,
 		bool single_quoted) {
-	struct mrsh_token_string *ts = calloc(1, sizeof(struct mrsh_token_string));
-	ts->token.type = MRSH_TOKEN_STRING;
-	ts->str = str;
-	ts->single_quoted = single_quoted;
-	return ts;
+	struct mrsh_word_string *ws = calloc(1, sizeof(struct mrsh_word_string));
+	ws->word.type = MRSH_WORD_STRING;
+	ws->str = str;
+	ws->single_quoted = single_quoted;
+	return ws;
 }
 
-struct mrsh_token_parameter *mrsh_token_parameter_create(char *name, char *op,
-		struct mrsh_token *arg) {
-	struct mrsh_token_parameter *tp =
-		calloc(1, sizeof(struct mrsh_token_parameter));
-	tp->token.type = MRSH_TOKEN_PARAMETER;
-	tp->name = name;
-	tp->op = op;
-	tp->arg = arg;
-	return tp;
+struct mrsh_word_parameter *mrsh_word_parameter_create(char *name, char *op,
+		struct mrsh_word *arg) {
+	struct mrsh_word_parameter *wp =
+		calloc(1, sizeof(struct mrsh_word_parameter));
+	wp->word.type = MRSH_WORD_PARAMETER;
+	wp->name = name;
+	wp->op = op;
+	wp->arg = arg;
+	return wp;
 }
 
-struct mrsh_token_command *mrsh_token_command_create(char *command,
+struct mrsh_word_command *mrsh_word_command_create(char *command,
 		bool back_quoted) {
-	struct mrsh_token_command *tc =
-		calloc(1, sizeof(struct mrsh_token_command));
-	tc->token.type = MRSH_TOKEN_COMMAND;
-	tc->command = command;
-	tc->back_quoted = back_quoted;
-	return tc;
+	struct mrsh_word_command *wc =
+		calloc(1, sizeof(struct mrsh_word_command));
+	wc->word.type = MRSH_WORD_COMMAND;
+	wc->command = command;
+	wc->back_quoted = back_quoted;
+	return wc;
 }
 
-struct mrsh_token_list *mrsh_token_list_create(struct mrsh_array *children,
+struct mrsh_word_list *mrsh_word_list_create(struct mrsh_array *children,
 		bool double_quoted) {
-	struct mrsh_token_list *tl = calloc(1, sizeof(struct mrsh_token_list));
-	tl->token.type = MRSH_TOKEN_LIST;
-	tl->children = *children;
-	tl->double_quoted = double_quoted;
-	return tl;
+	struct mrsh_word_list *wl = calloc(1, sizeof(struct mrsh_word_list));
+	wl->word.type = MRSH_WORD_LIST;
+	wl->children = *children;
+	wl->double_quoted = double_quoted;
+	return wl;
 }
 
-struct mrsh_token_string *mrsh_token_get_string(struct mrsh_token *token) {
-	if (token->type != MRSH_TOKEN_STRING) {
+struct mrsh_word_string *mrsh_word_get_string(struct mrsh_word *word) {
+	if (word->type != MRSH_WORD_STRING) {
 		return NULL;
 	}
-	return (struct mrsh_token_string *)token;
+	return (struct mrsh_word_string *)word;
 }
 
-struct mrsh_token_parameter *mrsh_token_get_parameter(struct mrsh_token *token) {
-	if (token->type != MRSH_TOKEN_PARAMETER) {
+struct mrsh_word_parameter *mrsh_word_get_parameter(struct mrsh_word *word) {
+	if (word->type != MRSH_WORD_PARAMETER) {
 		return NULL;
 	}
-	return (struct mrsh_token_parameter *)token;
+	return (struct mrsh_word_parameter *)word;
 }
 
-struct mrsh_token_command *mrsh_token_get_command(struct mrsh_token *token) {
-	if (token->type != MRSH_TOKEN_COMMAND) {
+struct mrsh_word_command *mrsh_word_get_command(struct mrsh_word *word) {
+	if (word->type != MRSH_WORD_COMMAND) {
 		return NULL;
 	}
-	return (struct mrsh_token_command *)token;
+	return (struct mrsh_word_command *)word;
 }
 
-struct mrsh_token_list *mrsh_token_get_list(struct mrsh_token *token) {
-	if (token->type != MRSH_TOKEN_LIST) {
+struct mrsh_word_list *mrsh_word_get_list(struct mrsh_word *word) {
+	if (word->type != MRSH_WORD_LIST) {
 		return NULL;
 	}
-	return (struct mrsh_token_list *)token;
+	return (struct mrsh_word_list *)word;
 }
 
-struct mrsh_simple_command *mrsh_simple_command_create(struct mrsh_token *name,
+struct mrsh_simple_command *mrsh_simple_command_create(struct mrsh_word *name,
 		struct mrsh_array *arguments, struct mrsh_array *io_redirects,
 		struct mrsh_array *assignments) {
 	struct mrsh_simple_command *cmd =
@@ -340,31 +340,31 @@ struct mrsh_binop *mrsh_node_get_binop(struct mrsh_node *node) {
 	return (struct mrsh_binop *)node;
 }
 
-static void token_str(struct mrsh_token *token, struct buffer *buf) {
-	switch (token->type) {
-	case MRSH_TOKEN_STRING:;
-		struct mrsh_token_string *ts = mrsh_token_get_string(token);
-		assert(ts != NULL);
-		buffer_append(buf, ts->str, strlen(ts->str));
+static void word_str(struct mrsh_word *word, struct buffer *buf) {
+	switch (word->type) {
+	case MRSH_WORD_STRING:;
+		struct mrsh_word_string *ws = mrsh_word_get_string(word);
+		assert(ws != NULL);
+		buffer_append(buf, ws->str, strlen(ws->str));
 		return;
-	case MRSH_TOKEN_PARAMETER:
-	case MRSH_TOKEN_COMMAND:
+	case MRSH_WORD_PARAMETER:
+	case MRSH_WORD_COMMAND:
 		assert(false);
-	case MRSH_TOKEN_LIST:;
-		struct mrsh_token_list *tl = mrsh_token_get_list(token);
-		assert(tl != NULL);
-		for (size_t i = 0; i < tl->children.len; ++i) {
-			struct mrsh_token *child = tl->children.data[i];
-			token_str(child, buf);
+	case MRSH_WORD_LIST:;
+		struct mrsh_word_list *wl = mrsh_word_get_list(word);
+		assert(wl != NULL);
+		for (size_t i = 0; i < wl->children.len; ++i) {
+			struct mrsh_word *child = wl->children.data[i];
+			word_str(child, buf);
 		}
 		return;
 	}
 	assert(false);
 }
 
-char *mrsh_token_str(struct mrsh_token *token) {
+char *mrsh_word_str(struct mrsh_word *word) {
 	struct buffer buf = {0};
-	token_str(token, &buf);
+	word_str(word, &buf);
 	buffer_append_char(&buf, '\0');
 	return buffer_steal(&buf);
 }

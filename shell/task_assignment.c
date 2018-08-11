@@ -12,7 +12,7 @@ static int task_assignment_poll(struct task *task, struct context *ctx) {
 
 	for (size_t i = 0; i < ta->assignments->len; ++i) {
 		struct mrsh_assignment *assign = ta->assignments->data[i];
-		char *new_value = mrsh_token_str(assign->value);
+		char *new_value = mrsh_word_str(assign->value);
 		char *old_value = mrsh_hashtable_set(&ctx->state->variables,
 			assign->name, new_value);
 		free(old_value);

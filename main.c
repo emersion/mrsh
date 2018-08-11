@@ -12,15 +12,15 @@
 char *expand_ps1(struct mrsh_state *state, const char *ps1) {
 	struct mrsh_parser *parser =
 		mrsh_parser_create_from_buffer(ps1, strlen(ps1));
-	struct mrsh_token *token = mrsh_parse_token(parser);
+	struct mrsh_word *word = mrsh_parse_word(parser);
 	mrsh_parser_destroy(parser);
-	if (token == NULL) {
+	if (word == NULL) {
 		return NULL;
 	}
 
-	mrsh_run_token(state, &token);
+	mrsh_run_word(state, &word);
 
-	return mrsh_token_str(token);
+	return mrsh_word_str(word);
 }
 
 static void print_ps1(struct mrsh_state *state) {

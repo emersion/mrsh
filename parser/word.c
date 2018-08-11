@@ -11,7 +11,7 @@
 #include "buffer.h"
 #include "parser.h"
 
-static struct mrsh_token *single_quotes(struct mrsh_parser *state) {
+static struct mrsh_word *single_quotes(struct mrsh_parser *state) {
 	char c = parser_read_char(state);
 	assert(c == '\'');
 
@@ -34,8 +34,8 @@ static struct mrsh_token *single_quotes(struct mrsh_parser *state) {
 
 	buffer_append_char(&buf, '\0');
 	char *data = buffer_steal(&buf);
-	struct mrsh_token_string *ts = mrsh_token_string_create(data, true);
-	return &ts->token;
+	struct mrsh_word_string *ws = mrsh_word_string_create(data, true);
+	return &ws->word;
 }
 
 size_t peek_name(struct mrsh_parser *state) {
@@ -60,7 +60,7 @@ size_t peek_name(struct mrsh_parser *state) {
 	return i;
 }
 
-size_t peek_token(struct mrsh_parser *state, char end) {
+size_t peek_word(struct mrsh_parser *state, char end) {
 	size_t i = 0;
 	while (true) {
 		parser_peek(state, NULL, i + 1);
@@ -75,7 +75,7 @@ size_t peek_token(struct mrsh_parser *state, char end) {
 		case '`':
 		case '\'':
 		case '"':
-		case '\\': // TODO: allow backslash in tokens
+		case '\\': // TODO: allow backslash in words
 			return 0;
 		}
 
@@ -87,7 +87,7 @@ size_t peek_token(struct mrsh_parser *state, char end) {
 	}
 }
 
-static struct mrsh_token *token_list(struct mrsh_parser *state, char end) {
+static struct mrsh_word *word_list(struct mrsh_parser *state, char end) {
 	struct mrsh_array children = {0};
 
 	while (true) {
@@ -95,7 +95,7 @@ static struct mrsh_token *token_list(struct mrsh_parser *state, char end) {
 			break;
 		}
 
-		struct mrsh_token *child = word(state, end);
+		struct mrsh_word *child = word(state, end);
 		if (child == NULL) {
 			break;
 		}
@@ -113,25 +113,25 @@ static struct mrsh_token *token_list(struct mrsh_parser *state, char end) {
 			break; // word() ended on a non-blank char, stop here
 		}
 		buffer_append_char(&buf, '\0');
-		struct mrsh_token_string *ts =
-			mrsh_token_string_create(buffer_steal(&buf), false);
-		mrsh_array_add(&children, &ts->token);
+		struct mrsh_word_string *ws =
+			mrsh_word_string_create(buffer_steal(&buf), false);
+		mrsh_array_add(&children, &ws->word);
 		buffer_finish(&buf);
 	}
 
 	if (children.len == 0) {
 		return NULL;
 	} else if (children.len == 1) {
-		struct mrsh_token *child = children.data[0];
+		struct mrsh_word *child = children.data[0];
 		mrsh_array_finish(&children);
 		return child;
 	} else {
-		struct mrsh_token_list *tl = mrsh_token_list_create(&children, false);
-		return &tl->token;
+		struct mrsh_word_list *wl = mrsh_word_list_create(&children, false);
+		return &wl->word;
 	}
 }
 
-static struct mrsh_token *expect_parameter_expression(
+static struct mrsh_word *expect_parameter_expression(
 		struct mrsh_parser *state) {
 	char c = parser_read_char(state);
 	assert(c == '{');
@@ -149,7 +149,7 @@ static struct mrsh_token *expect_parameter_expression(
 	name[name_len] = '\0';
 
 	char *op = NULL;
-	struct mrsh_token *arg = NULL;
+	struct mrsh_word *arg = NULL;
 	if (parser_peek_char(state) != '}') {
 		char next[2];
 		parser_peek(state, next, sizeof(next));
@@ -181,7 +181,7 @@ static struct mrsh_token *expect_parameter_expression(
 		parser_read(state, op, op_len);
 		op[op_len] = '\0';
 
-		arg = token_list(state, '}');
+		arg = word_list(state, '}');
 	}
 
 	if (parser_read_char(state) != '}') {
@@ -189,12 +189,12 @@ static struct mrsh_token *expect_parameter_expression(
 		return NULL;
 	}
 
-	struct mrsh_token_parameter *tp =
-		mrsh_token_parameter_create(name, op, arg);
-	return &tp->token;
+	struct mrsh_word_parameter *wp =
+		mrsh_word_parameter_create(name, op, arg);
+	return &wp->word;
 }
 
-struct mrsh_token *expect_parameter(struct mrsh_parser *state) {
+struct mrsh_word *expect_parameter(struct mrsh_parser *state) {
 	char c = parser_read_char(state);
 	assert(c == '$');
 
@@ -213,12 +213,12 @@ struct mrsh_token *expect_parameter(struct mrsh_parser *state) {
 	parser_read(state, name, name_len);
 	name[name_len] = '\0';
 
-	struct mrsh_token_parameter *tp =
-		mrsh_token_parameter_create(name, NULL, NULL);
-	return &tp->token;
+	struct mrsh_word_parameter *wp =
+		mrsh_word_parameter_create(name, NULL, NULL);
+	return &wp->word;
 }
 
-struct mrsh_token *back_quotes(struct mrsh_parser *state) {
+struct mrsh_word *back_quotes(struct mrsh_parser *state) {
 	// TODO: support nested back-quotes
 
 	char c = parser_read_char(state);
@@ -256,15 +256,15 @@ struct mrsh_token *back_quotes(struct mrsh_parser *state) {
 
 	buffer_append_char(&buf, '\0');
 	char *data = buffer_steal(&buf);
-	struct mrsh_token_command *tc = mrsh_token_command_create(data, true);
-	return &tc->token;
+	struct mrsh_word_command *wc = mrsh_word_command_create(data, true);
+	return &wc->word;
 }
 
 /**
- * Append a new string token to `children` with the contents of `buf`, and reset
+ * Append a new string word to `children` with the contents of `buf`, and reset
  * `buf`.
  */
-static void push_buffer_token_string(struct mrsh_array *children,
+static void push_buffer_word_string(struct mrsh_array *children,
 		struct buffer *buf) {
 	if (buf->len == 0) {
 		return;
@@ -273,11 +273,11 @@ static void push_buffer_token_string(struct mrsh_array *children,
 	buffer_append_char(buf, '\0');
 
 	char *data = buffer_steal(buf);
-	struct mrsh_token_string *ts = mrsh_token_string_create(data, false);
-	mrsh_array_add(children, &ts->token);
+	struct mrsh_word_string *ws = mrsh_word_string_create(data, false);
+	mrsh_array_add(children, &ws->word);
 }
 
-static struct mrsh_token *double_quotes(struct mrsh_parser *state) {
+static struct mrsh_word *double_quotes(struct mrsh_parser *state) {
 	char c = parser_read_char(state);
 	assert(c == '"');
 
@@ -296,15 +296,15 @@ static struct mrsh_token *double_quotes(struct mrsh_parser *state) {
 		}
 
 		if (c == '$') {
-			push_buffer_token_string(&children, &buf);
-			struct mrsh_token *t = expect_parameter(state);
+			push_buffer_word_string(&children, &buf);
+			struct mrsh_word *t = expect_parameter(state);
 			mrsh_array_add(&children, t);
 			continue;
 		}
 
 		if (c == '`') {
-			push_buffer_token_string(&children, &buf);
-			struct mrsh_token *t = back_quotes(state);
+			push_buffer_word_string(&children, &buf);
+			struct mrsh_word *t = back_quotes(state);
 			mrsh_array_add(&children, t);
 			continue;
 		}
@@ -333,14 +333,14 @@ static struct mrsh_token *double_quotes(struct mrsh_parser *state) {
 		buffer_append_char(&buf, c);
 	}
 
-	push_buffer_token_string(&children, &buf);
+	push_buffer_word_string(&children, &buf);
 	buffer_finish(&buf);
 
-	struct mrsh_token_list *tl = mrsh_token_list_create(&children, true);
-	return &tl->token;
+	struct mrsh_word_list *wl = mrsh_word_list_create(&children, true);
+	return &wl->word;
 }
 
-struct mrsh_token *word(struct mrsh_parser *state, char end) {
+struct mrsh_word *word(struct mrsh_parser *state, char end) {
 	if (!symbol(state, TOKEN)) {
 		return NULL;
 	}
@@ -360,8 +360,8 @@ struct mrsh_token *word(struct mrsh_parser *state, char end) {
 		}
 
 		if (c == '$') {
-			push_buffer_token_string(&children, &buf);
-			struct mrsh_token *t = expect_parameter(state);
+			push_buffer_word_string(&children, &buf);
+			struct mrsh_word *t = expect_parameter(state);
 			if (t == NULL) {
 				return NULL;
 			}
@@ -370,22 +370,22 @@ struct mrsh_token *word(struct mrsh_parser *state, char end) {
 		}
 
 		if (c == '`') {
-			push_buffer_token_string(&children, &buf);
-			struct mrsh_token *t = back_quotes(state);
+			push_buffer_word_string(&children, &buf);
+			struct mrsh_word *t = back_quotes(state);
 			mrsh_array_add(&children, t);
 			continue;
 		}
 
 		// Quoting
 		if (c == '\'') {
-			push_buffer_token_string(&children, &buf);
-			struct mrsh_token *t = single_quotes(state);
+			push_buffer_word_string(&children, &buf);
+			struct mrsh_word *t = single_quotes(state);
 			mrsh_array_add(&children, t);
 			continue;
 		}
 		if (c == '"') {
-			push_buffer_token_string(&children, &buf);
-			struct mrsh_token *t = double_quotes(state);
+			push_buffer_word_string(&children, &buf);
+			struct mrsh_word *t = double_quotes(state);
 			mrsh_array_add(&children, t);
 			continue;
 		}
@@ -407,21 +407,21 @@ struct mrsh_token *word(struct mrsh_parser *state, char end) {
 		buffer_append_char(&buf, c);
 	}
 
-	push_buffer_token_string(&children, &buf);
+	push_buffer_word_string(&children, &buf);
 	buffer_finish(&buf);
 
 	consume_symbol(state);
 
 	if (children.len == 1) {
-		struct mrsh_token *token = children.data[0];
+		struct mrsh_word *word = children.data[0];
 		mrsh_array_finish(&children); // TODO: don't allocate this array
-		return token;
+		return word;
 	} else {
-		struct mrsh_token_list *tl = mrsh_token_list_create(&children, false);
-		return &tl->token;
+		struct mrsh_word_list *wl = mrsh_word_list_create(&children, false);
+		return &wl->word;
 	}
 }
 
-struct mrsh_token *mrsh_parse_token(struct mrsh_parser *state) {
-	return token_list(state, 0);
+struct mrsh_word *mrsh_parse_word(struct mrsh_parser *state) {
+	return word_list(state, 0);
 }

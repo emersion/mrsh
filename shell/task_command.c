@@ -54,9 +54,9 @@ static int create_here_document_file(struct mrsh_array *lines) {
 	}
 
 	for (size_t i = 0; i < lines->len; ++i) {
-		struct mrsh_token *line = lines->data[i];
+		struct mrsh_word *line = lines->data[i];
 
-		char *line_str = mrsh_token_str(line);
+		char *line_str = mrsh_word_str(line);
 		ssize_t n_written = write(fd, line_str, strlen(line_str));
 		free(line_str);
 		if (n_written < 0) {
@@ -86,8 +86,8 @@ static void get_args(struct mrsh_array *args, struct mrsh_simple_command *sc,
 	const char *ifs = mrsh_hashtable_get(&ctx->state->variables, "IFS");
 	split_fields(args, sc->name, ifs);
 	for (size_t i = 0; i < sc->arguments.len; ++i) {
-		struct mrsh_token *token = sc->arguments.data[i];
-		split_fields(args, token, ifs);
+		struct mrsh_word *word = sc->arguments.data[i];
+		split_fields(args, word, ifs);
 	}
 	assert(args->len > 0);
 	mrsh_array_add(args, NULL);
@@ -117,7 +117,7 @@ static bool task_process_start(struct task_command *tc, struct context *ctx) {
 
 		for (size_t i = 0; i < sc->assignments.len; ++i) {
 			struct mrsh_assignment *assign = sc->assignments.data[i];
-			char *value = mrsh_token_str(assign->value);
+			char *value = mrsh_word_str(assign->value);
 			setenv(assign->name, value, true);
 			free(value);
 		}
@@ -133,7 +133,7 @@ static bool task_process_start(struct task_command *tc, struct context *ctx) {
 			struct mrsh_io_redirect *redir = sc->io_redirects.data[i];
 
 			// TODO: filename expansions
-			char *filename = mrsh_token_str(redir->name);
+			char *filename = mrsh_word_str(redir->name);
 
 			int fd, default_redir_fd;
 			errno = 0;

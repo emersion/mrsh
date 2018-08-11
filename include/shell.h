@@ -95,11 +95,11 @@ struct task *task_async_create(struct task *async);
 struct task *task_assignment_create(struct mrsh_array *assignments);
 
 /**
- * Creates a task that mutates `token_ptr`, executing all substitutions. After
- * the task has finished, the token tree is guaranteed to only contain token
- * lists and token strings.
+ * Creates a task that mutates `word_ptr`, executing all substitutions. After
+ * the task has finished, the word tree is guaranteed to only contain word
+ * lists and word strings.
  */
-struct task *task_token_create(struct mrsh_token **token_ptr,
+struct task *task_word_create(struct mrsh_word **word_ptr,
 	enum tilde_expansion tilde_expansion);
 
 /**
@@ -107,8 +107,8 @@ struct task *task_token_create(struct mrsh_token **token_ptr,
  */
 void expand_tilde(struct mrsh_state *state, char **str_ptr);
 /**
- * Performs field splitting on `token`, writing fields to `fields`. This should
+ * Performs field splitting on `word`, writing fields to `fields`. This should
  * be done after expansions/substitutions.
  */
-void split_fields(struct mrsh_array *fields, struct mrsh_token *token,
+void split_fields(struct mrsh_array *fields, struct mrsh_word *word,
 	const char *ifs);

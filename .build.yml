@@ -1,4 +1,4 @@
-image: archlinux
+image: alpine
 packages:
   - gcc
   - clang

@@ -24,6 +24,8 @@ enum mrsh_word_type {
 /**
  * A word can be:
  * - An unquoted or a single-quoted string
+ * - A candidate for parameter expansion
+ * - A candidate for command substitution
  * - An unquoted or a double-quoted list of words
  */
 struct mrsh_word {
@@ -61,7 +63,10 @@ struct mrsh_word_command {
 };
 
 /**
- * A word list is a type of word. It can be unquoted or double-quoted.
+ * A word list is a type of word. It can be unquoted or double-quoted. Its
+ * children are _not_ separated by blanks. Here's an example:
+ *
+ *   abc"d ef"g'h i'
  */
 struct mrsh_word_list {
 	struct mrsh_word word;

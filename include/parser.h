@@ -74,10 +74,10 @@ struct mrsh_parser {
 	FILE *f; // can be NULL
 
 	struct buffer buf;
+	struct mrsh_position pos;
 
 	bool has_sym;
 	enum symbol_name sym;
-	int lineno;
 
 	struct mrsh_array here_documents;
 };

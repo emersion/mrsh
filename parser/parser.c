@@ -11,21 +11,22 @@
 #include "buffer.h"
 #include "parser.h"
 
-struct mrsh_parser *mrsh_parser_create(FILE *f) {
+static struct mrsh_parser *parser_create(void) {
 	struct mrsh_parser *state = calloc(1, sizeof(struct mrsh_parser));
+	state->pos.line = state->pos.column = 1;
+	return state;
+}
+
+struct mrsh_parser *mrsh_parser_create(FILE *f) {
+	struct mrsh_parser *state = parser_create();
 	state->f = f;
-	state->lineno = 1;
 	return state;
 }
 
 struct mrsh_parser *mrsh_parser_create_from_buffer(const char *buf, size_t len) {
-	struct mrsh_parser *state = calloc(1, sizeof(struct mrsh_parser));
-
+	struct mrsh_parser *state = parser_create();
 	buffer_append(&state->buf, buf, len);
 	buffer_append_char(&state->buf, '\0');
-
-	state->lineno = 1;
-
 	return state;
 }
 
@@ -73,8 +74,13 @@ size_t parser_read(struct mrsh_parser *state, char *buf, size_t size) {
 	size_t n = parser_peek(state, buf, size);
 	if (n > 0) {
 		for (size_t i = 0; i < n; ++i) {
+			assert(state->buf.data[i] != '\0');
+			++state->pos.offset;
 			if (state->buf.data[i] == '\n') {
-				++state->lineno;
+				++state->pos.line;
+				state->pos.column = 1;
+			} else {
+				++state->pos.column;
 			}
 		}
 		memmove(state->buf.data, state->buf.data + n, state->buf.len - n);
@@ -105,7 +111,8 @@ bool is_operator_start(char c) {
 void parser_set_error(struct mrsh_parser *state, const char *msg) {
 	state->here_documents.len = 0;
 
-	fprintf(stderr, "mrsh:%d: syntax error: %s\n", state->lineno, msg);
+	fprintf(stderr, "mrsh:%d:%d: syntax error: %s\n",
+		state->pos.line, state->pos.column, msg);
 	exit(EXIT_FAILURE);
 }
 

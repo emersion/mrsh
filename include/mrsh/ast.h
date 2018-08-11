@@ -4,6 +4,16 @@
 #include <mrsh/array.h>
 #include <stdbool.h>
 
+/**
+ * Position describes an arbitrary source position include line and column
+ * location.
+ */
+struct mrsh_position {
+	int offset; // starting at 0
+	int line; // starting at 1
+	int column; // starting at 1
+};
+
 enum mrsh_word_type {
 	MRSH_WORD_STRING,
 	MRSH_WORD_PARAMETER,

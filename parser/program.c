@@ -68,7 +68,7 @@ static bool expect_token(struct mrsh_parser *state, const char *str) {
 		return true;
 	}
 	char msg[128];
-	snprintf(msg, sizeof(msg), "unexpected token: expected %s\n", str);
+	snprintf(msg, sizeof(msg), "unexpected token: expected %s", str);
 	parser_set_error(state, msg);
 	return false;
 }

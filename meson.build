@@ -67,7 +67,6 @@ executable(
 		'shell/task.c',
 		'shell/word.c',
 	]),
-	include_directories: [mrsh_inc],
 	dependencies: [rt, mrsh],
 	install: true,
 )

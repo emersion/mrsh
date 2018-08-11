@@ -263,8 +263,7 @@ static size_t peek_token(struct mrsh_parser *state, char end) {
 	}
 }
 
-static struct mrsh_token *word(struct mrsh_parser *state, bool no_keyword,
-	char end);
+static struct mrsh_token *word(struct mrsh_parser *state, char end);
 
 static struct mrsh_token *token_list(struct mrsh_parser *state, char end) {
 	struct mrsh_array children = {0};
@@ -274,7 +273,7 @@ static struct mrsh_token *token_list(struct mrsh_parser *state, char end) {
 			break;
 		}
 
-		struct mrsh_token *child = word(state, false, end);
+		struct mrsh_token *child = word(state, end);
 		if (child == NULL) {
 			break;
 		}
@@ -523,8 +522,7 @@ static bool symbol(struct mrsh_parser *state, enum symbol_name sym) {
 	return get_symbol(state) == sym;
 }
 
-static struct mrsh_token *word(struct mrsh_parser *state, bool no_keyword,
-		char end) {
+static struct mrsh_token *word(struct mrsh_parser *state, char end) {
 	if (!symbol(state, TOKEN)) {
 		return NULL;
 	}
@@ -534,26 +532,8 @@ static struct mrsh_token *word(struct mrsh_parser *state, bool no_keyword,
 		return NULL;
 	}
 
-	size_t token_len = peek_token(state, end);
-	if (no_keyword) {
-		// TODO: optimize this
-		for (size_t i = 0; i < sizeof(keywords)/sizeof(keywords[0]); ++i) {
-			if (strlen(keywords[i]) == token_len &&
-					strncmp(state->peek, keywords[i], token_len) == 0) {
-				return NULL;
-			}
-		}
-	}
-
 	struct mrsh_array children = {0};
 	struct buffer buf = {0};
-
-	if (token_len > 0) {
-		char *dst = buffer_add(&buf, token_len);
-		parser_read(state, dst, token_len);
-
-		push_buffer_token_string(&children, &buf);
-	}
 
 	while (true) {
 		char c = parser_peek_char(state);
@@ -736,7 +716,7 @@ static bool io_here(struct mrsh_parser *state, struct mrsh_io_redirect *redir) {
 	}
 	redir->op = strdup(operator_str(sym));
 
-	redir->name = word(state, false, 0);
+	redir->name = word(state, 0);
 	if (redir->name == NULL) {
 		parser_set_error(state,
 			"expected a name after IO here-document redirection operator");
@@ -749,7 +729,7 @@ static bool io_here(struct mrsh_parser *state, struct mrsh_io_redirect *redir) {
 
 static struct mrsh_token *filename(struct mrsh_parser *state) {
 	// TODO: Apply rule 2
-	return word(state, false, 0);
+	return word(state, 0);
 }
 
 static bool io_file(struct mrsh_parser *state,
@@ -838,7 +818,7 @@ static struct mrsh_assignment *assignment_word(struct mrsh_parser *state) {
 
 	char *name = strndup(state->peek, name_len);
 	parser_read(state, NULL, name_len + 1);
-	struct mrsh_token *value = word(state, false, 0);
+	struct mrsh_token *value = word(state, 0);
 	consume_symbol(state);
 
 	struct mrsh_assignment *assign = calloc(1, sizeof(struct mrsh_assignment));
@@ -864,6 +844,30 @@ static bool cmd_prefix(struct mrsh_parser *state,
 	return false;
 }
 
+static struct mrsh_token *cmd_name(struct mrsh_parser *state) {
+	size_t token_len = peek_token(state, 0);
+	if (token_len == 0) {
+		return word(state, 0);
+	}
+
+	// TODO: optimize this
+	for (size_t i = 0; i < sizeof(keywords)/sizeof(keywords[0]); ++i) {
+		if (strlen(keywords[i]) == token_len &&
+				strncmp(state->peek, keywords[i], token_len) == 0) {
+			return NULL;
+		}
+	}
+
+	// TODO: alias substitution
+
+	char *str = malloc(token_len + 1);
+	parser_read(state, str, token_len);
+	str[token_len] = '\0';
+
+	struct mrsh_token_string *ts = mrsh_token_string_create(str, false);
+	return &ts->token;
+}
+
 static bool cmd_suffix(struct mrsh_parser *state,
 		struct mrsh_simple_command *cmd) {
 	struct mrsh_io_redirect *redir = io_redirect(state);
@@ -872,7 +876,7 @@ static bool cmd_suffix(struct mrsh_parser *state,
 		return true;
 	}
 
-	struct mrsh_token *arg = word(state, false, 0);
+	struct mrsh_token *arg = word(state, 0);
 	if (arg != NULL) {
 		mrsh_array_add(&cmd->arguments, arg);
 		return true;
@@ -890,7 +894,7 @@ static struct mrsh_simple_command *simple_command(struct mrsh_parser *state) {
 	}
 
 	// TODO: alias substitution
-	cmd.name = word(state, true, 0);
+	cmd.name = cmd_name(state);
 	if (cmd.name == NULL && !has_prefix) {
 		return NULL;
 	} else if (cmd.name != NULL) {

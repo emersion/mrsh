@@ -10,15 +10,18 @@ void mrsh_state_init(struct mrsh_state *state) {
 	state->input = stdin;
 }
 
-static void state_variable_finish_iterator(const char *key, void *value,
+static void state_string_finish_iterator(const char *key, void *value,
 		void *user_data) {
 	free(value);
 }
 
 void mrsh_state_finish(struct mrsh_state *state) {
 	mrsh_hashtable_for_each(&state->variables,
-		state_variable_finish_iterator, NULL);
+		state_string_finish_iterator, NULL);
 	mrsh_hashtable_finish(&state->variables);
+	mrsh_hashtable_for_each(&state->aliases,
+		state_string_finish_iterator, NULL);
+	mrsh_hashtable_finish(&state->aliases);
 	for (int i = 0; i < state->argc; ++i) {
 		free(state->argv[i]);
 	}

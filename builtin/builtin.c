@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <ctype.h>
 #include "builtin.h"
 
 struct builtin_map {
@@ -13,6 +14,7 @@ struct builtin_map {
 static struct builtin_map builtins[] = {
 	// Keep alpha sorted
 	{ ":", builtin_colon },
+	{ "alias", builtin_alias },
 	{ "exit", builtin_exit },
 	{ "set", builtin_set },
 	{ "times", builtin_times },
@@ -46,4 +48,27 @@ int mrsh_run_builtin(struct mrsh_state *state, int argc, char *argv[]) {
 	}
 
 	return builtin(state, argc, argv);
+}
+
+void print_escaped(const char *value) {
+	const char *safe = "@%+=:,./-";
+	size_t i;
+	for (i = 0; value[i] != '\0'; ++i) {
+		if (!isalnum(value[i]) && !strchr(safe, value[i])) {
+			break;
+		}
+	}
+	if (!value[i]) {
+		printf("%s", value);
+	} else {
+		printf("'");
+		for (i = 0; value[i] != '\0'; ++i) {
+			if (value[i] == '\'') {
+				printf("'\"'\"'");
+			} else {
+				printf("%c", value[i]);
+			}
+		}
+		printf("'");
+	}
 }

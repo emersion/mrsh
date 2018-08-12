@@ -30,6 +30,7 @@ lib_mrsh = library(
 		'ast_print.c',
 		'ast.c',
 		'buffer.c',
+		'builtin/alias.c',
 		'builtin/builtin.c',
 		'builtin/colon.c',
 		'builtin/exit.c',

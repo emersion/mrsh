@@ -1,5 +1,4 @@
 #define _POSIX_C_SOURCE 200809L
-#include <ctype.h>
 #include <errno.h>
 #include <mrsh/builtin.h>
 #include <mrsh/shell.h>
@@ -109,29 +108,6 @@ static int varcmp(const void *p1, const void *p2) {
 	return strcmp(v1->key, v2->key);
 }
 
-static void print_escaped(const char *value) {
-	const char *safe = "@%+=:,./-";
-	int i;
-	for (i = 0; value[i]; ++i) {
-		if (!isalnum(value[i]) && !strchr(safe, value[i])) {
-			break;
-		}
-	}
-	if (!value[i]) {
-		fprintf(stderr, "%s", value);
-	} else {
-		fprintf(stderr, "'");
-		for (i = 0; value[i]; ++i) {
-			if (value[i] == '\'') {
-				fprintf(stderr, "'\"'\"'");
-			} else {
-				fprintf(stderr, "%c", value[i]);
-			}
-		}
-		fprintf(stderr, "'");
-	}
-}
-
 int set(struct mrsh_state *state, int argc, char *argv[], bool cmdline) {
 	if (argc == 1 && !cmdline) {
 		struct collect_iter iter = {
@@ -142,9 +118,9 @@ int set(struct mrsh_state *state, int argc, char *argv[], bool cmdline) {
 		mrsh_hashtable_for_each(&state->variables, collect_vars, &iter);
 		qsort(iter.values, iter.count, sizeof(struct collect_var), varcmp);
 		for (size_t i = 0; i < iter.count; ++i) {
-			fprintf(stderr, "%s=", iter.values[i].key);
+			printf("%s=", iter.values[i].key);
 			print_escaped(iter.values[i].value);
-			fprintf(stderr, "\n");
+			printf("\n");
 		}
 		free(iter.values);
 		return EXIT_SUCCESS;

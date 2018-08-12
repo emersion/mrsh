@@ -51,6 +51,7 @@ struct mrsh_parser {
 	struct mrsh_array here_documents;
 
 	mrsh_parser_alias_func_t alias;
+	void *alias_user_data;
 };
 
 size_t parser_peek(struct mrsh_parser *state, char *buf, size_t size);

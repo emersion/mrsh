@@ -121,7 +121,7 @@ static void apply_aliases(struct mrsh_parser *state) {
 		}
 
 		char *name = strndup(state->buf.data, alias_len);
-		const char *repl = state->alias(name);
+		const char *repl = state->alias(name, state->alias_user_data);
 		free(name);
 		if (repl == NULL) {
 			return;
@@ -138,6 +138,7 @@ static void apply_aliases(struct mrsh_parser *state) {
 		state->buf.len = repl_len + trailing_len;
 
 		// TODO: fixup state->pos
+		// TODO: if repl's last char is blank, replace next alias too
 
 		consume_symbol(state);
 	}

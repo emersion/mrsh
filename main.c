@@ -37,6 +37,11 @@ static void print_ps1(struct mrsh_state *state) {
 	fflush(stderr);
 }
 
+static const char *get_alias(const char *name, void *data) {
+	struct mrsh_state *state = data;
+	return mrsh_hashtable_get(&state->aliases, name);
+}
+
 extern char **environ;
 
 int main(int argc, char *argv[]) {
@@ -47,7 +52,7 @@ int main(int argc, char *argv[]) {
 		return EXIT_FAILURE;
 	}
 
-	int i = 0;
+	size_t i = 0;
 	while (environ[i]) {
 		char *eql = strchr(environ[i], '=');
 		size_t klen = eql - environ[i] + 1;
@@ -62,6 +67,7 @@ int main(int argc, char *argv[]) {
 	}
 
 	struct mrsh_parser *parser = mrsh_parser_create(state.input);
+	mrsh_parser_set_alias(parser, get_alias, &state);
 	while (state.exit == -1) {
 		if (state.interactive) {
 			print_ps1(&state);

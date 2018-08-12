@@ -1,6 +1,7 @@
 #define _POSIX_C_SOURCE 200809L
 #include <assert.h>
 #include <ctype.h>
+#include <glob.h>
 #include <pwd.h>
 #include <stdbool.h>
 #include <stdlib.h>
@@ -67,7 +68,7 @@ static void _split_fields(struct mrsh_array *fields, struct buffer *buf,
 		struct mrsh_word_string *ws = mrsh_word_get_string(word);
 		assert(ws != NULL);
 
-		if (double_quoted) {
+		if (double_quoted || ws->single_quoted) {
 			buffer_append(buf, ws->str, strlen(ws->str));
 			data->in_ifs = data->in_ifs_non_space = false;
 			return;
@@ -141,4 +142,32 @@ void split_fields(struct mrsh_array *fields, struct mrsh_word *word,
 	buffer_finish(&buf);
 
 	free(ifs_non_space);
+}
+
+bool expand_pathnames(struct mrsh_array *expanded, struct mrsh_array *fields) {
+	const char metachars[] = "*?[";
+
+	for (size_t i = 0; i < fields->len; ++i) {
+		const char *field = fields->data[i];
+
+		if (strpbrk(field, metachars) == NULL) {
+			mrsh_array_add(expanded, strdup(field));
+			continue;
+		}
+
+		glob_t glob_buf;
+		int ret = glob(field, GLOB_NOSORT | GLOB_NOCHECK, NULL, &glob_buf);
+		if (ret == 0) {
+			for (size_t i = 0; i < glob_buf.gl_pathc; ++i) {
+				mrsh_array_add(expanded, strdup(glob_buf.gl_pathv[i]));
+			}
+			globfree(&glob_buf);
+		} else {
+			assert(ret != GLOB_NOMATCH);
+			fprintf(stderr, "glob() failed\n");
+			return false;
+		}
+	}
+
+	return true;
 }

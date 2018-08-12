@@ -112,3 +112,7 @@ void expand_tilde(struct mrsh_state *state, char **str_ptr);
  */
 void split_fields(struct mrsh_array *fields, struct mrsh_word *word,
 	const char *ifs);
+/**
+ * Performs pathname expansion on each item in `fields`.
+ */
+bool expand_pathnames(struct mrsh_array *expanded, struct mrsh_array *fields);

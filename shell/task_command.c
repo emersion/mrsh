@@ -83,12 +83,25 @@ static int create_here_document_file(struct mrsh_array *lines) {
 
 static void get_args(struct mrsh_array *args, struct mrsh_simple_command *sc,
 		struct context *ctx) {
+	struct mrsh_array fields = {0};
 	const char *ifs = mrsh_hashtable_get(&ctx->state->variables, "IFS");
-	split_fields(args, sc->name, ifs);
+	split_fields(&fields, sc->name, ifs);
 	for (size_t i = 0; i < sc->arguments.len; ++i) {
 		struct mrsh_word *word = sc->arguments.data[i];
-		split_fields(args, word, ifs);
+		split_fields(&fields, word, ifs);
 	}
+	assert(fields.len > 0);
+
+	if (ctx->state->options & MRSH_OPT_NOGLOB) {
+		*args = fields;
+	} else {
+		expand_pathnames(args, &fields);
+		for (size_t i = 0; i < fields.len; ++i) {
+			free(fields.data[i]);
+		}
+		mrsh_array_finish(&fields);
+	}
+
 	assert(args->len > 0);
 	mrsh_array_add(args, NULL);
 }

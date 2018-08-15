@@ -192,6 +192,12 @@ static struct mrsh_word *expect_parameter_expression(
 	char c = parser_read_char(state);
 	assert(c == '{');
 
+	enum mrsh_word_parameter_op op = MRSH_PARAM_NONE;
+	if (parser_peek_char(state) == '#') {
+		parser_read_char(state);
+		op = MRSH_PARAM_LEADING_HASH;
+	}
+
 	// TODO: ${#parameter}
 
 	size_t name_len = peek_name(state);
@@ -204,10 +210,9 @@ static struct mrsh_word *expect_parameter_expression(
 	parser_read(state, name, name_len);
 	name[name_len] = '\0';
 
-	enum mrsh_word_parameter_op op = MRSH_PARAM_NONE;
 	bool colon = false;
 	struct mrsh_word *arg = NULL;
-	if (parser_peek_char(state) != '}') {
+	if (op == MRSH_PARAM_NONE && parser_peek_char(state) != '}') {
 		if (!expect_parameter_op(state, &op, &colon)) {
 			return NULL;
 		}

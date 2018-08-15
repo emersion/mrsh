@@ -198,8 +198,6 @@ static struct mrsh_word *expect_parameter_expression(
 		op = MRSH_PARAM_LEADING_HASH;
 	}
 
-	// TODO: ${#parameter}
-
 	size_t name_len = peek_name(state);
 	if (name_len == 0) {
 		parser_set_error(state, "expected a parameter");

@@ -122,7 +122,7 @@ static const char *parameter_get_value(struct mrsh_state *state, char *name) {
 	} else if (strcmp(name, "!") == 0) {
 		// TODO
 	} else if (!end[0]) {
-		if (state->argc < lvalue) {
+		if (lvalue >= state->argc) {
 			return NULL;
 		}
 		return state->argv[lvalue];

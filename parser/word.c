@@ -131,6 +131,62 @@ static struct mrsh_word *word_list(struct mrsh_parser *state, char end) {
 	}
 }
 
+static enum mrsh_word_parameter_op char_to_parameter_op_val(char c) {
+	switch (c) {
+	case '-':
+		return MRSH_PARAM_MINUS;
+	case '=':
+		return MRSH_PARAM_EQUAL;
+	case '?':
+		return MRSH_PARAM_QMARK;
+	case '+':
+		return MRSH_PARAM_PLUS;
+	default:
+		return MRSH_PARAM_NONE;
+	}
+}
+
+static bool expect_parameter_op(struct mrsh_parser *state,
+		enum mrsh_word_parameter_op *op, bool *colon) {
+	char c = parser_read_char(state);
+
+	*colon = c == ':';
+	if (*colon) {
+		c = parser_read_char(state);
+	}
+
+	*op = char_to_parameter_op_val(c);
+	if (*op != MRSH_PARAM_NONE) {
+		return true;
+	}
+
+	// Colon can only be used with value operations
+	if (*colon) {
+		parser_set_error(state, "expected a parameter operation");
+		return false;
+	}
+
+	// Substring processing operations
+	char c_next = parser_peek_char(state);
+	bool is_double = c == c_next;
+	switch (c) {
+	case '%':
+		*op = is_double ? MRSH_PARAM_DPERCENT : MRSH_PARAM_PERCENT;
+		break;
+	case '#':
+		*op = is_double ? MRSH_PARAM_DHASH : MRSH_PARAM_HASH;
+		break;
+	default:
+		parser_set_error(state, "expected a parameter operation");
+		return false;
+	}
+
+	if (is_double) {
+		parser_read_char(state);
+	}
+	return true;
+}
+
 static struct mrsh_word *expect_parameter_expression(
 		struct mrsh_parser *state) {
 	char c = parser_read_char(state);
@@ -148,39 +204,13 @@ static struct mrsh_word *expect_parameter_expression(
 	parser_read(state, name, name_len);
 	name[name_len] = '\0';
 
-	char *op = NULL;
+	enum mrsh_word_parameter_op op = MRSH_PARAM_NONE;
+	bool colon = false;
 	struct mrsh_word *arg = NULL;
 	if (parser_peek_char(state) != '}') {
-		char next[2];
-		parser_peek(state, next, sizeof(next));
-		bool two_letter_op = false;
-		switch (next[0]) {
-		case ':':
-			if (strchr("-=?+", next[1]) == NULL) {
-				parser_set_error(state, "expected a parameter operation");
-				return NULL;
-			}
-			two_letter_op = true;
-			break;
-		case '-':
-		case '=':
-		case '?':
-		case '+':
-			break;
-		case '%':
-		case '#':
-			two_letter_op = next[1] == next[0];
-			break;
-		default:
-			parser_set_error(state, "expected a parameter operation");
+		if (!expect_parameter_op(state, &op, &colon)) {
 			return NULL;
 		}
-
-		size_t op_len = two_letter_op ? 2 : 1;
-		op = malloc(op_len + 1);
-		parser_read(state, op, op_len);
-		op[op_len] = '\0';
-
 		arg = word_list(state, '}');
 	}
 
@@ -190,7 +220,7 @@ static struct mrsh_word *expect_parameter_expression(
 	}
 
 	struct mrsh_word_parameter *wp =
-		mrsh_word_parameter_create(name, op, arg);
+		mrsh_word_parameter_create(name, op, colon, arg);
 	return &wp->word;
 }
 
@@ -214,7 +244,7 @@ struct mrsh_word *expect_parameter(struct mrsh_parser *state) {
 	name[name_len] = '\0';
 
 	struct mrsh_word_parameter *wp =
-		mrsh_word_parameter_create(name, NULL, NULL);
+		mrsh_word_parameter_create(name, MRSH_PARAM_NONE, false, NULL);
 	return &wp->word;
 }
 

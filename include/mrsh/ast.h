@@ -41,6 +41,19 @@ struct mrsh_word_string {
 	bool single_quoted;
 };
 
+enum mrsh_word_parameter_op {
+	MRSH_PARAM_NONE, // No-op
+	MRSH_PARAM_MINUS, // `${parameter:-[word]}`, Use Default Values
+	MRSH_PARAM_EQUAL, // `${parameter:=[word]}`, Assign Default Values
+	MRSH_PARAM_QMARK, // `${parameter:?[word]}`, Indicate Error if Null or Unset
+	MRSH_PARAM_PLUS, // `${parameter:+[word]}`, Use Alternative Value
+	MRSH_PARAM_LEADING_HASH, // `${#parameter}`, String Length
+	MRSH_PARAM_PERCENT, // `${parameter%[word]}`, Remove Smallest Suffix Pattern
+	MRSH_PARAM_DPERCENT, // `${parameter%%[word]}`, Remove Largest Suffix Pattern
+	MRSH_PARAM_HASH, // `${parameter#[word]}`, Remove Smallest Prefix Pattern
+	MRSH_PARAM_DHASH, // `${parameter##[word]}`, Remove Largest Prefix Pattern
+};
+
 /**
  * A word parameter is a type of word candidate for parameter expansion. The
  * format is either `$name` or `${expression}`.
@@ -48,7 +61,8 @@ struct mrsh_word_string {
 struct mrsh_word_parameter {
 	struct mrsh_word word;
 	char *name;
-	char *op; // can be NULL
+	enum mrsh_word_parameter_op op;
+	bool colon; // only for -, =, ?, +
 	struct mrsh_word *arg; // can be NULL
 };
 
@@ -223,8 +237,8 @@ void mrsh_command_list_destroy(struct mrsh_command_list *l);
 void mrsh_program_destroy(struct mrsh_program *prog);
 struct mrsh_word_string *mrsh_word_string_create(char *str,
 	bool single_quoted);
-struct mrsh_word_parameter *mrsh_word_parameter_create(char *name, char *op,
-	struct mrsh_word *arg);
+struct mrsh_word_parameter *mrsh_word_parameter_create(char *name,
+	enum mrsh_word_parameter_op op, bool colon, struct mrsh_word *arg);
 struct mrsh_word_command *mrsh_word_command_create(char *command,
 	bool back_quoted);
 struct mrsh_word_list *mrsh_word_list_create(struct mrsh_array *children,

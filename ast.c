@@ -22,7 +22,6 @@ void mrsh_word_destroy(struct mrsh_word *word) {
 		struct mrsh_word_parameter *wp = mrsh_word_get_parameter(word);
 		assert(wp != NULL);
 		free(wp->name);
-		free(wp->op);
 		mrsh_word_destroy(wp->arg);
 		free(wp);
 		return;
@@ -178,13 +177,14 @@ struct mrsh_word_string *mrsh_word_string_create(char *str,
 	return ws;
 }
 
-struct mrsh_word_parameter *mrsh_word_parameter_create(char *name, char *op,
-		struct mrsh_word *arg) {
+struct mrsh_word_parameter *mrsh_word_parameter_create(char *name,
+		enum mrsh_word_parameter_op op, bool colon, struct mrsh_word *arg) {
 	struct mrsh_word_parameter *wp =
 		calloc(1, sizeof(struct mrsh_word_parameter));
 	wp->word.type = MRSH_WORD_PARAMETER;
 	wp->name = name;
 	wp->op = op;
+	wp->colon = colon;
 	wp->arg = arg;
 	return wp;
 }

@@ -22,6 +22,32 @@ static void print_prefix(const char *prefix, bool last) {
 	printf("%s%s", prefix, last ? L_LAST : L_VAL);
 }
 
+static const char *word_parameter_op_str(enum mrsh_word_parameter_op op) {
+	switch (op) {
+	case MRSH_PARAM_NONE:
+		return NULL;
+	case MRSH_PARAM_MINUS:
+		return "-";
+	case MRSH_PARAM_EQUAL:
+		return "=";
+	case MRSH_PARAM_QMARK:
+		return "?";
+	case MRSH_PARAM_PLUS:
+		return "+";
+	case MRSH_PARAM_LEADING_HASH:
+		return "# (leading)";
+	case MRSH_PARAM_PERCENT:
+		return "%";
+	case MRSH_PARAM_DPERCENT:
+		return "%%";
+	case MRSH_PARAM_HASH:
+		return "#";
+	case MRSH_PARAM_DHASH:
+		return "##";
+	}
+	assert(false);
+}
+
 static void print_word(struct mrsh_word *word, const char *prefix) {
 	switch (word->type) {
 	case MRSH_WORD_STRING:;
@@ -35,12 +61,13 @@ static void print_word(struct mrsh_word *word, const char *prefix) {
 		assert(wp != NULL);
 		printf("word_parameter\n");
 
-		print_prefix(prefix, wp->op == NULL && wp->arg == NULL);
+		print_prefix(prefix, wp->op == MRSH_PARAM_NONE && wp->arg == NULL);
 		printf("name %s\n", wp->name);
 
-		if (wp->op != NULL) {
+		if (wp->op != MRSH_PARAM_NONE) {
 			print_prefix(prefix, wp->arg == NULL);
-			printf("op %s\n", wp->op);
+			printf("op %s%s\n",
+				wp->colon ? ":" : "", word_parameter_op_str(wp->op));
 		}
 
 		if (wp->arg != NULL) {

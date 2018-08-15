@@ -6,6 +6,8 @@ A minimal POSIX shell.
 * Simple, readable code without magic
 * Library to build more elaborate shells
 
+This project is a [work in progress](https://github.com/emersion/mrsh/issues/8).
+
 ## Build
 
 ```shell

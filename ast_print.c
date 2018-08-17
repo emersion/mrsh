@@ -104,6 +104,30 @@ static void print_word(struct mrsh_word *word, const char *prefix) {
 	}
 }
 
+static const char *io_redirect_op_str(enum mrsh_io_redirect_op op) {
+	switch (op) {
+	case MRSH_IO_LESS:
+		return "<";
+	case MRSH_IO_GREAT:
+		return ">";
+	case MRSH_IO_CLOBBER:
+		return ">|";
+	case MRSH_IO_DGREAT:
+		return ">>";
+	case MRSH_IO_LESSAND:
+		return "<&";
+	case MRSH_IO_GREATAND:
+		return ">&";
+	case MRSH_IO_LESSGREAT:
+		return "<>";
+	case MRSH_IO_DLESS:
+		return "<<";
+	case MRSH_IO_DLESSDASH:
+		return "<<-";
+	}
+	assert(false);
+}
+
 static void print_io_redirect(struct mrsh_io_redirect *redir,
 		const char *prefix) {
 	printf("io_redirect\n");
@@ -112,7 +136,7 @@ static void print_io_redirect(struct mrsh_io_redirect *redir,
 	printf("io_number %d\n", redir->io_number);
 
 	print_prefix(prefix, false);
-	printf("op %s\n", redir->op);
+	printf("op %s\n", io_redirect_op_str(redir->op));
 
 	char sub_prefix[make_sub_prefix(prefix, true, NULL)];
 	make_sub_prefix(prefix, true, sub_prefix);

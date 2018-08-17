@@ -49,7 +49,6 @@ void mrsh_io_redirect_destroy(struct mrsh_io_redirect *redir) {
 	if (redir == NULL) {
 		return;
 	}
-	free(redir->op);
 	mrsh_word_destroy(redir->name);
 	for (size_t i = 0; i < redir->here_document.len; ++i) {
 		struct mrsh_word *line = redir->here_document.data[i];

@@ -150,33 +150,39 @@ static bool task_process_start(struct task_command *tc, struct context *ctx) {
 
 			int fd, default_redir_fd;
 			errno = 0;
-			if (strcmp(redir->op, "<") == 0) {
+			switch (redir->op) {
+			case MRSH_IO_LESS: // <
 				fd = open(filename, O_RDONLY);
 				default_redir_fd = STDIN_FILENO;
-			} else if (strcmp(redir->op, ">") == 0 ||
-					strcmp(redir->op, ">|") == 0) {
+				break;
+			case MRSH_IO_GREAT: // >
+			case MRSH_IO_CLOBBER: // >|
 				fd = open(filename, O_WRONLY | O_CREAT | O_TRUNC, 0644);
 				default_redir_fd = STDOUT_FILENO;
-			} else if (strcmp(redir->op, ">>") == 0) {
+				break;
+			case MRSH_IO_DGREAT: // >>
 				fd = open(filename, O_WRONLY | O_CREAT | O_APPEND, 0644);
 				default_redir_fd = STDOUT_FILENO;
-			} else if (strcmp(redir->op, "<>") == 0) {
-				fd = open(filename, O_RDWR | O_CREAT, 0644);
-				default_redir_fd = STDIN_FILENO;
-			} else if (strcmp(redir->op, "<&") == 0) {
+				break;
+			case MRSH_IO_LESSAND: // <&
 				// TODO: parse "-"
 				fd = parse_fd(filename);
 				default_redir_fd = STDIN_FILENO;
-			} else if (strcmp(redir->op, ">&") == 0) {
+				break;
+			case MRSH_IO_GREATAND: // >&
 				// TODO: parse "-"
 				fd = parse_fd(filename);
 				default_redir_fd = STDOUT_FILENO;
-			} else if (strcmp(redir->op, "<<") == 0
-					|| strcmp(redir->op, "<<-") == 0) {
+				break;
+			case MRSH_IO_LESSGREAT: // <>
+				fd = open(filename, O_RDWR | O_CREAT, 0644);
+				default_redir_fd = STDIN_FILENO;
+				break;
+			case MRSH_IO_DLESS: // <<
+			case MRSH_IO_DLESSDASH: // <<-
 				fd = create_here_document_file(&redir->here_document);
 				default_redir_fd = STDIN_FILENO;
-			} else {
-				assert(false);
+				break;
 			}
 			if (fd < 0) {
 				fprintf(stderr, "cannot open %s: %s\n", filename,

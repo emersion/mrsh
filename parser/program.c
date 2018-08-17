@@ -145,11 +145,13 @@ static void apply_aliases(struct mrsh_parser *state) {
 }
 
 static bool io_here(struct mrsh_parser *state, struct mrsh_io_redirect *redir) {
-	enum symbol_name sym = get_symbol(state);
-	if (!operator(state, DLESS) && !operator(state, DLESSDASH)) {
+	if (operator(state, DLESS)) {
+		redir->op = MRSH_IO_DLESS;
+	} else if (operator(state, DLESSDASH)) {
+		redir->op = MRSH_IO_DLESSDASH;
+	} else {
 		return false;
 	}
-	redir->op = strdup(operator_str(sym));
 
 	redir->name = word(state, 0);
 	if (redir->name == NULL) {
@@ -167,22 +169,33 @@ static struct mrsh_word *filename(struct mrsh_parser *state) {
 	return word(state, 0);
 }
 
+static int io_redirect_op(struct mrsh_parser *state) {
+	if (token(state, "<")) {
+		return MRSH_IO_LESS;
+	} else if (token(state, ">")) {
+		return MRSH_IO_GREAT;
+	} else if (operator(state, LESSAND)) {
+		return MRSH_IO_LESSAND;
+	} else if (operator(state, GREATAND)) {
+		return MRSH_IO_GREATAND;
+	} else if (operator(state, DGREAT)) {
+		return MRSH_IO_DGREAT;
+	} else if (operator(state, CLOBBER)) {
+		return MRSH_IO_CLOBBER;
+	} else if (operator(state, LESSGREAT)) {
+		return MRSH_IO_LESSGREAT;
+	} else {
+		return -1;
+	}
+}
+
 static bool io_file(struct mrsh_parser *state,
 		struct mrsh_io_redirect *redir) {
-	enum symbol_name sym = get_symbol(state);
-	if (token(state, "<")) {
-		redir->op = strdup("<");
-	} else if (token(state, ">")) {
-		redir->op = strdup(">");
-	} else if (operator(state, LESSAND)
-			|| operator(state, GREATAND)
-			|| operator(state, DGREAT)
-			|| operator(state, CLOBBER)
-			|| operator(state, LESSGREAT)) {
-		redir->op = strdup(operator_str(sym));
-	} else {
+	int op = io_redirect_op(state);
+	if (op < 0) {
 		return false;
 	}
+	redir->op = op;
 
 	redir->name = filename(state);
 	if (redir->name == NULL) {
@@ -295,8 +308,6 @@ static struct mrsh_word *cmd_name(struct mrsh_parser *state) {
 		}
 	}
 
-	// TODO: alias substitution
-
 	char *str = malloc(word_len + 1);
 	parser_read(state, str, word_len);
 	str[word_len] = '\0';
@@ -330,7 +341,6 @@ static struct mrsh_simple_command *simple_command(struct mrsh_parser *state) {
 		has_prefix = true;
 	}
 
-	// TODO: alias substitution
 	cmd.name = cmd_name(state);
 	if (cmd.name == NULL && !has_prefix) {
 		return NULL;
@@ -747,7 +757,7 @@ static bool is_word_quoted(struct mrsh_word *word) {
 
 static bool expect_here_document(struct mrsh_parser *state,
 		struct mrsh_io_redirect *redir, const char *delim) {
-	bool trim_tabs = strcmp(redir->op, "<<-") == 0;
+	bool trim_tabs = redir->op == DLESSDASH;
 	bool expand_lines = !is_word_quoted(redir->name);
 
 	struct buffer buf = {0};

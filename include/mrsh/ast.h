@@ -88,12 +88,24 @@ struct mrsh_word_list {
 	bool double_quoted;
 };
 
+enum mrsh_io_redirect_op {
+	MRSH_IO_LESS, // <
+	MRSH_IO_GREAT, // >
+	MRSH_IO_CLOBBER, // >|
+	MRSH_IO_DGREAT, // >>
+	MRSH_IO_LESSAND, // <&
+	MRSH_IO_GREATAND, // >&
+	MRSH_IO_LESSGREAT, // <>
+	MRSH_IO_DLESS, // <<
+	MRSH_IO_DLESSDASH, // <<-
+};
+
 /**
  * An IO redirection operator. The format is: `[io_number]op name`.
  */
 struct mrsh_io_redirect {
 	int io_number; // -1 if unspecified
-	char *op; // one of <, >, >|, >>, <&, <>, <<, <<-
+	enum mrsh_io_redirect_op op;
 	struct mrsh_word *name; // filename or here-document delimiter
 	struct mrsh_array here_document; // struct mrsh_word *, only for << and <<-
 };

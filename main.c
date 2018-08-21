@@ -49,6 +49,7 @@ int main(int argc, char *argv[]) {
 	mrsh_state_init(&state);
 
 	if (set(&state, argc, argv, true) != EXIT_SUCCESS) {
+		mrsh_state_finish(&state);
 		return EXIT_FAILURE;
 	}
 
@@ -60,6 +61,19 @@ int main(int argc, char *argv[]) {
 		mrsh_hashtable_set(&state.variables, key, val);
 		free(key);
 	}
+
+	char *prev_ifs =
+		mrsh_hashtable_set(&state.variables, "IFS", strdup(" \t\n"));
+	free(prev_ifs);
+
+	pid_t ppid = getppid();
+	size_t ppid_len = 24;
+	char *ppid_str = malloc(ppid_len * sizeof(char));
+	snprintf(ppid_str, ppid_len, "%d", ppid);
+	char *prev_ppid = mrsh_hashtable_set(&state.variables, "PPID", ppid_str);
+	free(prev_ppid);
+
+	// TODO: set PWD
 
 	struct mrsh_parser *parser = mrsh_parser_create(state.input);
 	mrsh_parser_set_alias(parser, get_alias, &state);

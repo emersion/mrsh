@@ -74,7 +74,18 @@ int main(int argc, char *argv[]) {
 		}
 		struct mrsh_program *prog = mrsh_parse_line(parser);
 		if (prog == NULL) {
-			if (mrsh_parser_eof(parser)) {
+			struct mrsh_position err_pos;
+			const char *err_msg = mrsh_parser_error(parser, &err_pos);
+			if (err_msg != NULL) {
+				fprintf(stderr, "%s:%d:%d: syntax error: %s\n",
+					state.argv[0], err_pos.line, err_pos.column, err_msg);
+				if (state.interactive) {
+					continue;
+				} else {
+					state.exit = EXIT_FAILURE;
+					break;
+				}
+			} else if (mrsh_parser_eof(parser)) {
 				state.exit = EXIT_SUCCESS;
 				break;
 			} else {

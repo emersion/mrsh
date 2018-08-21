@@ -76,6 +76,7 @@ void mrsh_parser_destroy(struct mrsh_parser *state) {
 		return;
 	}
 	buffer_finish(&state->buf);
+	free(state->error.msg);
 	free(state);
 }
 
@@ -150,11 +151,28 @@ bool is_operator_start(char c) {
 }
 
 void parser_set_error(struct mrsh_parser *state, const char *msg) {
-	state->here_documents.len = 0;
+	if (msg != NULL) {
+		if (state->error.msg != NULL) {
+			return;
+		}
 
-	fprintf(stderr, "mrsh:%d:%d: syntax error: %s\n",
-		state->pos.line, state->pos.column, msg);
-	exit(EXIT_FAILURE);
+		state->here_documents.len = 0;
+		state->error.pos = state->pos;
+		state->error.msg = strdup(msg);
+	} else {
+		free(state->error.msg);
+
+		state->error.pos = (struct mrsh_position){0};
+		state->error.msg = NULL;
+	}
+}
+
+const char *mrsh_parser_error(struct mrsh_parser *state,
+		struct mrsh_position *pos) {
+	if (pos != NULL) {
+		*pos = state->error.pos;
+	}
+	return state->error.msg;
 }
 
 // See section 2.3 Token Recognition

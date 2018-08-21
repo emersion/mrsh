@@ -45,6 +45,11 @@ struct mrsh_parser {
 	struct buffer buf;
 	struct mrsh_position pos;
 
+	struct {
+		char *msg;
+		struct mrsh_position pos;
+	} error;
+
 	bool has_sym;
 	enum symbol_name sym;
 

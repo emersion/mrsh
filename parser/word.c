@@ -456,5 +456,6 @@ struct mrsh_word *word(struct mrsh_parser *state, char end) {
 }
 
 struct mrsh_word *mrsh_parse_word(struct mrsh_parser *state) {
+	parser_set_error(state, NULL);
 	return word_list(state, 0);
 }

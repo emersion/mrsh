@@ -18,5 +18,7 @@ struct mrsh_word *mrsh_parse_word(struct mrsh_parser *state);
 bool mrsh_parser_eof(struct mrsh_parser *state);
 void mrsh_parser_set_alias(struct mrsh_parser *state,
 	mrsh_parser_alias_func_t alias, void *user_data);
+const char *mrsh_parser_error(struct mrsh_parser *state,
+	struct mrsh_position *pos);
 
 #endif

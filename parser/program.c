@@ -882,6 +882,8 @@ static struct mrsh_program *program(struct mrsh_parser *state) {
 }
 
 struct mrsh_program *mrsh_parse_line(struct mrsh_parser *state) {
+	parser_set_error(state, NULL);
+
 	if (eof(state) || newline(state)) {
 		return NULL;
 	}
@@ -892,18 +894,30 @@ struct mrsh_program *mrsh_parse_line(struct mrsh_parser *state) {
 	}
 
 	if (!expect_complete_command(state, &prog->body)) {
-		mrsh_program_destroy(prog);
-		return NULL;
+		goto error;
 	}
 	if (!eof(state) && !newline(state)) {
-		mrsh_program_destroy(prog);
 		parser_set_error(state, "expected a newline");
-		return NULL;
+		goto error;
 	}
 
 	return prog;
+
+error:
+	mrsh_program_destroy(prog);
+
+	// Consume the whole line
+	char c;
+	do {
+		c = parser_read_char(state);
+	} while (c != '\0' && c != '\n');
+
+	state->has_sym = false;
+
+	return NULL;
 }
 
 struct mrsh_program *mrsh_parse_program(struct mrsh_parser *state) {
+	parser_set_error(state, NULL);
 	return program(state);
 }

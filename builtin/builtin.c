@@ -54,18 +54,18 @@ int mrsh_run_builtin(struct mrsh_state *state, int argc, char *argv[]) {
 }
 
 void print_escaped(const char *value) {
-	const char *safe = "@%+=:,./-";
+	const char safe[] = "@%+=:,./-";
 	size_t i;
 	for (i = 0; value[i] != '\0'; ++i) {
 		if (!isalnum(value[i]) && !strchr(safe, value[i])) {
 			break;
 		}
 	}
-	if (!value[i]) {
+	if (value[i] == '\0') {
 		printf("%s", value);
 	} else {
 		printf("'");
-		for (i = 0; value[i] != '\0'; ++i) {
+		for (size_t i = 0; value[i] != '\0'; ++i) {
 			if (value[i] == '\'') {
 				printf("'\"'\"'");
 			} else {

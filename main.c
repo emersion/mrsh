@@ -86,7 +86,7 @@ int main(int argc, char *argv[]) {
 					break;
 				}
 			} else if (mrsh_parser_eof(parser)) {
-				state.exit = EXIT_SUCCESS;
+				state.exit = state.last_status;
 				break;
 			} else {
 				continue;

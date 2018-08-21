@@ -757,7 +757,7 @@ static bool is_word_quoted(struct mrsh_word *word) {
 
 static bool expect_here_document(struct mrsh_parser *state,
 		struct mrsh_io_redirect *redir, const char *delim) {
-	bool trim_tabs = redir->op == DLESSDASH;
+	bool trim_tabs = redir->op == MRSH_IO_DLESSDASH;
 	bool expand_lines = !is_word_quoted(redir->name);
 
 	struct buffer buf = {0};

@@ -907,10 +907,17 @@ error:
 	mrsh_program_destroy(prog);
 
 	// Consume the whole line
-	char c;
-	do {
-		c = parser_read_char(state);
-	} while (c != '\0' && c != '\n');
+	while (true) {
+		char c = parser_peek_char(state);
+		if (c == '\0') {
+			break;
+		}
+
+		parser_read_char(state);
+		if (c == '\n') {
+			break;
+		}
+	}
 
 	state->has_sym = false;
 

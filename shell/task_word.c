@@ -74,21 +74,11 @@ static bool task_word_command_start(struct task_word *tt,
 			close(ctx->stdout_fileno);
 		}
 
-		struct mrsh_parser *parser =
-			mrsh_parser_create_from_buffer(wc->command, strlen(wc->command));
-		if (parser == NULL) {
-			fprintf(stderr, "failed to create parser");
-			exit(EXIT_FAILURE);
-		}
-		struct mrsh_program *prog = mrsh_parse_program(parser);
-		mrsh_parser_destroy(parser);
-		if (prog == NULL) {
-			exit(EXIT_SUCCESS);
-		}
-
 		struct mrsh_state state = {0};
 		mrsh_state_init(&state);
-		mrsh_run_program(&state, prog);
+		if (wc->program != NULL) {
+			mrsh_run_program(&state, wc->program);
+		}
 		mrsh_state_finish(&state);
 
 		exit(state.exit >= 0 ? state.exit : EXIT_SUCCESS);

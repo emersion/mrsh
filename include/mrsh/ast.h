@@ -72,7 +72,7 @@ struct mrsh_word_parameter {
  */
 struct mrsh_word_command {
 	struct mrsh_word word;
-	char *command;
+	struct mrsh_program *program; // can be NULL
 	bool back_quoted;
 };
 
@@ -251,7 +251,7 @@ struct mrsh_word_string *mrsh_word_string_create(char *str,
 	bool single_quoted);
 struct mrsh_word_parameter *mrsh_word_parameter_create(char *name,
 	enum mrsh_word_parameter_op op, bool colon, struct mrsh_word *arg);
-struct mrsh_word_command *mrsh_word_command_create(char *command,
+struct mrsh_word_command *mrsh_word_command_create(struct mrsh_program *prog,
 	bool back_quoted);
 struct mrsh_word_list *mrsh_word_list_create(struct mrsh_array *children,
 	bool double_quoted);

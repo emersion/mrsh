@@ -48,7 +48,11 @@ static const char *word_parameter_op_str(enum mrsh_word_parameter_op op) {
 	assert(false);
 }
 
+static void print_program(struct mrsh_program *prog, const char *prefix);
+
 static void print_word(struct mrsh_word *word, const char *prefix) {
+	char sub_prefix[make_sub_prefix(prefix, true, NULL)];
+
 	switch (word->type) {
 	case MRSH_WORD_STRING:;
 		struct mrsh_word_string *ws = mrsh_word_get_string(word);
@@ -71,7 +75,6 @@ static void print_word(struct mrsh_word *word, const char *prefix) {
 		}
 
 		if (wp->arg != NULL) {
-			char sub_prefix[make_sub_prefix(prefix, true, NULL)];
 			make_sub_prefix(prefix, true, sub_prefix);
 
 			print_prefix(prefix, true);
@@ -82,8 +85,12 @@ static void print_word(struct mrsh_word *word, const char *prefix) {
 	case MRSH_WORD_COMMAND:;
 		struct mrsh_word_command *wc = mrsh_word_get_command(word);
 		assert(wc != NULL);
-		printf("word_command%s %s\n",
-			wc->back_quoted ? " (quoted)" : "", wc->command);
+
+		make_sub_prefix(prefix, true, sub_prefix);
+
+		print_prefix(prefix, true);
+		printf("word_command%s ─ ", wc->back_quoted ? " (quoted)" : "");
+		print_program(wc->program, sub_prefix);
 		break;
 	case MRSH_WORD_LIST:;
 		struct mrsh_word_list *wl = mrsh_word_get_list(word);
@@ -94,7 +101,6 @@ static void print_word(struct mrsh_word *word, const char *prefix) {
 			struct mrsh_word *child = wl->children.data[i];
 			bool last = i == wl->children.len - 1;
 
-			char sub_prefix[make_sub_prefix(prefix, last, NULL)];
 			make_sub_prefix(prefix, last, sub_prefix);
 
 			print_prefix(prefix, last);
@@ -355,8 +361,12 @@ static void print_command_list(struct mrsh_command_list *list,
 	print_node(list->node, prefix);
 }
 
-void mrsh_program_print(struct mrsh_program *prog) {
+static void print_program(struct mrsh_program *prog, const char *prefix) {
 	printf("program\n");
 
-	print_command_list_array(&prog->body, "");
+	print_command_list_array(&prog->body, prefix);
+}
+
+void mrsh_program_print(struct mrsh_program *prog) {
+	print_program(prog, "");
 }

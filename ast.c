@@ -28,7 +28,7 @@ void mrsh_word_destroy(struct mrsh_word *word) {
 	case MRSH_WORD_COMMAND:;
 		struct mrsh_word_command *wc = mrsh_word_get_command(word);
 		assert(wc != NULL);
-		free(wc->command);
+		mrsh_program_destroy(wc->program);
 		free(wc);
 		return;
 	case MRSH_WORD_LIST:;
@@ -188,12 +188,12 @@ struct mrsh_word_parameter *mrsh_word_parameter_create(char *name,
 	return wp;
 }
 
-struct mrsh_word_command *mrsh_word_command_create(char *command,
+struct mrsh_word_command *mrsh_word_command_create(struct mrsh_program *prog,
 		bool back_quoted) {
 	struct mrsh_word_command *wc =
 		calloc(1, sizeof(struct mrsh_word_command));
 	wc->word.type = MRSH_WORD_COMMAND;
-	wc->command = command;
+	wc->program = prog;
 	wc->back_quoted = back_quoted;
 	return wc;
 }

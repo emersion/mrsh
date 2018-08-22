@@ -20,8 +20,8 @@ static struct mrsh_word *single_quotes(struct mrsh_parser *state) {
 	while (true) {
 		char c = parser_peek_char(state);
 		if (c == '\0') {
-			fprintf(stderr, "single quotes not terminated\n");
-			exit(EXIT_FAILURE);
+			parser_set_error(state, "single quotes not terminated");
+			return NULL;
 		}
 		if (c == '\'') {
 			parser_read_char(state);
@@ -260,8 +260,8 @@ struct mrsh_word *back_quotes(struct mrsh_parser *state) {
 	while (true) {
 		char c = parser_peek_char(state);
 		if (c == '\0') {
-			fprintf(stderr, "back quotes not terminated\n");
-			exit(EXIT_FAILURE);
+			parser_set_error(state, "back quotes not terminated");
+			return NULL;
 		}
 		if (c == '`') {
 			parser_read_char(state);
@@ -339,8 +339,8 @@ static struct mrsh_word *double_quotes(struct mrsh_parser *state) {
 	while (true) {
 		char c = parser_peek_char(state);
 		if (c == '\0') {
-			fprintf(stderr, "double quotes not terminated\n");
-			exit(EXIT_FAILURE);
+			parser_set_error(state, "double quotes not terminated");
+			return NULL;
 		}
 		if (c == '"') {
 			parser_read_char(state);

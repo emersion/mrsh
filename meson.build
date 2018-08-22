@@ -23,8 +23,10 @@ mrsh_inc = include_directories('include')
 
 install_subdir('include/mrsh', install_dir: get_option('includedir'))
 
-lib_mrsh = library(
-	meson.project_name(),
+libmrsh_sym_path = meson.current_source_dir() + '/libmrsh.sym'
+
+lib_mrsh_static = static_library(
+	meson.project_name() + '_static',
 	files(
 		'array.c',
 		'ast_print.c',
@@ -42,8 +44,20 @@ lib_mrsh = library(
 		'parser/word.c',
 	),
 	include_directories: mrsh_inc,
+)
+
+lib_mrsh = library(
+	meson.project_name(),
+	link_whole: lib_mrsh_static,
+	include_directories: mrsh_inc,
 	version: meson.project_version(),
+	link_args: ['-Wl,--version-script=' + libmrsh_sym_path],
 	install: true,
+)
+
+mrsh_static = declare_dependency(
+	link_with: lib_mrsh_static,
+	include_directories: mrsh_inc,
 )
 
 mrsh = declare_dependency(
@@ -69,7 +83,7 @@ executable(
 		'shell/task.c',
 		'shell/word.c',
 	]),
-	dependencies: [rt, mrsh],
+	dependencies: [rt, mrsh_static],
 	install: true,
 )
 

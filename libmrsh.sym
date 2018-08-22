@@ -1,0 +1,6 @@
+{
+	global:
+		mrsh_*;
+	local:
+		*;
+};

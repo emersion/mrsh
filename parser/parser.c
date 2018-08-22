@@ -191,12 +191,19 @@ static void next_symbol(struct mrsh_parser *state) {
 	}
 
 	if (is_operator_start(c)) {
-		char next[operators_max_str_len];
 		for (size_t i = 0; i < operators_len; ++i) {
 			const char *str = operators[i].str;
-			size_t n = strlen(str);
-			size_t n_read = parser_peek(state, next, n);
-			if (n_read == n && strncmp(next, str, n) == 0) {
+
+			size_t j;
+			for (j = 0; str[j] != '\0'; ++j) {
+				size_t n = j + 1;
+				size_t n_read = parser_peek(state, NULL, n);
+				if (n != n_read || state->buf.data[j] != str[j]) {
+					break;
+				}
+			}
+
+			if (str[j] == '\0') {
 				state->sym = operators[i].name;
 				return;
 			}

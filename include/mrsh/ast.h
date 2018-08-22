@@ -37,6 +37,7 @@ struct mrsh_word {
  */
 struct mrsh_word_string {
 	struct mrsh_word word;
+	struct mrsh_position begin, end;
 	char *str;
 	bool single_quoted;
 };
@@ -239,6 +240,8 @@ struct mrsh_command_list {
 struct mrsh_program {
 	struct mrsh_array body; // struct mrsh_command_list *
 };
+
+bool mrsh_position_valid(const struct mrsh_position *pos);
 
 void mrsh_word_destroy(struct mrsh_word *word);
 void mrsh_io_redirect_destroy(struct mrsh_io_redirect *redir);

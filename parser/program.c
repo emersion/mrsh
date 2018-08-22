@@ -293,6 +293,8 @@ static bool cmd_prefix(struct mrsh_parser *state,
 }
 
 static struct mrsh_word *cmd_name(struct mrsh_parser *state) {
+	struct mrsh_position begin = state->pos;
+
 	apply_aliases(state);
 
 	size_t word_len = peek_word(state, 0);
@@ -313,6 +315,8 @@ static struct mrsh_word *cmd_name(struct mrsh_parser *state) {
 	str[word_len] = '\0';
 
 	struct mrsh_word_string *ws = mrsh_word_string_create(str, false);
+	ws->begin = begin;
+	ws->end = state->pos;
 	return &ws->word;
 }
 

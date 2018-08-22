@@ -12,6 +12,8 @@
 #include "parser.h"
 
 static struct mrsh_word *single_quotes(struct mrsh_parser *state) {
+	struct mrsh_position begin = state->pos;
+
 	char c = parser_read_char(state);
 	assert(c == '\'');
 
@@ -35,6 +37,8 @@ static struct mrsh_word *single_quotes(struct mrsh_parser *state) {
 	buffer_append_char(&buf, '\0');
 	char *data = buffer_steal(&buf);
 	struct mrsh_word_string *ws = mrsh_word_string_create(data, true);
+	ws->begin = begin;
+	ws->end = state->pos;
 	return &ws->word;
 }
 
@@ -101,6 +105,7 @@ static struct mrsh_word *word_list(struct mrsh_parser *state, char end) {
 		}
 		mrsh_array_add(&children, child);
 
+		struct mrsh_position begin = state->pos;
 		struct buffer buf = {0};
 		while (true) {
 			char c = parser_peek_char(state);
@@ -115,6 +120,8 @@ static struct mrsh_word *word_list(struct mrsh_parser *state, char end) {
 		buffer_append_char(&buf, '\0');
 		struct mrsh_word_string *ws =
 			mrsh_word_string_create(buffer_steal(&buf), false);
+		ws->begin = begin;
+		ws->end = state->pos;
 		mrsh_array_add(&children, &ws->word);
 		buffer_finish(&buf);
 	}
@@ -316,9 +323,11 @@ error:
  * Append a new string word to `children` with the contents of `buf`, and reset
  * `buf`.
  */
-static void push_buffer_word_string(struct mrsh_array *children,
-		struct buffer *buf) {
+static void push_buffer_word_string(struct mrsh_parser *state,
+		struct mrsh_array *children, struct buffer *buf,
+		struct mrsh_position *begin) {
 	if (buf->len == 0) {
+		*begin = (struct mrsh_position){0};
 		return;
 	}
 
@@ -326,7 +335,11 @@ static void push_buffer_word_string(struct mrsh_array *children,
 
 	char *data = buffer_steal(buf);
 	struct mrsh_word_string *ws = mrsh_word_string_create(data, false);
+	ws->begin = *begin;
+	ws->end = state->pos;
 	mrsh_array_add(children, &ws->word);
+
+	*begin = (struct mrsh_position){0};
 }
 
 static struct mrsh_word *double_quotes(struct mrsh_parser *state) {
@@ -335,20 +348,26 @@ static struct mrsh_word *double_quotes(struct mrsh_parser *state) {
 
 	struct mrsh_array children = {0};
 	struct buffer buf = {0};
+	struct mrsh_position begin = {0};
 
 	while (true) {
+		if (!mrsh_position_valid(&begin)) {
+			begin = state->pos;
+		}
+
 		char c = parser_peek_char(state);
 		if (c == '\0') {
 			parser_set_error(state, "double quotes not terminated");
 			return NULL;
 		}
 		if (c == '"') {
+			push_buffer_word_string(state, &children, &buf, &begin);
 			parser_read_char(state);
 			break;
 		}
 
 		if (c == '$') {
-			push_buffer_word_string(&children, &buf);
+			push_buffer_word_string(state, &children, &buf, &begin);
 			struct mrsh_word *t = expect_parameter(state);
 			if (t == NULL) {
 				return NULL;
@@ -358,7 +377,7 @@ static struct mrsh_word *double_quotes(struct mrsh_parser *state) {
 		}
 
 		if (c == '`') {
-			push_buffer_word_string(&children, &buf);
+			push_buffer_word_string(state, &children, &buf, &begin);
 			struct mrsh_word *t = back_quotes(state);
 			if (t == NULL) {
 				return NULL;
@@ -391,7 +410,6 @@ static struct mrsh_word *double_quotes(struct mrsh_parser *state) {
 		buffer_append_char(&buf, c);
 	}
 
-	push_buffer_word_string(&children, &buf);
 	buffer_finish(&buf);
 
 	struct mrsh_word_list *wl = mrsh_word_list_create(&children, true);
@@ -410,15 +428,20 @@ struct mrsh_word *word(struct mrsh_parser *state, char end) {
 
 	struct mrsh_array children = {0};
 	struct buffer buf = {0};
+	struct mrsh_position begin = {0};
 
 	while (true) {
+		if (!mrsh_position_valid(&begin)) {
+			begin = state->pos;
+		}
+
 		char c = parser_peek_char(state);
 		if (c == '\0' || c == '\n' || c == end) {
 			break;
 		}
 
 		if (c == '$') {
-			push_buffer_word_string(&children, &buf);
+			push_buffer_word_string(state, &children, &buf, &begin);
 			struct mrsh_word *t = expect_parameter(state);
 			if (t == NULL) {
 				return NULL;
@@ -428,7 +451,7 @@ struct mrsh_word *word(struct mrsh_parser *state, char end) {
 		}
 
 		if (c == '`') {
-			push_buffer_word_string(&children, &buf);
+			push_buffer_word_string(state, &children, &buf, &begin);
 			struct mrsh_word *t = back_quotes(state);
 			if (t == NULL) {
 				return NULL;
@@ -439,7 +462,7 @@ struct mrsh_word *word(struct mrsh_parser *state, char end) {
 
 		// Quoting
 		if (c == '\'') {
-			push_buffer_word_string(&children, &buf);
+			push_buffer_word_string(state, &children, &buf, &begin);
 			struct mrsh_word *t = single_quotes(state);
 			if (t == NULL) {
 				return NULL;
@@ -448,7 +471,7 @@ struct mrsh_word *word(struct mrsh_parser *state, char end) {
 			continue;
 		}
 		if (c == '"') {
-			push_buffer_word_string(&children, &buf);
+			push_buffer_word_string(state, &children, &buf, &begin);
 			struct mrsh_word *t = double_quotes(state);
 			if (t == NULL) {
 				return NULL;
@@ -474,7 +497,7 @@ struct mrsh_word *word(struct mrsh_parser *state, char end) {
 		buffer_append_char(&buf, c);
 	}
 
-	push_buffer_word_string(&children, &buf);
+	push_buffer_word_string(state, &children, &buf, &begin);
 	buffer_finish(&buf);
 
 	consume_symbol(state);

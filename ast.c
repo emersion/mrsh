@@ -6,6 +6,10 @@
 #include "ast.h"
 #include "buffer.h"
 
+bool mrsh_position_valid(const struct mrsh_position *pos) {
+	return pos->line > 0;
+}
+
 void mrsh_word_destroy(struct mrsh_word *word) {
 	if (word == NULL) {
 		return;

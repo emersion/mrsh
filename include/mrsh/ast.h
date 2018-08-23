@@ -9,7 +9,7 @@
  * location.
  */
 struct mrsh_position {
-	int offset; // starting at 0
+	size_t offset; // starting at 0
 	int line; // starting at 1
 	int column; // starting at 1
 };
@@ -87,6 +87,7 @@ struct mrsh_word_list {
 	struct mrsh_word word;
 	struct mrsh_array children; // struct mrsh_word *
 	bool double_quoted;
+	struct mrsh_position lquote_pos, rquote_pos; // can be invalid
 };
 
 enum mrsh_io_redirect_op {

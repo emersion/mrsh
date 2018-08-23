@@ -87,6 +87,14 @@ executable(
 	install: true,
 )
 
+executable(
+	'highlight',
+	files([
+		'highlight.c',
+	]),
+	dependencies: [mrsh_static],
+)
+
 pkgconfig = import('pkgconfig')
 pkgconfig.generate(
 	libraries: lib_mrsh,

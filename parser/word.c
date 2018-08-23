@@ -194,8 +194,10 @@ static bool expect_parameter_op(struct mrsh_parser *state,
 	return true;
 }
 
-static struct mrsh_word *expect_parameter_expression(
+static struct mrsh_word_parameter *expect_parameter_expression(
 		struct mrsh_parser *state) {
+	struct mrsh_position lbrace_pos = state->pos;
+
 	char c = parser_read_char(state);
 	assert(c == '{');
 
@@ -224,6 +226,7 @@ static struct mrsh_word *expect_parameter_expression(
 		arg = word_list(state, '}');
 	}
 
+	struct mrsh_position rbrace_pos = state->pos;
 	if (parser_read_char(state) != '}') {
 		parser_set_error(state, "expected end of parameter");
 		return NULL;
@@ -231,34 +234,40 @@ static struct mrsh_word *expect_parameter_expression(
 
 	struct mrsh_word_parameter *wp =
 		mrsh_word_parameter_create(name, op, colon, arg);
-	return &wp->word;
+	wp->lbrace_pos = lbrace_pos;
+	wp->rbrace_pos = rbrace_pos;
+	return wp;
 }
 
 struct mrsh_word *expect_parameter(struct mrsh_parser *state) {
+	struct mrsh_position dollar_pos = state->pos;
+
 	char c = parser_read_char(state);
 	assert(c == '$');
 
+	struct mrsh_word_parameter *wp;
 	if (parser_peek_char(state) == '{') {
-		return expect_parameter_expression(state);
+		wp = expect_parameter_expression(state);
+	} else {
+		size_t name_len = peek_name(state);
+		if (name_len == 0) {
+			name_len = 1;
+		}
+
+		char *name = malloc(name_len + 1);
+		parser_read(state, name, name_len);
+		name[name_len] = '\0';
+
+		wp = mrsh_word_parameter_create(name, MRSH_PARAM_NONE, false, NULL);
 	}
 
-	// TODO: ${expression}
-
-	size_t name_len = peek_name(state);
-	if (name_len == 0) {
-		name_len = 1;
-	}
-
-	char *name = malloc(name_len + 1);
-	parser_read(state, name, name_len);
-	name[name_len] = '\0';
-
-	struct mrsh_word_parameter *wp =
-		mrsh_word_parameter_create(name, MRSH_PARAM_NONE, false, NULL);
+	wp->dollar_pos = dollar_pos;
 	return &wp->word;
 }
 
 struct mrsh_word *back_quotes(struct mrsh_parser *state) {
+	struct mrsh_position begin = state->pos;
+
 	char c = parser_read_char(state);
 	assert(c == '`');
 
@@ -311,6 +320,8 @@ struct mrsh_word *back_quotes(struct mrsh_parser *state) {
 	buffer_finish(&buf);
 
 	struct mrsh_word_command *wc = mrsh_word_command_create(prog, true);
+	wc->begin = begin;
+	wc->end = state->pos;
 	return &wc->word;
 
 error:
@@ -343,7 +354,7 @@ static void push_buffer_word_string(struct mrsh_parser *state,
 }
 
 static struct mrsh_word *double_quotes(struct mrsh_parser *state) {
-	struct mrsh_position begin = state->pos;
+	struct mrsh_position lquote_pos = state->pos;
 
 	char c = parser_read_char(state);
 	assert(c == '"');
@@ -351,7 +362,7 @@ static struct mrsh_word *double_quotes(struct mrsh_parser *state) {
 	struct mrsh_array children = {0};
 	struct buffer buf = {0};
 	struct mrsh_position child_begin = {0};
-
+	struct mrsh_position rquote_pos = {0};
 	while (true) {
 		if (!mrsh_position_valid(&child_begin)) {
 			child_begin = state->pos;
@@ -364,6 +375,7 @@ static struct mrsh_word *double_quotes(struct mrsh_parser *state) {
 		}
 		if (c == '"') {
 			push_buffer_word_string(state, &children, &buf, &child_begin);
+			rquote_pos = state->pos;
 			parser_read_char(state);
 			break;
 		}
@@ -415,8 +427,8 @@ static struct mrsh_word *double_quotes(struct mrsh_parser *state) {
 	buffer_finish(&buf);
 
 	struct mrsh_word_list *wl = mrsh_word_list_create(&children, true);
-	wl->lquote_pos = begin;
-	wl->rquote_pos = state->pos;
+	wl->lquote_pos = lquote_pos;
+	wl->rquote_pos = rquote_pos;
 	return &wl->word;
 }
 

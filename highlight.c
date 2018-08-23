@@ -13,6 +13,7 @@
 
 enum format {
 	FORMAT_RESET = 0,
+	FORMAT_GREEN = 32,
 	FORMAT_YELLOW = 33,
 	FORMAT_BLUE = 34,
 	FORMAT_CYAN = 36,
@@ -32,11 +33,15 @@ static void highlight(struct highlight_state *state, struct mrsh_position *pos,
 		enum format fmt) {
 	assert(pos->offset >= state->offset);
 
+	fwrite(&state->buf[state->offset], sizeof(char),
+		pos->offset - state->offset, stdout);
+	state->offset = pos->offset;
+
 	if (fmt == FORMAT_RESET) {
 		assert(state->fmt_stack_len > 0);
 		--state->fmt_stack_len;
 		if (state->fmt_stack_len > 0) {
-			fmt = state->fmt_stack[state->fmt_stack_len];
+			fmt = state->fmt_stack[state->fmt_stack_len - 1];
 		}
 	} else {
 		if (state->fmt_stack_len >= FORMAT_STACK_SIZE) {
@@ -47,11 +52,14 @@ static void highlight(struct highlight_state *state, struct mrsh_position *pos,
 		++state->fmt_stack_len;
 	}
 
-	fwrite(&state->buf[state->offset], sizeof(char),
-		pos->offset - state->offset, stdout);
-	state->offset = pos->offset;
-
 	fprintf(stdout, "\e[%dm", fmt);
+}
+
+static void highlight_char(struct highlight_state *state,
+		struct mrsh_position *pos, enum format fmt) {
+	highlight(state, pos, fmt);
+	struct mrsh_position end = { .offset = pos->offset + 1 };
+	highlight(state, &end, FORMAT_RESET);
 }
 
 static void highlight_word(struct highlight_state *state,
@@ -74,12 +82,34 @@ static void highlight_word(struct highlight_state *state,
 	case MRSH_WORD_PARAMETER:;
 		struct mrsh_word_parameter *wp = mrsh_word_get_parameter(word);
 		assert(wp != NULL);
-		// TODO
+		highlight(state, &wp->dollar_pos, FORMAT_CYAN);
+		highlight_char(state, &wp->dollar_pos, FORMAT_GREEN);
+		if (mrsh_position_valid(&wp->lbrace_pos)) {
+			highlight_char(state, &wp->lbrace_pos, FORMAT_GREEN);
+		}
+		if (wp->arg != NULL) {
+			highlight_word(state, wp->arg, false, false);
+		}
+		struct mrsh_position end = {0};
+		if (mrsh_position_valid(&wp->rbrace_pos)) {
+			highlight_char(state, &wp->rbrace_pos, FORMAT_GREEN);
+			end.offset = wp->rbrace_pos.offset + 1;
+		} else {
+			end.offset = wp->dollar_pos.offset + 1 + strlen(wp->name);
+		}
+		highlight(state, &end, FORMAT_RESET);
 		break;
 	case MRSH_WORD_COMMAND:;
 		struct mrsh_word_command *wc = mrsh_word_get_command(word);
 		assert(wc != NULL);
-		// TODO
+		if (wc->back_quoted) {
+			highlight_char(state, &wc->begin, FORMAT_GREEN);
+		}
+		// TODO: highlight inside
+		if (wc->back_quoted) {
+			struct mrsh_position rquote = { .offset = wc->end.offset - 1 };
+			highlight_char(state, &rquote, FORMAT_GREEN);
+		}
 		break;
 	case MRSH_WORD_LIST:;
 		struct mrsh_word_list *wl = mrsh_word_get_list(word);
@@ -98,7 +128,8 @@ static void highlight_word(struct highlight_state *state,
 		}
 
 		if (wl->double_quoted) {
-			highlight(state, &wl->rquote_pos, FORMAT_RESET);
+			struct mrsh_position end = { .offset = wl->rquote_pos.offset + 1 };
+			highlight(state, &end, FORMAT_RESET);
 		}
 		break;
 	}

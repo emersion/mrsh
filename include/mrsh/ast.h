@@ -43,7 +43,7 @@ struct mrsh_word_string {
 };
 
 enum mrsh_word_parameter_op {
-	MRSH_PARAM_NONE, // No-op
+	MRSH_PARAM_NONE, // `$name` or `${parameter}`, no-op
 	MRSH_PARAM_MINUS, // `${parameter:-[word]}`, Use Default Values
 	MRSH_PARAM_EQUAL, // `${parameter:=[word]}`, Assign Default Values
 	MRSH_PARAM_QMARK, // `${parameter:?[word]}`, Indicate Error if Null or Unset
@@ -65,6 +65,8 @@ struct mrsh_word_parameter {
 	enum mrsh_word_parameter_op op;
 	bool colon; // only for -, =, ?, +
 	struct mrsh_word *arg; // can be NULL
+	struct mrsh_position dollar_pos;
+	struct mrsh_position lbrace_pos, rbrace_pos; // can be invalid
 };
 
 /**
@@ -75,6 +77,7 @@ struct mrsh_word_command {
 	struct mrsh_word word;
 	struct mrsh_program *program; // can be NULL
 	bool back_quoted;
+	struct mrsh_position begin, end;
 };
 
 /**

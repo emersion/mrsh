@@ -1,0 +1,12 @@
+image: freebsd
+packages:
+  - meson
+sources:
+  - https://github.com/emersion/mrsh
+tasks:
+  - setup: |
+      cd mrsh
+      meson build
+  - build: |
+      cd mrsh
+      ninja -C build

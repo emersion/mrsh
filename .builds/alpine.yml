@@ -8,7 +8,6 @@ sources:
 tasks:
   - setup: |
       cd mrsh
-      mkdir build-{gcc,clang}
       CC=gcc meson build-gcc
       CC=clang meson build-clang
   - gcc: |

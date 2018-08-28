@@ -343,6 +343,66 @@ struct mrsh_binop *mrsh_node_get_binop(struct mrsh_node *node) {
 	return (struct mrsh_binop *)node;
 }
 
+static void position_next(struct mrsh_position *dst,
+		const struct mrsh_position *src) {
+	*dst = *src;
+	++dst->offset;
+	++dst->column;
+}
+
+void mrsh_word_positions(struct mrsh_word *word, struct mrsh_position *begin,
+		struct mrsh_position *end) {
+	if (begin == NULL && end == NULL) {
+		return;
+	}
+
+	struct mrsh_position _begin, _end;
+	if (begin == NULL) {
+		begin = &_begin;
+	}
+	if (end == NULL) {
+		end = &_end;
+	}
+
+	switch (word->type) {
+	case MRSH_WORD_STRING:;
+		struct mrsh_word_string *ws = mrsh_word_get_string(word);
+		assert(ws != NULL);
+		*begin = ws->begin;
+		*end = ws->end;
+		return;
+	case MRSH_WORD_PARAMETER:;
+		struct mrsh_word_parameter *wp = mrsh_word_get_parameter(word);
+		assert(wp != NULL);
+		*begin = wp->dollar_pos;
+		if (mrsh_position_valid(&wp->rbrace_pos)) {
+			position_next(end, &wp->rbrace_pos);
+		} else {
+			*end = wp->name_end;
+		}
+		return;
+	case MRSH_WORD_COMMAND:;
+		struct mrsh_word_command *wc = mrsh_word_get_command(word);
+		assert(wc != NULL);
+		*begin = wc->begin;
+		*end = wc->end;
+		return;
+	case MRSH_WORD_LIST:;
+		struct mrsh_word_list *wl = mrsh_word_get_list(word);
+		assert(wl != NULL);
+		if (wl->children.len == 0) {
+			*begin = *end = (struct mrsh_position){0};
+		} else {
+			struct mrsh_word *first = wl->children.data[0];
+			struct mrsh_word *last = wl->children.data[wl->children.len - 1];
+			mrsh_word_positions(first, begin, NULL);
+			mrsh_word_positions(last, NULL, end);
+		}
+		return;
+	}
+	assert(false);
+}
+
 static void word_str(struct mrsh_word *word, struct buffer *buf) {
 	switch (word->type) {
 	case MRSH_WORD_STRING:;

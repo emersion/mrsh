@@ -55,11 +55,16 @@ static void highlight(struct highlight_state *state, struct mrsh_position *pos,
 	fprintf(stdout, "\e[%dm", fmt);
 }
 
+static void highlight_str(struct highlight_state *state,
+		struct mrsh_position *pos, size_t len, enum format fmt) {
+	highlight(state, pos, fmt);
+	struct mrsh_position end = { .offset = pos->offset + len };
+	highlight(state, &end, FORMAT_RESET);
+}
+
 static void highlight_char(struct highlight_state *state,
 		struct mrsh_position *pos, enum format fmt) {
-	highlight(state, pos, fmt);
-	struct mrsh_position end = { .offset = pos->offset + 1 };
-	highlight(state, &end, FORMAT_RESET);
+	highlight_str(state, pos, 1, fmt);
 }
 
 static void highlight_word(struct highlight_state *state,
@@ -87,6 +92,9 @@ static void highlight_word(struct highlight_state *state,
 		if (mrsh_position_valid(&wp->lbrace_pos)) {
 			highlight_char(state, &wp->lbrace_pos, FORMAT_GREEN);
 		}
+		if (mrsh_position_valid(&wp->op_pos)) {
+			highlight_str(state, &wp->op_pos, wp->colon ? 2 : 1, FORMAT_GREEN);
+		}
 		if (wp->arg != NULL) {
 			highlight_word(state, wp->arg, false, false);
 		}
@@ -95,7 +103,7 @@ static void highlight_word(struct highlight_state *state,
 			highlight_char(state, &wp->rbrace_pos, FORMAT_GREEN);
 			end.offset = wp->rbrace_pos.offset + 1;
 		} else {
-			end.offset = wp->dollar_pos.offset + 1 + strlen(wp->name);
+			end = wp->name_end;
 		}
 		highlight(state, &end, FORMAT_RESET);
 		break;

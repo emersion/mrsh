@@ -37,9 +37,10 @@ struct mrsh_word {
  */
 struct mrsh_word_string {
 	struct mrsh_word word;
-	struct mrsh_position begin, end;
 	char *str;
 	bool single_quoted;
+
+	struct mrsh_position begin, end;
 };
 
 enum mrsh_word_parameter_op {
@@ -65,7 +66,10 @@ struct mrsh_word_parameter {
 	enum mrsh_word_parameter_op op;
 	bool colon; // only for -, =, ?, +
 	struct mrsh_word *arg; // can be NULL
+
 	struct mrsh_position dollar_pos;
+	struct mrsh_position name_begin, name_end;
+	struct mrsh_position op_pos; // can be invalid
 	struct mrsh_position lbrace_pos, rbrace_pos; // can be invalid
 };
 
@@ -77,6 +81,7 @@ struct mrsh_word_command {
 	struct mrsh_word word;
 	struct mrsh_program *program; // can be NULL
 	bool back_quoted;
+
 	struct mrsh_position begin, end;
 };
 
@@ -90,6 +95,7 @@ struct mrsh_word_list {
 	struct mrsh_word word;
 	struct mrsh_array children; // struct mrsh_word *
 	bool double_quoted;
+
 	struct mrsh_position lquote_pos, rquote_pos; // can be invalid
 };
 
@@ -288,6 +294,8 @@ struct mrsh_binop *mrsh_binop_create(enum mrsh_binop_type type,
 struct mrsh_pipeline *mrsh_node_get_pipeline(struct mrsh_node *node);
 struct mrsh_binop *mrsh_node_get_binop(struct mrsh_node *node);
 
+void mrsh_word_positions(struct mrsh_word *word, struct mrsh_position *begin,
+	struct mrsh_position *end);
 char *mrsh_word_str(struct mrsh_word *word);
 void mrsh_program_print(struct mrsh_program *prog);
 

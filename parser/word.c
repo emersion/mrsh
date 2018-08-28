@@ -202,7 +202,9 @@ static struct mrsh_word_parameter *expect_parameter_expression(
 	assert(c == '{');
 
 	enum mrsh_word_parameter_op op = MRSH_PARAM_NONE;
+	struct mrsh_position op_pos = {0};
 	if (parser_peek_char(state) == '#') {
+		op_pos = state->pos;
 		parser_read_char(state);
 		op = MRSH_PARAM_LEADING_HASH;
 	}
@@ -213,13 +215,18 @@ static struct mrsh_word_parameter *expect_parameter_expression(
 		return NULL;
 	}
 
+	struct mrsh_position name_begin = state->pos;
+
 	char *name = malloc(name_len + 1);
 	parser_read(state, name, name_len);
 	name[name_len] = '\0';
 
+	struct mrsh_position name_end = state->pos;
+
 	bool colon = false;
 	struct mrsh_word *arg = NULL;
 	if (op == MRSH_PARAM_NONE && parser_peek_char(state) != '}') {
+		op_pos = state->pos;
 		if (!expect_parameter_op(state, &op, &colon)) {
 			return NULL;
 		}
@@ -234,6 +241,9 @@ static struct mrsh_word_parameter *expect_parameter_expression(
 
 	struct mrsh_word_parameter *wp =
 		mrsh_word_parameter_create(name, op, colon, arg);
+	wp->name_begin = name_begin;
+	wp->name_end = name_end;
+	wp->op_pos = op_pos;
 	wp->lbrace_pos = lbrace_pos;
 	wp->rbrace_pos = rbrace_pos;
 	return wp;
@@ -254,11 +264,17 @@ struct mrsh_word *expect_parameter(struct mrsh_parser *state) {
 			name_len = 1;
 		}
 
+		struct mrsh_position name_begin = state->pos;
+
 		char *name = malloc(name_len + 1);
 		parser_read(state, name, name_len);
 		name[name_len] = '\0';
 
+		struct mrsh_position name_end = state->pos;
+
 		wp = mrsh_word_parameter_create(name, MRSH_PARAM_NONE, false, NULL);
+		wp->name_begin = name_begin;
+		wp->name_end = name_end;
 	}
 
 	wp->dollar_pos = dollar_pos;

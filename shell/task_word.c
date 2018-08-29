@@ -74,14 +74,11 @@ static bool task_word_command_start(struct task_word *tt,
 			close(ctx->stdout_fileno);
 		}
 
-		struct mrsh_state state = {0};
-		mrsh_state_init(&state);
 		if (wc->program != NULL) {
-			mrsh_run_program(&state, wc->program);
+			mrsh_run_program(ctx->state, wc->program);
 		}
-		mrsh_state_finish(&state);
 
-		exit(state.exit >= 0 ? state.exit : EXIT_SUCCESS);
+		exit(ctx->state->exit >= 0 ? ctx->state->exit : EXIT_SUCCESS);
 	} else {
 		process_init(&tt->process, pid);
 		tt->fd = fd;

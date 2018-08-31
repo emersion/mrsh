@@ -227,8 +227,13 @@ static int io_number(struct mrsh_parser *state) {
 static struct mrsh_io_redirect *io_redirect(struct mrsh_parser *state) {
 	struct mrsh_io_redirect redir = {0};
 
+	struct mrsh_position io_number_pos = state->pos;
 	redir.io_number = io_number(state);
+	if (redir.io_number >= 0) {
+		redir.io_number_pos = io_number_pos;
+	}
 
+	redir.op_pos = state->pos;
 	if (io_file(state, &redir)) {
 		struct mrsh_io_redirect *redir_ptr =
 			calloc(1, sizeof(struct mrsh_io_redirect));
@@ -265,13 +270,20 @@ static struct mrsh_assignment *assignment_word(struct mrsh_parser *state) {
 	}
 
 	char *name = strndup(state->buf.data, name_len);
-	parser_read(state, NULL, name_len + 1);
+	struct mrsh_position name_pos = state->pos;
+	parser_read(state, NULL, name_len);
+
+	struct mrsh_position equal_pos = state->pos;
+	parser_read(state, NULL, 1);
+
 	struct mrsh_word *value = word(state, 0);
 	consume_symbol(state);
 
 	struct mrsh_assignment *assign = calloc(1, sizeof(struct mrsh_assignment));
 	assign->name = name;
 	assign->value = value;
+	assign->name_pos = name_pos;
+	assign->equal_pos = equal_pos;
 	return assign;
 }
 
@@ -383,9 +395,13 @@ static struct mrsh_command_list *term(struct mrsh_parser *state) {
 	struct mrsh_command_list *cmd = calloc(1, sizeof(struct mrsh_command_list));
 	cmd->node = node;
 
+	struct mrsh_position separator_pos = state->pos;
 	int sep = separator(state);
 	if (sep == '&') {
 		cmd->ampersand = true;
+	}
+	if (sep >= 0) {
+		cmd->separator_pos = separator_pos;
 	}
 
 	return cmd;
@@ -414,6 +430,7 @@ static bool expect_compound_list(struct mrsh_parser *state,
 }
 
 static struct mrsh_brace_group *brace_group(struct mrsh_parser *state) {
+	struct mrsh_position lbrace_pos = state->pos;
 	if (!token(state, "{")) {
 		return NULL;
 	}
@@ -423,21 +440,28 @@ static struct mrsh_brace_group *brace_group(struct mrsh_parser *state) {
 		return NULL;
 	}
 
+	struct mrsh_position rbrace_pos = state->pos;
 	if (!expect_token(state, "}")) {
 		command_list_array_finish(&body);
 		return NULL;
 	}
 
-	return mrsh_brace_group_create(&body);
+	struct mrsh_brace_group *bg = mrsh_brace_group_create(&body);
+	bg->lbrace_pos = lbrace_pos;
+	bg->rbrace_pos = rbrace_pos;
+	return bg;
 }
 
 static struct mrsh_command *else_part(struct mrsh_parser *state) {
+	struct mrsh_position begin = state->pos;
+
 	if (token(state, "elif")) {
 		struct mrsh_array cond = {0};
 		if (!expect_compound_list(state, &cond)) {
 			return NULL;
 		}
 
+		struct mrsh_position then_pos = state->pos;
 		if (!expect_token(state, "then")) {
 			command_list_array_finish(&cond);
 			return NULL;
@@ -452,6 +476,8 @@ static struct mrsh_command *else_part(struct mrsh_parser *state) {
 		struct mrsh_command *ep = else_part(state);
 
 		struct mrsh_if_clause *ic = mrsh_if_clause_create(&cond, &body, ep);
+		ic->if_pos = begin;
+		ic->then_pos = then_pos;
 		return &ic->command;
 	}
 
@@ -461,6 +487,7 @@ static struct mrsh_command *else_part(struct mrsh_parser *state) {
 			return NULL;
 		}
 
+		// TODO: position information is missing
 		struct mrsh_brace_group *bg = mrsh_brace_group_create(&body);
 		return &bg->command;
 	}
@@ -469,6 +496,7 @@ static struct mrsh_command *else_part(struct mrsh_parser *state) {
 }
 
 static struct mrsh_if_clause *if_clause(struct mrsh_parser *state) {
+	struct mrsh_position if_pos = state->pos;
 	if (!token(state, "if")) {
 		return NULL;
 	}
@@ -478,6 +506,7 @@ static struct mrsh_if_clause *if_clause(struct mrsh_parser *state) {
 		goto error_cond;
 	}
 
+	struct mrsh_position then_pos = state->pos;
 	if (!expect_token(state, "then")) {
 		goto error_cond;
 	}
@@ -489,11 +518,16 @@ static struct mrsh_if_clause *if_clause(struct mrsh_parser *state) {
 
 	struct mrsh_command *ep = else_part(state);
 
+	struct mrsh_position fi_pos = state->pos;
 	if (!expect_token(state, "fi")) {
 		goto error_else_part;
 	}
 
-	return mrsh_if_clause_create(&cond, &body, ep);
+	struct mrsh_if_clause *ic = mrsh_if_clause_create(&cond, &body, ep);
+	ic->if_pos = if_pos;
+	ic->then_pos = then_pos;
+	ic->fi_pos = fi_pos;
+	return ic;
 
 error_else_part:
 	mrsh_command_destroy(ep);
@@ -527,12 +561,18 @@ static struct mrsh_function_definition *function_definition(
 		++i;
 	}
 
-	char *name = malloc(name_len + 1);
-	parser_read(state, name, name_len);
-	name[name_len] = '\0';
+	struct mrsh_position name_pos = state->pos;
+	char *name = strndup(state->buf.data, name_len);
+	parser_read(state, NULL, name_len);
 	consume_symbol(state);
 
-	if (!expect_token(state, "(") || !expect_token(state, ")")) {
+	struct mrsh_position lparen_pos = state->pos;
+	if (!expect_token(state, "(")) {
+		return NULL;
+	}
+
+	struct mrsh_position rparen_pos = state->pos;
+	if (!expect_token(state, ")")) {
 		return NULL;
 	}
 
@@ -546,7 +586,12 @@ static struct mrsh_function_definition *function_definition(
 
 	// TODO: compound_command redirect_list
 
-	return mrsh_function_definition_create(name, cmd);
+	struct mrsh_function_definition *fd =
+		mrsh_function_definition_create(name, cmd);
+	fd->name_pos = name_pos;
+	fd->lparen_pos = lparen_pos;
+	fd->rparen_pos = rparen_pos;
+	return fd;
 }
 
 static struct mrsh_command *compound_command(struct mrsh_parser *state) {
@@ -619,14 +664,13 @@ static struct mrsh_node *and_or(struct mrsh_parser *state) {
 		return NULL;
 	}
 
-	int binop_type = -1;
+	enum mrsh_binop_type binop_type;
+	struct mrsh_position op_pos = state->pos;
 	if (operator(state, AND_IF)) {
 		binop_type = MRSH_BINOP_AND;
 	} else if (operator(state, OR_IF)) {
 		binop_type = MRSH_BINOP_OR;
-	}
-
-	if (binop_type == -1) {
+	} else {
 		return &pl->node;
 	}
 
@@ -639,6 +683,7 @@ static struct mrsh_node *and_or(struct mrsh_parser *state) {
 	}
 
 	struct mrsh_binop *binop = mrsh_binop_create(binop_type, &pl->node, node);
+	binop->op_pos = op_pos;
 	return &binop->node;
 }
 
@@ -651,9 +696,13 @@ static struct mrsh_command_list *list(struct mrsh_parser *state) {
 	struct mrsh_command_list *cmd = calloc(1, sizeof(struct mrsh_command_list));
 	cmd->node = node;
 
+	struct mrsh_position separator_pos = state->pos;
 	int sep = separator_op(state);
 	if (sep == '&') {
 		cmd->ampersand = true;
+	}
+	if (sep >= 0) {
+		cmd->separator_pos = separator_pos;
 	}
 
 	return cmd;

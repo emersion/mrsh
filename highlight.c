@@ -171,7 +171,9 @@ static void highlight_command(struct highlight_state *state,
 	case MRSH_BRACE_GROUP:;
 		struct mrsh_brace_group *bg = mrsh_command_get_brace_group(cmd);
 		assert(bg != NULL);
+		highlight_char(state, &bg->lbrace_pos, FORMAT_GREEN);
 		highlight_command_list_array(state, &bg->body);
+		highlight_char(state, &bg->rbrace_pos, FORMAT_GREEN);
 		break;
 	case MRSH_IF_CLAUSE:;
 		struct mrsh_if_clause *ic = mrsh_command_get_if_clause(cmd);
@@ -206,6 +208,7 @@ static void highlight_node(struct highlight_state *state,
 		struct mrsh_binop *binop = mrsh_node_get_binop(node);
 		assert(binop != NULL);
 		highlight_node(state, binop->left);
+		highlight_str(state, &binop->op_pos, 2, FORMAT_GREEN);
 		highlight_node(state, binop->right);
 		break;
 	}
@@ -214,6 +217,9 @@ static void highlight_node(struct highlight_state *state,
 static void highlight_command_list(struct highlight_state *state,
 		struct mrsh_command_list *list) {
 	highlight_node(state, list->node);
+	if (mrsh_position_valid(&list->separator_pos)) {
+		highlight_char(state, &list->separator_pos, FORMAT_GREEN);
+	}
 }
 
 static void highlight_command_list_array(struct highlight_state *state,

@@ -119,6 +119,9 @@ struct mrsh_io_redirect {
 	enum mrsh_io_redirect_op op;
 	struct mrsh_word *name; // filename or here-document delimiter
 	struct mrsh_array here_document; // struct mrsh_word *, only for << and <<-
+
+	struct mrsh_position io_number_pos; // can be invalid
+	struct mrsh_position op_pos;
 };
 
 /**
@@ -127,6 +130,8 @@ struct mrsh_io_redirect {
 struct mrsh_assignment {
 	char *name;
 	struct mrsh_word *value;
+
+	struct mrsh_position name_pos, equal_pos;
 };
 
 enum mrsh_command_type {
@@ -164,6 +169,8 @@ struct mrsh_simple_command {
 struct mrsh_brace_group {
 	struct mrsh_command command;
 	struct mrsh_array body; // struct mrsh_command_list *
+
+	struct mrsh_position lbrace_pos, rbrace_pos;
 };
 
 /**
@@ -184,6 +191,8 @@ struct mrsh_if_clause {
 	struct mrsh_array condition; // struct mrsh_command_list *
 	struct mrsh_array body; // struct mrsh_command_list *
 	struct mrsh_command *else_part; // can be NULL
+
+	struct mrsh_position if_pos, then_pos, else_pos, fi_pos; // can be invalid
 };
 
 /**
@@ -195,6 +204,8 @@ struct mrsh_function_definition {
 	struct mrsh_command command;
 	char *name;
 	struct mrsh_command *body;
+
+	struct mrsh_position name_pos, lparen_pos, rparen_pos;
 };
 
 enum mrsh_node_type {
@@ -233,6 +244,8 @@ struct mrsh_binop {
 	struct mrsh_node node;
 	enum mrsh_binop_type type;
 	struct mrsh_node *left, *right;
+
+	struct mrsh_position op_pos;
 };
 
 /**
@@ -242,6 +255,8 @@ struct mrsh_binop {
 struct mrsh_command_list {
 	struct mrsh_node *node;
 	bool ampersand; // whether the command list ends with `&`
+
+	struct mrsh_position separator_pos; // can be invalid
 };
 
 /**

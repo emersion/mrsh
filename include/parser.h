@@ -73,7 +73,7 @@ bool newline(struct mrsh_parser *state);
 void linebreak(struct mrsh_parser *state);
 bool newline_list(struct mrsh_parser *state);
 
-size_t peek_name(struct mrsh_parser *state);
+size_t peek_name(struct mrsh_parser *state, bool in_braces);
 size_t peek_word(struct mrsh_parser *state, char end);
 struct mrsh_word *expect_parameter(struct mrsh_parser *state);
 struct mrsh_word *back_quotes(struct mrsh_parser *state);

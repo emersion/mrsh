@@ -42,7 +42,7 @@ static struct mrsh_word *single_quotes(struct mrsh_parser *state) {
 	return &ws->word;
 }
 
-size_t peek_name(struct mrsh_parser *state) {
+size_t peek_name(struct mrsh_parser *state, bool in_braces) {
 	// In the shell command language, a word consisting solely of underscores,
 	// digits, and alphabetics from the portable character set. The first
 	// character of a name is not a digit.
@@ -54,7 +54,7 @@ size_t peek_name(struct mrsh_parser *state) {
 		char c = state->buf.data[i];
 		if (c != '_' && !isalnum(c)) {
 			break;
-		} else if (i == 0 && isdigit(c)) {
+		} else if (i == 0 && isdigit(c) && !in_braces) {
 			break;
 		}
 
@@ -209,7 +209,7 @@ static struct mrsh_word_parameter *expect_parameter_expression(
 		op = MRSH_PARAM_LEADING_HASH;
 	}
 
-	size_t name_len = peek_name(state);
+	size_t name_len = peek_name(state, true);
 	if (name_len == 0) {
 		parser_set_error(state, "expected a parameter");
 		return NULL;
@@ -259,7 +259,7 @@ struct mrsh_word *expect_parameter(struct mrsh_parser *state) {
 	if (parser_peek_char(state) == '{') {
 		wp = expect_parameter_expression(state);
 	} else {
-		size_t name_len = peek_name(state);
+		size_t name_len = peek_name(state, false);
 		if (name_len == 0) {
 			name_len = 1;
 		}

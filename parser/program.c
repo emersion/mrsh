@@ -254,7 +254,7 @@ static struct mrsh_assignment *assignment_word(struct mrsh_parser *state) {
 		return NULL;
 	}
 
-	size_t name_len = peek_name(state);
+	size_t name_len = peek_name(state, false);
 	if (name_len == 0) {
 		return NULL;
 	}
@@ -508,7 +508,7 @@ static struct mrsh_command *compound_command(struct mrsh_parser *state);
 
 static struct mrsh_function_definition *function_definition(
 		struct mrsh_parser *state) {
-	size_t name_len = peek_name(state);
+	size_t name_len = peek_name(state, false);
 	if (name_len == 0) {
 		return NULL;
 	}

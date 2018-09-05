@@ -62,14 +62,12 @@ static void print_word(struct mrsh_word *word, const char *prefix) {
 	switch (word->type) {
 	case MRSH_WORD_STRING:;
 		struct mrsh_word_string *ws = mrsh_word_get_string(word);
-		assert(ws != NULL);
 		printf("word_string%s ", ws->single_quoted ? " (quoted)" : "");
 		print_positions(&ws->begin, &ws->end);
 		printf(" %s\n", ws->str);
 		break;
 	case MRSH_WORD_PARAMETER:;
 		struct mrsh_word_parameter *wp = mrsh_word_get_parameter(word);
-		assert(wp != NULL);
 		printf("word_parameter\n");
 
 		print_prefix(prefix, wp->op == MRSH_PARAM_NONE && wp->arg == NULL);
@@ -91,7 +89,6 @@ static void print_word(struct mrsh_word *word, const char *prefix) {
 		break;
 	case MRSH_WORD_COMMAND:;
 		struct mrsh_word_command *wc = mrsh_word_get_command(word);
-		assert(wc != NULL);
 
 		make_sub_prefix(prefix, true, sub_prefix);
 
@@ -101,7 +98,6 @@ static void print_word(struct mrsh_word *word, const char *prefix) {
 		break;
 	case MRSH_WORD_LIST:;
 		struct mrsh_word_list *wl = mrsh_word_get_list(word);
-		assert(wl != NULL);
 		printf("word_list%s\n", wl->double_quoted ? " (quoted)" : "");
 
 		for (size_t i = 0; i < wl->children.len; ++i) {
@@ -345,33 +341,27 @@ static void print_command(struct mrsh_command *cmd, const char *prefix) {
 	switch (cmd->type) {
 	case MRSH_SIMPLE_COMMAND:;
 		struct mrsh_simple_command *sc = mrsh_command_get_simple_command(cmd);
-		assert(sc != NULL);
 		print_simple_command(sc, prefix);
 		break;
 	case MRSH_BRACE_GROUP:;
 		struct mrsh_brace_group *bg = mrsh_command_get_brace_group(cmd);
-		assert(bg != NULL);
 		print_brace_group(bg, prefix);
 		break;
 	case MRSH_IF_CLAUSE:;
 		struct mrsh_if_clause *ic = mrsh_command_get_if_clause(cmd);
-		assert(ic != NULL);
 		print_if_clause(ic, prefix);
 		break;
 	case MRSH_FOR_CLAUSE:;
 		struct mrsh_for_clause *fc = mrsh_command_get_for_clause(cmd);
-		assert(fc != NULL);
 		print_for_clause(fc, prefix);
 		break;
 	case MRSH_LOOP_CLAUSE:;
 		struct mrsh_loop_clause *lc = mrsh_command_get_loop_clause(cmd);
-		assert(lc != NULL);
 		print_loop_clause(lc, prefix);
 		break;
 	case MRSH_FUNCTION_DEFINITION:;
 		struct mrsh_function_definition *fd =
 			mrsh_command_get_function_definition(cmd);
-		assert(fd != NULL);
 		print_function_definition(fd, prefix);
 		break;
 	}
@@ -422,12 +412,10 @@ static void print_node(struct mrsh_node *node, const char *prefix) {
 	switch (node->type) {
 	case MRSH_NODE_PIPELINE:;
 		struct mrsh_pipeline *pl = mrsh_node_get_pipeline(node);
-		assert(pl != NULL);
 		print_pipeline(pl, prefix);
 		break;
 	case MRSH_NODE_BINOP:;
 		struct mrsh_binop *binop = mrsh_node_get_binop(node);
-		assert(binop != NULL);
 		print_binop(binop, prefix);
 		break;
 	}

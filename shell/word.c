@@ -66,7 +66,6 @@ static void _split_fields(struct mrsh_array *fields, struct buffer *buf,
 	switch (word->type) {
 	case MRSH_WORD_STRING:;
 		struct mrsh_word_string *ws = mrsh_word_get_string(word);
-		assert(ws != NULL);
 
 		if (double_quoted || ws->single_quoted) {
 			buffer_append(buf, ws->str, strlen(ws->str));
@@ -96,7 +95,6 @@ static void _split_fields(struct mrsh_array *fields, struct buffer *buf,
 		break;
 	case MRSH_WORD_LIST:;
 		struct mrsh_word_list *wl = mrsh_word_get_list(word);
-		assert(wl != NULL);
 		for (size_t i = 0; i < wl->children.len; ++i) {
 			struct mrsh_word *child = wl->children.data[i];
 			_split_fields(fields, buf, child,

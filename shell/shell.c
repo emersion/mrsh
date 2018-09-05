@@ -102,15 +102,12 @@ static struct task *handle_command(struct mrsh_command *cmd) {
 	switch (cmd->type) {
 	case MRSH_SIMPLE_COMMAND:;
 		struct mrsh_simple_command *sc = mrsh_command_get_simple_command(cmd);
-		assert(sc != NULL);
 		return handle_simple_command(sc);
 	case MRSH_BRACE_GROUP:;
 		struct mrsh_brace_group *bg = mrsh_command_get_brace_group(cmd);
-		assert(bg != NULL);
 		return handle_command_list_array(&bg->body);
 	case MRSH_IF_CLAUSE:;
 		struct mrsh_if_clause *ic = mrsh_command_get_if_clause(cmd);
-		assert(ic != NULL);
 		return handle_if_clause(ic);
 	case MRSH_FOR_CLAUSE:
 	case MRSH_LOOP_CLAUSE:
@@ -141,11 +138,9 @@ static struct task *handle_node(struct mrsh_node *node) {
 	switch (node->type) {
 	case MRSH_NODE_PIPELINE:;
 		struct mrsh_pipeline *pl = mrsh_node_get_pipeline(node);
-		assert(pl != NULL);
 		return handle_pipeline(pl);
 	case MRSH_NODE_BINOP:;
 		struct mrsh_binop *binop = mrsh_node_get_binop(node);
-		assert(binop != NULL);
 		return handle_binop(binop);
 	}
 	assert(false);

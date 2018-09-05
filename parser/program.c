@@ -788,11 +788,9 @@ static bool is_word_quoted(struct mrsh_word *word) {
 	switch (word->type) {
 	case MRSH_WORD_STRING:;
 		struct mrsh_word_string *ws = mrsh_word_get_string(word);
-		assert(ws != NULL);
 		return ws->single_quoted;
 	case MRSH_WORD_LIST:;
 		struct mrsh_word_list *wl = mrsh_word_get_list(word);
-		assert(wl != NULL);
 		if (wl->double_quoted) {
 			return true;
 		}

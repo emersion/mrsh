@@ -18,26 +18,22 @@ void mrsh_word_destroy(struct mrsh_word *word) {
 	switch (word->type) {
 	case MRSH_WORD_STRING:;
 		struct mrsh_word_string *ws = mrsh_word_get_string(word);
-		assert(ws != NULL);
 		free(ws->str);
 		free(ws);
 		return;
 	case MRSH_WORD_PARAMETER:;
 		struct mrsh_word_parameter *wp = mrsh_word_get_parameter(word);
-		assert(wp != NULL);
 		free(wp->name);
 		mrsh_word_destroy(wp->arg);
 		free(wp);
 		return;
 	case MRSH_WORD_COMMAND:;
 		struct mrsh_word_command *wc = mrsh_word_get_command(word);
-		assert(wc != NULL);
 		mrsh_program_destroy(wc->program);
 		free(wc);
 		return;
 	case MRSH_WORD_LIST:;
 		struct mrsh_word_list *wl = mrsh_word_get_list(word);
-		assert(wl != NULL);
 		for (size_t i = 0; i < wl->children.len; ++i) {
 			struct mrsh_word *child = wl->children.data[i];
 			mrsh_word_destroy(child);
@@ -228,30 +224,22 @@ struct mrsh_word_list *mrsh_word_list_create(struct mrsh_array *children,
 }
 
 struct mrsh_word_string *mrsh_word_get_string(struct mrsh_word *word) {
-	if (word->type != MRSH_WORD_STRING) {
-		return NULL;
-	}
+	assert(word->type == MRSH_WORD_STRING);
 	return (struct mrsh_word_string *)word;
 }
 
 struct mrsh_word_parameter *mrsh_word_get_parameter(struct mrsh_word *word) {
-	if (word->type != MRSH_WORD_PARAMETER) {
-		return NULL;
-	}
+	assert(word->type == MRSH_WORD_PARAMETER);
 	return (struct mrsh_word_parameter *)word;
 }
 
 struct mrsh_word_command *mrsh_word_get_command(struct mrsh_word *word) {
-	if (word->type != MRSH_WORD_COMMAND) {
-		return NULL;
-	}
+	assert(word->type == MRSH_WORD_COMMAND);
 	return (struct mrsh_word_command *)word;
 }
 
 struct mrsh_word_list *mrsh_word_get_list(struct mrsh_word *word) {
-	if (word->type != MRSH_WORD_LIST) {
-		return NULL;
-	}
+	assert(word->type == MRSH_WORD_LIST);
 	return (struct mrsh_word_list *)word;
 }
 
@@ -297,47 +285,35 @@ struct mrsh_function_definition *mrsh_function_definition_create(char *name,
 
 struct mrsh_simple_command *mrsh_command_get_simple_command(
 		struct mrsh_command *cmd) {
-	if (cmd->type != MRSH_SIMPLE_COMMAND) {
-		return NULL;
-	}
+	assert(cmd->type == MRSH_SIMPLE_COMMAND);
 	return (struct mrsh_simple_command *)cmd;
 }
 
 struct mrsh_brace_group *mrsh_command_get_brace_group(
 		struct mrsh_command *cmd) {
-	if (cmd->type != MRSH_BRACE_GROUP) {
-		return NULL;
-	}
+	assert(cmd->type == MRSH_BRACE_GROUP);
 	return (struct mrsh_brace_group *)cmd;
 }
 
 struct mrsh_if_clause *mrsh_command_get_if_clause(struct mrsh_command *cmd) {
-	if (cmd->type != MRSH_IF_CLAUSE) {
-		return NULL;
-	}
+	assert(cmd->type == MRSH_IF_CLAUSE);
 	return (struct mrsh_if_clause *)cmd;
 }
 
 struct mrsh_for_clause *mrsh_command_get_for_clause(struct mrsh_command *cmd) {
-	if (cmd->type != MRSH_FOR_CLAUSE) {
-		return NULL;
-	}
+	assert(cmd->type == MRSH_FOR_CLAUSE);
 	return (struct mrsh_for_clause *)cmd;
 }
 
 struct mrsh_loop_clause *mrsh_command_get_loop_clause(
 		struct mrsh_command *cmd) {
-	if (cmd->type != MRSH_LOOP_CLAUSE) {
-		return NULL;
-	}
+	assert(cmd->type == MRSH_LOOP_CLAUSE);
 	return (struct mrsh_loop_clause *)cmd;
 }
 
 struct mrsh_function_definition *mrsh_command_get_function_definition(
 		struct mrsh_command *cmd) {
-	if (cmd->type != MRSH_FUNCTION_DEFINITION) {
-		return NULL;
-	}
+	assert(cmd->type == MRSH_FUNCTION_DEFINITION);
 	return (struct mrsh_function_definition *)cmd;
 }
 
@@ -361,16 +337,12 @@ struct mrsh_binop *mrsh_binop_create(enum mrsh_binop_type type,
 }
 
 struct mrsh_pipeline *mrsh_node_get_pipeline(struct mrsh_node *node) {
-	if (node->type != MRSH_NODE_PIPELINE) {
-		return NULL;
-	}
+	assert(node->type == MRSH_NODE_PIPELINE);
 	return (struct mrsh_pipeline *)node;
 }
 
 struct mrsh_binop *mrsh_node_get_binop(struct mrsh_node *node) {
-	if (node->type != MRSH_NODE_BINOP) {
-		return NULL;
-	}
+	assert(node->type == MRSH_NODE_BINOP);
 	return (struct mrsh_binop *)node;
 }
 
@@ -398,13 +370,11 @@ void mrsh_word_positions(struct mrsh_word *word, struct mrsh_position *begin,
 	switch (word->type) {
 	case MRSH_WORD_STRING:;
 		struct mrsh_word_string *ws = mrsh_word_get_string(word);
-		assert(ws != NULL);
 		*begin = ws->begin;
 		*end = ws->end;
 		return;
 	case MRSH_WORD_PARAMETER:;
 		struct mrsh_word_parameter *wp = mrsh_word_get_parameter(word);
-		assert(wp != NULL);
 		*begin = wp->dollar_pos;
 		if (mrsh_position_valid(&wp->rbrace_pos)) {
 			position_next(end, &wp->rbrace_pos);
@@ -414,13 +384,11 @@ void mrsh_word_positions(struct mrsh_word *word, struct mrsh_position *begin,
 		return;
 	case MRSH_WORD_COMMAND:;
 		struct mrsh_word_command *wc = mrsh_word_get_command(word);
-		assert(wc != NULL);
 		*begin = wc->begin;
 		*end = wc->end;
 		return;
 	case MRSH_WORD_LIST:;
 		struct mrsh_word_list *wl = mrsh_word_get_list(word);
-		assert(wl != NULL);
 		if (wl->children.len == 0) {
 			*begin = *end = (struct mrsh_position){0};
 		} else {
@@ -438,7 +406,6 @@ static void word_str(struct mrsh_word *word, struct buffer *buf) {
 	switch (word->type) {
 	case MRSH_WORD_STRING:;
 		struct mrsh_word_string *ws = mrsh_word_get_string(word);
-		assert(ws != NULL);
 		buffer_append(buf, ws->str, strlen(ws->str));
 		return;
 	case MRSH_WORD_PARAMETER:
@@ -446,7 +413,6 @@ static void word_str(struct mrsh_word *word, struct buffer *buf) {
 		assert(false);
 	case MRSH_WORD_LIST:;
 		struct mrsh_word_list *wl = mrsh_word_get_list(word);
-		assert(wl != NULL);
 		for (size_t i = 0; i < wl->children.len; ++i) {
 			struct mrsh_word *child = wl->children.data[i];
 			word_str(child, buf);

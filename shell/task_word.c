@@ -51,7 +51,6 @@ static bool task_word_command_start(struct task_word *tt,
 		struct context *ctx) {
 	struct mrsh_word *word = *tt->word_ptr;
 	struct mrsh_word_command *wc = mrsh_word_get_command(word);
-	assert(wc != NULL);
 
 	int fd = create_anonymous_file();
 	if (fd < 0) {
@@ -125,7 +124,6 @@ static int task_word_poll(struct task *task, struct context *ctx) {
 	switch (word->type) {
 	case MRSH_WORD_STRING:;
 		struct mrsh_word_string *ws = mrsh_word_get_string(word);
-		assert(ws != NULL);
 		if (!ws->single_quoted && tt->tilde_expansion != TILDE_EXPANSION_NONE) {
 			// TODO: TILDE_EXPANSION_ASSIGNMENT
 			expand_tilde(ctx->state, &ws->str);
@@ -133,7 +131,6 @@ static int task_word_poll(struct task *task, struct context *ctx) {
 		return 0;
 	case MRSH_WORD_PARAMETER:;
 		struct mrsh_word_parameter *wp = mrsh_word_get_parameter(word);
-		assert(wp != NULL);
 		const char *value = parameter_get_value(ctx->state, wp->name);
 		if (value == NULL) {
 			if ((ctx->state->options & MRSH_OPT_NOUNSET)) {
@@ -147,10 +144,7 @@ static int task_word_poll(struct task *task, struct context *ctx) {
 			mrsh_word_string_create(strdup(value), false);
 		task_word_swap(tt, &replacement->word);
 		return 0;
-	case MRSH_WORD_COMMAND:;
-		struct mrsh_word_command *wc = mrsh_word_get_command(word);
-		assert(wc != NULL);
-
+	case MRSH_WORD_COMMAND:
 		if (!tt->started) {
 			if (!task_word_command_start(tt, ctx)) {
 				return TASK_STATUS_ERROR;
@@ -208,7 +202,6 @@ struct task *task_word_create(struct mrsh_word **word_ptr,
 
 	if (word->type == MRSH_WORD_LIST) {
 		struct mrsh_word_list *wl = mrsh_word_get_list(word);
-		assert(wl != NULL);
 		struct task *task_list = task_list_create();
 		for (size_t i = 0; i < wl->children.len; ++i) {
 			struct mrsh_word **child_ptr =

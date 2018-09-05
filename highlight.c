@@ -72,7 +72,6 @@ static void highlight_word(struct highlight_state *state,
 	switch (word->type) {
 	case MRSH_WORD_STRING:;
 		struct mrsh_word_string *ws = mrsh_word_get_string(word);
-		assert(ws != NULL);
 		if (!quoted) {
 			enum format fmt = FORMAT_CYAN;
 			if (ws->single_quoted) {
@@ -86,7 +85,6 @@ static void highlight_word(struct highlight_state *state,
 		break;
 	case MRSH_WORD_PARAMETER:;
 		struct mrsh_word_parameter *wp = mrsh_word_get_parameter(word);
-		assert(wp != NULL);
 		highlight(state, &wp->dollar_pos, FORMAT_CYAN);
 		highlight_char(state, &wp->dollar_pos, FORMAT_GREEN);
 		if (mrsh_position_valid(&wp->lbrace_pos)) {
@@ -109,7 +107,6 @@ static void highlight_word(struct highlight_state *state,
 		break;
 	case MRSH_WORD_COMMAND:;
 		struct mrsh_word_command *wc = mrsh_word_get_command(word);
-		assert(wc != NULL);
 		if (wc->back_quoted) {
 			highlight_char(state, &wc->begin, FORMAT_GREEN);
 		}
@@ -121,7 +118,6 @@ static void highlight_word(struct highlight_state *state,
 		break;
 	case MRSH_WORD_LIST:;
 		struct mrsh_word_list *wl = mrsh_word_get_list(word);
-		assert(wl != NULL);
 		if (wl->children.len == 0) {
 			break;
 		}
@@ -165,19 +161,16 @@ static void highlight_command(struct highlight_state *state,
 	switch (cmd->type) {
 	case MRSH_SIMPLE_COMMAND:;
 		struct mrsh_simple_command *sc = mrsh_command_get_simple_command(cmd);
-		assert(sc != NULL);
 		highlight_simple_command(state, sc);
 		break;
 	case MRSH_BRACE_GROUP:;
 		struct mrsh_brace_group *bg = mrsh_command_get_brace_group(cmd);
-		assert(bg != NULL);
 		highlight_char(state, &bg->lbrace_pos, FORMAT_GREEN);
 		highlight_command_list_array(state, &bg->body);
 		highlight_char(state, &bg->rbrace_pos, FORMAT_GREEN);
 		break;
 	case MRSH_IF_CLAUSE:;
 		struct mrsh_if_clause *ic = mrsh_command_get_if_clause(cmd);
-		assert(ic != NULL);
 		// TODO: keywords
 		highlight_command_list_array(state, &ic->condition);
 		highlight_command_list_array(state, &ic->body);
@@ -187,13 +180,11 @@ static void highlight_command(struct highlight_state *state,
 		break;
 	case MRSH_FOR_CLAUSE:;
 		struct mrsh_for_clause *fc = mrsh_command_get_for_clause(cmd);
-		assert(fc != NULL);
 		// TODO: keywords
 		highlight_command_list_array(state, &fc->body);
 		break;
 	case MRSH_LOOP_CLAUSE:;
 		struct mrsh_loop_clause *lc = mrsh_command_get_loop_clause(cmd);
-		assert(lc != NULL);
 		// TODO: keywords
 		highlight_command_list_array(state, &lc->condition);
 		highlight_command_list_array(state, &lc->body);
@@ -201,7 +192,6 @@ static void highlight_command(struct highlight_state *state,
 	case MRSH_FUNCTION_DEFINITION:;
 		struct mrsh_function_definition *fd =
 			mrsh_command_get_function_definition(cmd);
-		assert(fd != NULL);
 		// TODO: parentheses
 		highlight_command(state, fd->body);
 		break;
@@ -213,7 +203,6 @@ static void highlight_node(struct highlight_state *state,
 	switch (node->type) {
 	case MRSH_NODE_PIPELINE:;
 		struct mrsh_pipeline *pl = mrsh_node_get_pipeline(node);
-		assert(pl != NULL);
 		for (size_t i = 0; i < pl->commands.len; ++i) {
 			struct mrsh_command *cmd = pl->commands.data[i];
 			highlight_command(state, cmd);
@@ -221,7 +210,6 @@ static void highlight_node(struct highlight_state *state,
 		break;
 	case MRSH_NODE_BINOP:;
 		struct mrsh_binop *binop = mrsh_node_get_binop(node);
-		assert(binop != NULL);
 		highlight_node(state, binop->left);
 		highlight_str(state, &binop->op_pos, 2, FORMAT_GREEN);
 		highlight_node(state, binop->right);

@@ -178,16 +178,31 @@ static void highlight_command(struct highlight_state *state,
 	case MRSH_IF_CLAUSE:;
 		struct mrsh_if_clause *ic = mrsh_command_get_if_clause(cmd);
 		assert(ic != NULL);
+		// TODO: keywords
 		highlight_command_list_array(state, &ic->condition);
 		highlight_command_list_array(state, &ic->body);
 		if (ic->else_part != NULL) {
 			highlight_command(state, ic->else_part);
 		}
 		break;
+	case MRSH_FOR_CLAUSE:;
+		struct mrsh_for_clause *fc = mrsh_command_get_for_clause(cmd);
+		assert(fc != NULL);
+		// TODO: keywords
+		highlight_command_list_array(state, &fc->body);
+		break;
+	case MRSH_LOOP_CLAUSE:;
+		struct mrsh_loop_clause *lc = mrsh_command_get_loop_clause(cmd);
+		assert(lc != NULL);
+		// TODO: keywords
+		highlight_command_list_array(state, &lc->condition);
+		highlight_command_list_array(state, &lc->body);
+		break;
 	case MRSH_FUNCTION_DEFINITION:;
 		struct mrsh_function_definition *fd =
 			mrsh_command_get_function_definition(cmd);
 		assert(fd != NULL);
+		// TODO: parentheses
 		highlight_command(state, fd->body);
 		break;
 	}

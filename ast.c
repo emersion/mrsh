@@ -117,6 +117,22 @@ void mrsh_command_destroy(struct mrsh_command *cmd) {
 		mrsh_command_destroy(ic->else_part);
 		free(ic);
 		return;
+	case MRSH_FOR_CLAUSE:;
+		struct mrsh_for_clause *fc = mrsh_command_get_for_clause(cmd);
+		free(&fc->name);
+		for (size_t i = 0; i < fc->word_list.len; ++i) {
+			struct mrsh_word *word = fc->word_list.data[i];
+			mrsh_word_destroy(word);
+		}
+		command_list_array_finish(&fc->body);
+		free(fc);
+		return;
+	case MRSH_LOOP_CLAUSE:;
+		struct mrsh_loop_clause *lc = mrsh_command_get_loop_clause(cmd);
+		command_list_array_finish(&lc->condition);
+		command_list_array_finish(&lc->body);
+		free(lc);
+		return;
 	case MRSH_FUNCTION_DEFINITION:;
 		struct mrsh_function_definition *fd =
 			mrsh_command_get_function_definition(cmd);
@@ -300,6 +316,21 @@ struct mrsh_if_clause *mrsh_command_get_if_clause(struct mrsh_command *cmd) {
 		return NULL;
 	}
 	return (struct mrsh_if_clause *)cmd;
+}
+
+struct mrsh_for_clause *mrsh_command_get_for_clause(struct mrsh_command *cmd) {
+	if (cmd->type != MRSH_FOR_CLAUSE) {
+		return NULL;
+	}
+	return (struct mrsh_for_clause *)cmd;
+}
+
+struct mrsh_loop_clause *mrsh_command_get_loop_clause(
+		struct mrsh_command *cmd) {
+	if (cmd->type != MRSH_LOOP_CLAUSE) {
+		return NULL;
+	}
+	return (struct mrsh_loop_clause *)cmd;
 }
 
 struct mrsh_function_definition *mrsh_command_get_function_definition(

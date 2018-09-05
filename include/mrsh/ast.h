@@ -138,6 +138,8 @@ enum mrsh_command_type {
 	MRSH_SIMPLE_COMMAND,
 	MRSH_BRACE_GROUP,
 	MRSH_IF_CLAUSE,
+	MRSH_FOR_CLAUSE,
+	MRSH_LOOP_CLAUSE, // `while` or `until`
 	MRSH_FUNCTION_DEFINITION,
 };
 
@@ -193,6 +195,48 @@ struct mrsh_if_clause {
 	struct mrsh_command *else_part; // can be NULL
 
 	struct mrsh_position if_pos, then_pos, else_pos, fi_pos; // can be invalid
+};
+
+/**
+ * A for clause is a type of command. The format is:
+ *
+ *   for name [ in [word ... ]]
+ *   do
+ *       compound-list
+ *   done
+ */
+struct mrsh_for_clause {
+	struct mrsh_command command;
+	char *name;
+	bool in;
+	struct mrsh_array word_list; // struct mrsh_word *
+	struct mrsh_array body; // struct mrsh_command_list *
+
+	struct mrsh_position for_pos, name_pos, do_pos, done_pos;
+	struct mrsh_position in_pos; // can be invalid
+};
+
+enum mrsh_loop_type {
+	MRSH_LOOP_WHILE,
+	MRSH_LOOP_UNTIL,
+};
+
+/**
+ * A loop clause is a type of command. The format is:
+ *
+ *   while/until compound-list-1
+ *   do
+ *       compound-list-2
+ *   done
+ */
+struct mrsh_loop_clause {
+	struct mrsh_command command;
+	enum mrsh_loop_type type;
+
+	struct mrsh_array condition; // struct mrsh_command_list *
+	struct mrsh_array body; // struct mrsh_command_list *
+
+	struct mrsh_position begin, do_pos, done_pos;
 };
 
 /**
@@ -293,12 +337,18 @@ struct mrsh_simple_command *mrsh_simple_command_create(struct mrsh_word *name,
 struct mrsh_brace_group *mrsh_brace_group_create(struct mrsh_array *body);
 struct mrsh_if_clause *mrsh_if_clause_create(struct mrsh_array *condition,
 	struct mrsh_array *body, struct mrsh_command *else_part);
+struct mrsh_for_clause *mrsh_for_clause_create(char *name, bool in,
+	struct mrsh_array *word_list, struct mrsh_array *body);
+struct mrsh_loop_clause *mrsh_loop_clause_create(struct mrsh_array *condition,
+	struct mrsh_array *body);
 struct mrsh_function_definition *mrsh_function_definition_create(char *name,
 	struct mrsh_command *body);
 struct mrsh_simple_command *mrsh_command_get_simple_command(
 	struct mrsh_command *cmd);
 struct mrsh_brace_group *mrsh_command_get_brace_group(struct mrsh_command *cmd);
 struct mrsh_if_clause *mrsh_command_get_if_clause(struct mrsh_command *cmd);
+struct mrsh_for_clause *mrsh_command_get_for_clause(struct mrsh_command *cmd);
+struct mrsh_loop_clause *mrsh_command_get_loop_clause(struct mrsh_command *cmd);
 struct mrsh_function_definition *mrsh_command_get_function_definition(
 	struct mrsh_command *cmd);
 

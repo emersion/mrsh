@@ -273,6 +273,68 @@ static void print_if_clause(struct mrsh_if_clause *ic, const char *prefix) {
 	}
 }
 
+static void print_word_array(struct mrsh_array *words, const char *prefix) {
+	for (size_t i = 0; i < words->len; ++i) {
+		struct mrsh_word *word = words->data[i];
+		bool last = i == words->len - 1;
+
+		char sub_prefix[make_sub_prefix(prefix, last, NULL)];
+		make_sub_prefix(prefix, last, sub_prefix);
+
+		print_prefix(prefix, last);
+		print_word(word, sub_prefix);
+	}
+}
+
+static void print_for_clause(struct mrsh_for_clause *fc, const char *prefix) {
+	printf("for_clause\n");
+
+	char sub_prefix[make_sub_prefix(prefix, false, NULL)];
+	make_sub_prefix(prefix, false, sub_prefix);
+
+	print_prefix(prefix, false);
+	printf("name %s\n", fc->name);
+
+	if (fc->in) {
+		print_prefix(prefix, false);
+		printf("in\n");
+		print_word_array(&fc->word_list, sub_prefix);
+	}
+
+	make_sub_prefix(prefix, true, sub_prefix);
+
+	print_prefix(prefix, true);
+	printf("body\n");
+	print_command_list_array(&fc->body, sub_prefix);
+}
+
+static const char *loop_type_str(enum mrsh_loop_type type) {
+	switch (type) {
+	case MRSH_LOOP_UNTIL:
+		return "until";
+	case MRSH_LOOP_WHILE:
+		return "while";
+	}
+	assert(false);
+}
+
+static void print_loop_clause(struct mrsh_loop_clause *lc, const char *prefix) {
+	printf("loop_clause %s\n", loop_type_str(lc->type));
+
+	char sub_prefix[make_sub_prefix(prefix, false, NULL)];
+	make_sub_prefix(prefix, false, sub_prefix);
+
+	print_prefix(prefix, false);
+	printf("condition\n");
+	print_command_list_array(&lc->condition, sub_prefix);
+
+	make_sub_prefix(prefix, true, sub_prefix);
+
+	print_prefix(prefix, true);
+	printf("body\n");
+	print_command_list_array(&lc->body, sub_prefix);
+}
+
 static void print_function_definition(struct mrsh_function_definition *fd,
 		const char *prefix) {
 	printf("function_definition %s ─ ", fd->name);
@@ -295,6 +357,16 @@ static void print_command(struct mrsh_command *cmd, const char *prefix) {
 		struct mrsh_if_clause *ic = mrsh_command_get_if_clause(cmd);
 		assert(ic != NULL);
 		print_if_clause(ic, prefix);
+		break;
+	case MRSH_FOR_CLAUSE:;
+		struct mrsh_for_clause *fc = mrsh_command_get_for_clause(cmd);
+		assert(fc != NULL);
+		print_for_clause(fc, prefix);
+		break;
+	case MRSH_LOOP_CLAUSE:;
+		struct mrsh_loop_clause *lc = mrsh_command_get_loop_clause(cmd);
+		assert(lc != NULL);
+		print_loop_clause(lc, prefix);
 		break;
 	case MRSH_FUNCTION_DEFINITION:;
 		struct mrsh_function_definition *fd =

@@ -137,6 +137,7 @@ struct mrsh_assignment {
 enum mrsh_command_type {
 	MRSH_SIMPLE_COMMAND,
 	MRSH_BRACE_GROUP,
+	MRSH_SUBSHELL,
 	MRSH_IF_CLAUSE,
 	MRSH_FOR_CLAUSE,
 	MRSH_LOOP_CLAUSE, // `while` or `until`
@@ -173,6 +174,17 @@ struct mrsh_brace_group {
 	struct mrsh_array body; // struct mrsh_command_list *
 
 	struct mrsh_position lbrace_pos, rbrace_pos;
+};
+
+/**
+ * A subshell is a type of command. It contains command lists and executes
+ * them in a subshell environment. The format is: `( compound-list )`.
+ */
+struct mrsh_subshell {
+	struct mrsh_command command;
+	struct mrsh_array body; // struct mrsh_command_list *
+
+	struct mrsh_position lparen_pos, rparen_pos;
 };
 
 /**
@@ -334,6 +346,7 @@ struct mrsh_simple_command *mrsh_simple_command_create(struct mrsh_word *name,
 	struct mrsh_array *arguments, struct mrsh_array *io_redirects,
 	struct mrsh_array *assignments);
 struct mrsh_brace_group *mrsh_brace_group_create(struct mrsh_array *body);
+struct mrsh_subshell *mrsh_subshell_create(struct mrsh_array *body);
 struct mrsh_if_clause *mrsh_if_clause_create(struct mrsh_array *condition,
 	struct mrsh_array *body, struct mrsh_command *else_part);
 struct mrsh_for_clause *mrsh_for_clause_create(char *name, bool in,
@@ -345,6 +358,7 @@ struct mrsh_function_definition *mrsh_function_definition_create(char *name,
 struct mrsh_simple_command *mrsh_command_get_simple_command(
 	struct mrsh_command *cmd);
 struct mrsh_brace_group *mrsh_command_get_brace_group(struct mrsh_command *cmd);
+struct mrsh_subshell *mrsh_command_get_subshell(struct mrsh_command *cmd);
 struct mrsh_if_clause *mrsh_command_get_if_clause(struct mrsh_command *cmd);
 struct mrsh_for_clause *mrsh_command_get_for_clause(struct mrsh_command *cmd);
 struct mrsh_loop_clause *mrsh_command_get_loop_clause(struct mrsh_command *cmd);

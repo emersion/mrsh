@@ -450,6 +450,29 @@ static struct mrsh_brace_group *brace_group(struct mrsh_parser *state) {
 	return bg;
 }
 
+static struct mrsh_subshell *subshell(struct mrsh_parser *state) {
+	struct mrsh_position lparen_pos = state->pos;
+	if (!token(state, "(")) {
+		return NULL;
+	}
+
+	struct mrsh_array body = {0};
+	if (!expect_compound_list(state, &body)) {
+		return NULL;
+	}
+
+	struct mrsh_position rparen_pos = state->pos;
+	if (!expect_token(state, ")")) {
+		command_list_array_finish(&body);
+		return NULL;
+	}
+
+	struct mrsh_subshell *s = mrsh_subshell_create(&body);
+	s->lparen_pos = lparen_pos;
+	s->rparen_pos = rparen_pos;
+	return s;
+}
+
 static struct mrsh_command *else_part(struct mrsh_parser *state) {
 	struct mrsh_position begin = state->pos;
 
@@ -731,6 +754,13 @@ static struct mrsh_command *compound_command(struct mrsh_parser *state) {
 		return NULL;
 	}
 
+	struct mrsh_subshell *s = subshell(state);
+	if (s != NULL) {
+		return &s->command;
+	} else if (mrsh_parser_error(state, NULL)) {
+		return NULL;
+	}
+
 	struct mrsh_if_clause *ic = if_clause(state);
 	if (ic != NULL) {
 		return &ic->command;
@@ -752,7 +782,7 @@ static struct mrsh_command *compound_command(struct mrsh_parser *state) {
 		return NULL;
 	}
 
-	// TODO: subshell case_clause
+	// TODO: case_clause
 
 	struct mrsh_function_definition *fd = function_definition(state);
 	if (fd != NULL) {

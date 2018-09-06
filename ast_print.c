@@ -235,12 +235,6 @@ static void print_command_list_array(struct mrsh_array *array,
 	}
 }
 
-static void print_brace_group(struct mrsh_brace_group *bg, const char *prefix) {
-	printf("brace_group\n");
-
-	print_command_list_array(&bg->body, prefix);
-}
-
 static void print_command(struct mrsh_command *cmd, const char *prefix);
 
 static void print_if_clause(struct mrsh_if_clause *ic, const char *prefix) {
@@ -345,7 +339,13 @@ static void print_command(struct mrsh_command *cmd, const char *prefix) {
 		break;
 	case MRSH_BRACE_GROUP:;
 		struct mrsh_brace_group *bg = mrsh_command_get_brace_group(cmd);
-		print_brace_group(bg, prefix);
+		printf("brace_group\n");
+		print_command_list_array(&bg->body, prefix);
+		break;
+	case MRSH_SUBSHELL:;
+		struct mrsh_subshell *s = mrsh_command_get_subshell(cmd);
+		printf("subshell\n");
+		print_command_list_array(&s->body, prefix);
 		break;
 	case MRSH_IF_CLAUSE:;
 		struct mrsh_if_clause *ic = mrsh_command_get_if_clause(cmd);

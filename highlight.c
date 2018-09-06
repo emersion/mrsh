@@ -169,6 +169,12 @@ static void highlight_command(struct highlight_state *state,
 		highlight_command_list_array(state, &bg->body);
 		highlight_char(state, &bg->rbrace_pos, FORMAT_GREEN);
 		break;
+	case MRSH_SUBSHELL:;
+		struct mrsh_subshell *s = mrsh_command_get_subshell(cmd);
+		highlight_char(state, &s->lparen_pos, FORMAT_GREEN);
+		highlight_command_list_array(state, &s->body);
+		highlight_char(state, &s->rparen_pos, FORMAT_GREEN);
+		break;
 	case MRSH_IF_CLAUSE:;
 		struct mrsh_if_clause *ic = mrsh_command_get_if_clause(cmd);
 		// TODO: keywords

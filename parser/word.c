@@ -82,6 +82,7 @@ size_t peek_word(struct mrsh_parser *state, char end) {
 		switch (c) {
 		case '\0':
 		case '\n':
+		case ')':
 			return i;
 		case '$':
 		case '`':
@@ -479,6 +480,7 @@ struct mrsh_word *word(struct mrsh_parser *state, char end) {
 	}
 
 	if (is_operator_start(parser_peek_char(state))
+			|| parser_peek_char(state) == ')'
 			|| parser_peek_char(state) == end) {
 		return NULL;
 	}
@@ -493,7 +495,7 @@ struct mrsh_word *word(struct mrsh_parser *state, char end) {
 		}
 
 		char c = parser_peek_char(state);
-		if (c == '\0' || c == '\n' || c == end) {
+		if (c == '\0' || c == '\n' || c == ')' || c == end) {
 			break;
 		}
 

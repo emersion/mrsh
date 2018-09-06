@@ -106,6 +106,11 @@ void mrsh_command_destroy(struct mrsh_command *cmd) {
 		command_list_array_finish(&bg->body);
 		free(bg);
 		return;
+	case MRSH_SUBSHELL:;
+		struct mrsh_subshell *s = mrsh_command_get_subshell(cmd);
+		command_list_array_finish(&s->body);
+		free(s);
+		return;
 	case MRSH_IF_CLAUSE:;
 		struct mrsh_if_clause *ic = mrsh_command_get_if_clause(cmd);
 		command_list_array_finish(&ic->condition);
@@ -264,6 +269,13 @@ struct mrsh_brace_group *mrsh_brace_group_create(struct mrsh_array *body) {
 	return bg;
 }
 
+struct mrsh_subshell *mrsh_subshell_create(struct mrsh_array *body) {
+	struct mrsh_subshell *s = calloc(1, sizeof(struct mrsh_subshell));
+	s->command.type = MRSH_SUBSHELL;
+	s->body = *body;
+	return s;
+}
+
 struct mrsh_if_clause *mrsh_if_clause_create(struct mrsh_array *condition,
 		struct mrsh_array *body, struct mrsh_command *else_part) {
 	struct mrsh_if_clause *ic = calloc(1, sizeof(struct mrsh_if_clause));
@@ -315,6 +327,11 @@ struct mrsh_brace_group *mrsh_command_get_brace_group(
 		struct mrsh_command *cmd) {
 	assert(cmd->type == MRSH_BRACE_GROUP);
 	return (struct mrsh_brace_group *)cmd;
+}
+
+struct mrsh_subshell *mrsh_command_get_subshell(struct mrsh_command *cmd) {
+	assert(cmd->type == MRSH_SUBSHELL);
+	return (struct mrsh_subshell *)cmd;
 }
 
 struct mrsh_if_clause *mrsh_command_get_if_clause(struct mrsh_command *cmd) {

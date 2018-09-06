@@ -232,7 +232,6 @@ enum mrsh_loop_type {
 struct mrsh_loop_clause {
 	struct mrsh_command command;
 	enum mrsh_loop_type type;
-
 	struct mrsh_array condition; // struct mrsh_command_list *
 	struct mrsh_array body; // struct mrsh_command_list *
 
@@ -339,8 +338,8 @@ struct mrsh_if_clause *mrsh_if_clause_create(struct mrsh_array *condition,
 	struct mrsh_array *body, struct mrsh_command *else_part);
 struct mrsh_for_clause *mrsh_for_clause_create(char *name, bool in,
 	struct mrsh_array *word_list, struct mrsh_array *body);
-struct mrsh_loop_clause *mrsh_loop_clause_create(struct mrsh_array *condition,
-	struct mrsh_array *body);
+struct mrsh_loop_clause *mrsh_loop_clause_create(enum mrsh_loop_type type,
+	struct mrsh_array *condition, struct mrsh_array *body);
 struct mrsh_function_definition *mrsh_function_definition_create(char *name,
 	struct mrsh_command *body);
 struct mrsh_simple_command *mrsh_command_get_simple_command(

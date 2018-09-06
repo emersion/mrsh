@@ -285,10 +285,11 @@ struct mrsh_for_clause *mrsh_for_clause_create(char *name, bool in,
 	return fc;
 }
 
-struct mrsh_loop_clause *mrsh_loop_clause_create(struct mrsh_array *condition,
-		struct mrsh_array *body) {
+struct mrsh_loop_clause *mrsh_loop_clause_create(enum mrsh_loop_type type,
+		struct mrsh_array *condition, struct mrsh_array *body) {
 	struct mrsh_loop_clause *lc = calloc(1, sizeof(struct mrsh_loop_clause));
 	lc->command.type = MRSH_LOOP_CLAUSE;
+	lc->type = type;
 	lc->condition = *condition;
 	lc->body = *body;
 	return lc;

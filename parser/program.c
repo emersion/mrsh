@@ -636,6 +636,38 @@ error_words:
 	return NULL;
 }
 
+static struct mrsh_loop_clause *loop_clause(struct mrsh_parser *state) {
+	struct mrsh_position begin = state->pos;
+
+	enum mrsh_loop_type type;
+	if (token(state, "while")) {
+		type = MRSH_LOOP_WHILE;
+	} else if (token(state, "until")) {
+		type = MRSH_LOOP_UNTIL;
+	} else {
+		return NULL;
+	}
+
+	struct mrsh_array condition = {0};
+	if (!expect_compound_list(state, &condition)) {
+		return NULL;
+	}
+
+	struct mrsh_array body = {0};
+	struct mrsh_position do_pos = {0}, done_pos = {0};
+	if (!expect_do_group(state, &body, &do_pos, &done_pos)) {
+		command_list_array_finish(&condition);
+		return NULL;
+	}
+
+	struct mrsh_loop_clause *fc =
+		mrsh_loop_clause_create(type, &condition, &body);
+	fc->begin = begin;
+	fc->do_pos = do_pos;
+	fc->done_pos = done_pos;
+	return fc;
+}
+
 static struct mrsh_command *compound_command(struct mrsh_parser *state);
 
 static struct mrsh_function_definition *function_definition(
@@ -713,7 +745,14 @@ static struct mrsh_command *compound_command(struct mrsh_parser *state) {
 		return NULL;
 	}
 
-	// TODO: subshell case_clause while_clause until_clause
+	struct mrsh_loop_clause *lc = loop_clause(state);
+	if (lc != NULL) {
+		return &lc->command;
+	} else if (mrsh_parser_error(state, NULL)) {
+		return NULL;
+	}
+
+	// TODO: subshell case_clause
 
 	struct mrsh_function_definition *fd = function_definition(state);
 	if (fd != NULL) {

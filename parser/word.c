@@ -269,34 +269,41 @@ static struct mrsh_word_parameter *expect_parameter_expression(
 	return wp;
 }
 
-struct mrsh_word *expect_parameter(struct mrsh_parser *state) {
+// Expect parameter expansion or command substitution
+struct mrsh_word *expect_dollar(struct mrsh_parser *state) {
 	struct mrsh_position dollar_pos = state->pos;
-
 	char c = parser_read_char(state);
 	assert(c == '$');
 
 	struct mrsh_word_parameter *wp;
-	if (parser_peek_char(state) == '{') {
+	switch (parser_peek_char(state)) {
+	case '{':; // Parameter expansion in the form `${expression}`
 		wp = expect_parameter_expression(state);
-	} else {
+		if (wp == NULL) {
+			return NULL;
+		}
+		wp->dollar_pos = dollar_pos;
+		return &wp->word;
+	case '(': // Command substitution in the form `$(command)`
+		// TODO: arithmetic expansion in the form `$((expression))`
+		parser_set_error(state, "not yet implemented");
+		return NULL;
+	default:; // Parameter expansion in the form `$parameter`
 		size_t name_len = peek_name(state, false);
 		if (name_len == 0) {
 			name_len = 1;
 		}
 
 		struct mrsh_position name_begin = state->pos;
-
 		char *name = read_token(state, name_len);
-
 		struct mrsh_position name_end = state->pos;
 
 		wp = mrsh_word_parameter_create(name, MRSH_PARAM_NONE, false, NULL);
+		wp->dollar_pos = dollar_pos;
 		wp->name_begin = name_begin;
 		wp->name_end = name_end;
+		return &wp->word;
 	}
-
-	wp->dollar_pos = dollar_pos;
-	return &wp->word;
 }
 
 struct mrsh_word *back_quotes(struct mrsh_parser *state) {
@@ -416,7 +423,7 @@ static struct mrsh_word *double_quotes(struct mrsh_parser *state) {
 
 		if (c == '$') {
 			push_buffer_word_string(state, &children, &buf, &child_begin);
-			struct mrsh_word *t = expect_parameter(state);
+			struct mrsh_word *t = expect_dollar(state);
 			if (t == NULL) {
 				return NULL;
 			}
@@ -492,7 +499,7 @@ struct mrsh_word *word(struct mrsh_parser *state, char end) {
 
 		if (c == '$') {
 			push_buffer_word_string(state, &children, &buf, &child_begin);
-			struct mrsh_word *t = expect_parameter(state);
+			struct mrsh_word *t = expect_dollar(state);
 			if (t == NULL) {
 				return NULL;
 			}

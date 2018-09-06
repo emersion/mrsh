@@ -886,7 +886,7 @@ static struct mrsh_word *here_document_line(struct mrsh_parser *state) {
 
 		if (c == '$') {
 			push_buffer_word_string(&children, &buf);
-			struct mrsh_word *t = expect_parameter(state);
+			struct mrsh_word *t = expect_dollar(state);
 			if (t == NULL) {
 				return NULL;
 			}

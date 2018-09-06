@@ -321,6 +321,54 @@ static void print_loop_clause(struct mrsh_loop_clause *lc, const char *prefix) {
 	print_command_list_array(&lc->body, sub_prefix);
 }
 
+static void print_case_item(struct mrsh_case_item *item, const char *prefix) {
+	printf("case_item\n");
+
+	char sub_prefix[make_sub_prefix(prefix, false, NULL)];
+	make_sub_prefix(prefix, false, sub_prefix);
+
+	print_prefix(prefix, false);
+	printf("patterns\n");
+	print_word_array(&item->patterns, sub_prefix);
+
+	make_sub_prefix(prefix, true, sub_prefix);
+
+	print_prefix(prefix, true);
+	printf("body\n");
+	print_command_list_array(&item->body, sub_prefix);
+}
+
+static void print_case_item_array(struct mrsh_array *items,
+		const char *prefix) {
+	for (size_t i = 0; i < items->len; ++i) {
+		struct mrsh_case_item *item = items->data[i];
+		bool last = i == items->len - 1;
+
+		char sub_prefix[make_sub_prefix(prefix, last, NULL)];
+		make_sub_prefix(prefix, last, sub_prefix);
+
+		print_prefix(prefix, last);
+		print_case_item(item, sub_prefix);
+	}
+}
+
+static void print_case_clause(struct mrsh_case_clause *cc, const char *prefix) {
+	printf("case_clause\n");
+
+	char sub_prefix[make_sub_prefix(prefix, false, NULL)];
+	make_sub_prefix(prefix, false, sub_prefix);
+
+	print_prefix(prefix, false);
+	printf("word ─ ");
+	print_word(cc->word, sub_prefix);
+
+	make_sub_prefix(prefix, true, sub_prefix);
+
+	print_prefix(prefix, true);
+	printf("items\n");
+	print_case_item_array(&cc->items, sub_prefix);
+}
+
 static void print_function_definition(struct mrsh_function_definition *fd,
 		const char *prefix) {
 	printf("function_definition %s ─ ", fd->name);
@@ -354,6 +402,10 @@ static void print_command(struct mrsh_command *cmd, const char *prefix) {
 	case MRSH_LOOP_CLAUSE:;
 		struct mrsh_loop_clause *lc = mrsh_command_get_loop_clause(cmd);
 		print_loop_clause(lc, prefix);
+		break;
+	case MRSH_CASE_CLAUSE:;
+		struct mrsh_case_clause *cc = mrsh_command_get_case_clause(cmd);
+		print_case_clause(cc, prefix);
 		break;
 	case MRSH_FUNCTION_DEFINITION:;
 		struct mrsh_function_definition *fd =

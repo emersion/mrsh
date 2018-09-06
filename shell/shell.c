@@ -113,6 +113,7 @@ static struct task *handle_command(struct mrsh_command *cmd) {
 		return handle_if_clause(ic);
 	case MRSH_FOR_CLAUSE:
 	case MRSH_LOOP_CLAUSE:
+	case MRSH_CASE_CLAUSE:
 	case MRSH_FUNCTION_DEFINITION:
 		assert(false); // TODO: implement this
 	}

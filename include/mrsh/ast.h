@@ -141,6 +141,7 @@ enum mrsh_command_type {
 	MRSH_IF_CLAUSE,
 	MRSH_FOR_CLAUSE,
 	MRSH_LOOP_CLAUSE, // `while` or `until`
+	MRSH_CASE_CLAUSE,
 	MRSH_FUNCTION_DEFINITION,
 };
 
@@ -250,6 +251,26 @@ struct mrsh_loop_clause {
 	struct mrsh_position begin, do_pos, done_pos;
 };
 
+struct mrsh_case_item {
+	struct mrsh_array patterns; // struct mrsh_word *
+	struct mrsh_array body; // struct mrsh_command_list *
+};
+
+/**
+ * A case clause is a type of command. The format is:
+ *
+ *   case word in
+ *       [(] pattern1 ) compound-list ;;
+ *       [[(] pattern[ | pattern] ... ) compound-list ;;] ...
+ *       [[(] pattern[ | pattern] ... ) compound-list]
+ *   esac
+ */
+struct mrsh_case_clause {
+	struct mrsh_command command;
+	struct mrsh_word *word;
+	struct mrsh_array items; // struct mrsh_case_item *
+};
+
 /**
  * A function definition is a type of command. The format is:
  *
@@ -353,6 +374,8 @@ struct mrsh_for_clause *mrsh_for_clause_create(char *name, bool in,
 	struct mrsh_array *word_list, struct mrsh_array *body);
 struct mrsh_loop_clause *mrsh_loop_clause_create(enum mrsh_loop_type type,
 	struct mrsh_array *condition, struct mrsh_array *body);
+struct mrsh_case_clause *mrsh_case_clause_create(struct mrsh_word *word,
+	struct mrsh_array *items);
 struct mrsh_function_definition *mrsh_function_definition_create(char *name,
 	struct mrsh_command *body);
 struct mrsh_simple_command *mrsh_command_get_simple_command(
@@ -362,6 +385,7 @@ struct mrsh_subshell *mrsh_command_get_subshell(struct mrsh_command *cmd);
 struct mrsh_if_clause *mrsh_command_get_if_clause(struct mrsh_command *cmd);
 struct mrsh_for_clause *mrsh_command_get_for_clause(struct mrsh_command *cmd);
 struct mrsh_loop_clause *mrsh_command_get_loop_clause(struct mrsh_command *cmd);
+struct mrsh_case_clause *mrsh_command_get_case_clause(struct mrsh_command *cmd);
 struct mrsh_function_definition *mrsh_command_get_function_definition(
 	struct mrsh_command *cmd);
 

@@ -195,6 +195,18 @@ static void highlight_command(struct highlight_state *state,
 		highlight_command_list_array(state, &lc->condition);
 		highlight_command_list_array(state, &lc->body);
 		break;
+	case MRSH_CASE_CLAUSE:;
+		struct mrsh_case_clause *cc = mrsh_command_get_case_clause(cmd);
+		// TODO: keywords
+		for (size_t i = 0; i < cc->items.len; ++i) {
+			struct mrsh_case_item *item = cc->items.data[i];
+			for (size_t j = 0; j < item->patterns.len; ++i) {
+				struct mrsh_word *pattern = item->patterns.data[j];
+				highlight_word(state, pattern, false, false);
+			}
+			highlight_command_list_array(state, &item->body);
+		}
+		break;
 	case MRSH_FUNCTION_DEFINITION:;
 		struct mrsh_function_definition *fd =
 			mrsh_command_get_function_definition(cmd);

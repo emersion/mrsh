@@ -135,6 +135,22 @@ void mrsh_command_destroy(struct mrsh_command *cmd) {
 		command_list_array_finish(&lc->body);
 		free(lc);
 		return;
+	case MRSH_CASE_CLAUSE:;
+		struct mrsh_case_clause *cc = mrsh_command_get_case_clause(cmd);
+		mrsh_word_destroy(cc->word);
+		for (size_t i = 0; i < cc->items.len; ++i) {
+			struct mrsh_case_item *item = cc->items.data[i];
+			for (size_t j = 0; j < item->patterns.len; ++j) {
+				struct mrsh_word *pattern = item->patterns.data[j];
+				mrsh_word_destroy(pattern);
+			}
+			mrsh_array_finish(&item->patterns);
+			command_list_array_finish(&item->body);
+			free(item);
+		}
+		mrsh_array_finish(&cc->items);
+		free(cc);
+		return;
 	case MRSH_FUNCTION_DEFINITION:;
 		struct mrsh_function_definition *fd =
 			mrsh_command_get_function_definition(cmd);
@@ -307,6 +323,15 @@ struct mrsh_loop_clause *mrsh_loop_clause_create(enum mrsh_loop_type type,
 	return lc;
 }
 
+struct mrsh_case_clause *mrsh_case_clause_create(struct mrsh_word *word,
+		struct mrsh_array *items) {
+	struct mrsh_case_clause *cc = calloc(1, sizeof(struct mrsh_case_clause));
+	cc->command.type = MRSH_CASE_CLAUSE;
+	cc->word = word;
+	cc->items = *items;
+	return cc;
+}
+
 struct mrsh_function_definition *mrsh_function_definition_create(char *name,
 		struct mrsh_command *body) {
 	struct mrsh_function_definition *fd =
@@ -348,6 +373,12 @@ struct mrsh_loop_clause *mrsh_command_get_loop_clause(
 		struct mrsh_command *cmd) {
 	assert(cmd->type == MRSH_LOOP_CLAUSE);
 	return (struct mrsh_loop_clause *)cmd;
+}
+
+struct mrsh_case_clause *mrsh_command_get_case_clause(
+		struct mrsh_command *cmd) {
+	assert(cmd->type == MRSH_CASE_CLAUSE);
+	return (struct mrsh_case_clause *)cmd;
 }
 
 struct mrsh_function_definition *mrsh_command_get_function_definition(

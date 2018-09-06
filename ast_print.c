@@ -89,12 +89,8 @@ static void print_word(struct mrsh_word *word, const char *prefix) {
 		break;
 	case MRSH_WORD_COMMAND:;
 		struct mrsh_word_command *wc = mrsh_word_get_command(word);
-
-		make_sub_prefix(prefix, true, sub_prefix);
-
-		print_prefix(prefix, true);
 		printf("word_command%s ─ ", wc->back_quoted ? " (quoted)" : "");
-		print_program(wc->program, sub_prefix);
+		print_program(wc->program, prefix);
 		break;
 	case MRSH_WORD_LIST:;
 		struct mrsh_word_list *wl = mrsh_word_get_list(word);

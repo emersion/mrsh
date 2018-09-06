@@ -35,44 +35,6 @@ static bool operator(struct mrsh_parser *state, enum symbol_name sym) {
 	return true;
 }
 
-static bool token(struct mrsh_parser *state, const char *str) {
-	if (!symbol(state, TOKEN)) {
-		return false;
-	}
-
-	size_t len = strlen(str);
-	assert(len > 0);
-
-	if (len == 1 && !isalpha(str[0])) {
-		if (parser_peek_char(state) != str[0]) {
-			return false;
-		}
-		parser_read_char(state);
-		consume_symbol(state);
-		return true;
-	}
-
-	size_t word_len = peek_word(state, 0);
-	if (len != word_len || strncmp(state->buf.data, str, word_len) != 0) {
-		return false;
-	}
-	// assert(isalpha(str[i]));
-
-	parser_read(state, NULL, len);
-	consume_symbol(state);
-	return true;
-}
-
-static bool expect_token(struct mrsh_parser *state, const char *str) {
-	if (token(state, str)) {
-		return true;
-	}
-	char msg[128];
-	snprintf(msg, sizeof(msg), "unexpected token: expected %s", str);
-	parser_set_error(state, msg);
-	return false;
-}
-
 static int separator_op(struct mrsh_parser *state) {
 	if (token(state, "&")) {
 		return '&';

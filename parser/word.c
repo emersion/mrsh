@@ -100,6 +100,44 @@ size_t peek_word(struct mrsh_parser *state, char end) {
 	}
 }
 
+bool token(struct mrsh_parser *state, const char *str) {
+	if (!symbol(state, TOKEN)) {
+		return false;
+	}
+
+	size_t len = strlen(str);
+	assert(len > 0);
+
+	if (len == 1 && !isalpha(str[0])) {
+		if (parser_peek_char(state) != str[0]) {
+			return false;
+		}
+		parser_read_char(state);
+		consume_symbol(state);
+		return true;
+	}
+
+	size_t word_len = peek_word(state, 0);
+	if (len != word_len || strncmp(state->buf.data, str, word_len) != 0) {
+		return false;
+	}
+	// assert(isalpha(str[i]));
+
+	parser_read(state, NULL, len);
+	consume_symbol(state);
+	return true;
+}
+
+bool expect_token(struct mrsh_parser *state, const char *str) {
+	if (token(state, str)) {
+		return true;
+	}
+	char msg[128];
+	snprintf(msg, sizeof(msg), "unexpected token: expected %s", str);
+	parser_set_error(state, msg);
+	return false;
+}
+
 char *read_token(struct mrsh_parser *state, size_t len) {
 	if (!symbol(state, TOKEN)) {
 		return NULL;
@@ -270,6 +308,27 @@ static struct mrsh_word_parameter *expect_parameter_expression(
 	return wp;
 }
 
+static struct mrsh_word_command *expect_word_command(
+		struct mrsh_parser *state) {
+	char c = parser_read_char(state);
+	assert(c == '(');
+
+	struct mrsh_program *prog = mrsh_parse_program(state);
+	if (prog == NULL) {
+		if (!mrsh_parser_error(state, NULL)) {
+			parser_set_error(state, "expected a program");
+		}
+		return NULL;
+	}
+
+	if (!expect_token(state, ")")) {
+		mrsh_program_destroy(prog);
+		return NULL;
+	}
+
+	return mrsh_word_command_create(prog, false);
+}
+
 // Expect parameter expansion or command substitution
 struct mrsh_word *expect_dollar(struct mrsh_parser *state) {
 	struct mrsh_position dollar_pos = state->pos;
@@ -285,10 +344,23 @@ struct mrsh_word *expect_dollar(struct mrsh_parser *state) {
 		}
 		wp->dollar_pos = dollar_pos;
 		return &wp->word;
-	case '(': // Command substitution in the form `$(command)`
-		// TODO: arithmetic expansion in the form `$((expression))`
-		parser_set_error(state, "not yet implemented");
-		return NULL;
+	// Command substitution in the form `$(command)` or arithmetic expansion in
+	// the form `$((expression))`
+	case '(':;
+		char next[2];
+		parser_peek(state, next, sizeof(next));
+		if (next[1] == '(') {
+			// TODO: implement it
+			parser_set_error(state, "arithmetic expansion not yet implemented");
+			return NULL;
+		} else {
+			struct mrsh_word_command *wc = expect_word_command(state);
+			if (wc == NULL) {
+				return NULL;
+			}
+			// TODO: store dollar_pos in wc
+			return &wc->word;
+		}
 	default:; // Parameter expansion in the form `$parameter`
 		size_t name_len = peek_name(state, false);
 		if (name_len == 0) {

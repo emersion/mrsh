@@ -47,6 +47,10 @@ size_t peek_name(struct mrsh_parser *state, bool in_braces) {
 	// digits, and alphabetics from the portable character set. The first
 	// character of a name is not a digit.
 
+	if (!symbol(state, TOKEN)) {
+		return false;
+	}
+
 	size_t i = 0;
 	while (true) {
 		parser_peek(state, NULL, i + 1);
@@ -65,6 +69,10 @@ size_t peek_name(struct mrsh_parser *state, bool in_braces) {
 }
 
 size_t peek_word(struct mrsh_parser *state, char end) {
+	if (!symbol(state, TOKEN)) {
+		return false;
+	}
+
 	size_t i = 0;
 	while (true) {
 		parser_peek(state, NULL, i + 1);
@@ -89,6 +97,20 @@ size_t peek_word(struct mrsh_parser *state, char end) {
 
 		++i;
 	}
+}
+
+char *read_token(struct mrsh_parser *state, size_t len) {
+	if (!symbol(state, TOKEN)) {
+		return NULL;
+	}
+
+	char *tok = malloc(len + 1);
+	parser_read(state, tok, len);
+	tok[len] = '\0';
+
+	consume_symbol(state);
+
+	return tok;
 }
 
 static struct mrsh_word *word_list(struct mrsh_parser *state, char end) {
@@ -217,9 +239,7 @@ static struct mrsh_word_parameter *expect_parameter_expression(
 
 	struct mrsh_position name_begin = state->pos;
 
-	char *name = malloc(name_len + 1);
-	parser_read(state, name, name_len);
-	name[name_len] = '\0';
+	char *name = read_token(state, name_len);
 
 	struct mrsh_position name_end = state->pos;
 
@@ -266,9 +286,7 @@ struct mrsh_word *expect_parameter(struct mrsh_parser *state) {
 
 		struct mrsh_position name_begin = state->pos;
 
-		char *name = malloc(name_len + 1);
-		parser_read(state, name, name_len);
-		name[name_len] = '\0';
+		char *name = read_token(state, name_len);
 
 		struct mrsh_position name_end = state->pos;
 

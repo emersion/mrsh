@@ -115,11 +115,12 @@ void mrsh_command_destroy(struct mrsh_command *cmd) {
 		return;
 	case MRSH_FOR_CLAUSE:;
 		struct mrsh_for_clause *fc = mrsh_command_get_for_clause(cmd);
-		free(&fc->name);
+		free(fc->name);
 		for (size_t i = 0; i < fc->word_list.len; ++i) {
 			struct mrsh_word *word = fc->word_list.data[i];
 			mrsh_word_destroy(word);
 		}
+		mrsh_array_finish(&fc->word_list);
 		command_list_array_finish(&fc->body);
 		free(fc);
 		return;

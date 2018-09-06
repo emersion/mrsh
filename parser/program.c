@@ -322,9 +322,7 @@ static struct mrsh_word *cmd_name(struct mrsh_parser *state) {
 		}
 	}
 
-	char *str = malloc(word_len + 1);
-	parser_read(state, str, word_len);
-	str[word_len] = '\0';
+	char *str = read_token(state, word_len);
 
 	struct mrsh_word_string *ws = mrsh_word_string_create(str, false);
 	ws->begin = begin;
@@ -538,6 +536,106 @@ error_cond:
 	return NULL;
 }
 
+static bool sequential_sep(struct mrsh_parser *state) {
+	if (token(state, ";")) {
+		linebreak(state);
+		return true;
+	}
+	return newline_list(state);
+}
+
+static void wordlist(struct mrsh_parser *state,
+		struct mrsh_array *words) {
+	while (true) {
+		struct mrsh_word *w = word(state, 0);
+		if (w == NULL) {
+			break;
+		}
+		mrsh_array_add(words, w);
+	}
+}
+
+static bool expect_do_group(struct mrsh_parser *state,
+		struct mrsh_array *body, struct mrsh_position *do_pos,
+		struct mrsh_position *done_pos) {
+	*do_pos = state->pos;
+	if (!token(state, "do")) {
+		parser_set_error(state, "expected 'do'");
+		return false;
+	}
+
+	if (!expect_compound_list(state, body)) {
+		return false;
+	}
+
+	*done_pos = state->pos;
+	if (!token(state, "done")) {
+		parser_set_error(state, "expected 'done'");
+		command_list_array_finish(body);
+		return false;
+	}
+
+	return true;
+}
+
+static struct mrsh_for_clause *for_clause(struct mrsh_parser *state) {
+	struct mrsh_position for_pos = state->pos;
+	if (!token(state, "for")) {
+		return NULL;
+	}
+
+	size_t name_len = peek_name(state, false);
+	if (name_len == 0) {
+		parser_set_error(state, "expected name");
+		return NULL;
+	}
+
+	struct mrsh_position name_pos = state->pos;
+	char *name = read_token(state, name_len);
+
+	linebreak(state);
+
+	struct mrsh_position maybe_in_pos = state->pos;
+	bool in = token(state, "in");
+	struct mrsh_position in_pos = in ? maybe_in_pos : (struct mrsh_position){0};
+
+	struct mrsh_array words = {0};
+	if (in) {
+		wordlist(state, &words);
+
+		if (!sequential_sep(state)) {
+			parser_set_error(state, "expected sequential separator");
+			goto error_words;
+		}
+	} else {
+		sequential_sep(state);
+	}
+
+	struct mrsh_array body = {0};
+	struct mrsh_position do_pos = {0}, done_pos = {0};
+	if (!expect_do_group(state, &body, &do_pos, &done_pos)) {
+		goto error_words;
+	}
+
+	struct mrsh_for_clause *fc =
+		mrsh_for_clause_create(name, in, &words, &body);
+	fc->for_pos = for_pos;
+	fc->name_pos = name_pos;
+	fc->in_pos = in_pos;
+	fc->do_pos = do_pos;
+	fc->done_pos = done_pos;
+	return fc;
+
+error_words:
+	for (size_t i = 0; i < words.len; ++i) {
+		struct mrsh_word *word = words.data[i];
+		mrsh_word_destroy(word);
+	}
+	mrsh_array_finish(&words);
+	free(name);
+	return NULL;
+}
+
 static struct mrsh_command *compound_command(struct mrsh_parser *state);
 
 static struct mrsh_function_definition *function_definition(
@@ -562,9 +660,8 @@ static struct mrsh_function_definition *function_definition(
 	}
 
 	struct mrsh_position name_pos = state->pos;
-	char *name = strndup(state->buf.data, name_len);
-	parser_read(state, NULL, name_len);
-	consume_symbol(state);
+
+	char *name = read_token(state, name_len);
 
 	struct mrsh_position lparen_pos = state->pos;
 	if (!expect_token(state, "(")) {
@@ -598,18 +695,31 @@ static struct mrsh_command *compound_command(struct mrsh_parser *state) {
 	struct mrsh_brace_group *bg = brace_group(state);
 	if (bg != NULL) {
 		return &bg->command;
+	} else if (mrsh_parser_error(state, NULL)) {
+		return NULL;
 	}
 
 	struct mrsh_if_clause *ic = if_clause(state);
 	if (ic != NULL) {
 		return &ic->command;
+	} else if (mrsh_parser_error(state, NULL)) {
+		return NULL;
 	}
 
-	// TODO: subshell for_clause case_clause while_clause until_clause
+	struct mrsh_for_clause *fc = for_clause(state);
+	if (fc != NULL) {
+		return &fc->command;
+	} else if (mrsh_parser_error(state, NULL)) {
+		return NULL;
+	}
+
+	// TODO: subshell case_clause while_clause until_clause
 
 	struct mrsh_function_definition *fd = function_definition(state);
 	if (fd != NULL) {
 		return &fd->command;
+	} else if (mrsh_parser_error(state, NULL)) {
+		return NULL;
 	}
 
 	return NULL;
@@ -619,7 +729,7 @@ static struct mrsh_command *command(struct mrsh_parser *state) {
 	apply_aliases(state);
 
 	struct mrsh_command *cmd = compound_command(state);
-	if (cmd != NULL) {
+	if (cmd != NULL || mrsh_parser_error(state, NULL)) {
 		return cmd;
 	}
 

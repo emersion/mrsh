@@ -653,6 +653,106 @@ static struct mrsh_loop_clause *loop_clause(struct mrsh_parser *state) {
 	return fc;
 }
 
+static struct mrsh_case_item *case_item(struct mrsh_parser *state) {
+	token(state, "(");
+
+	struct mrsh_word *w = word(state, 0);
+	if (w == NULL) {
+		parser_set_error(state, "expected a word");
+		return NULL;
+	}
+
+	struct mrsh_array patterns = {0};
+	mrsh_array_add(&patterns, w);
+
+	while (token(state, "|")) {
+		struct mrsh_word *w = word(state, 0);
+		if (w == NULL) {
+			parser_set_error(state, "expected a word");
+			return NULL;
+		}
+		mrsh_array_add(&patterns, w);
+	}
+
+	if (!expect_token(state, ")")) {
+		goto error_patterns;
+	}
+
+	// TODO: allow only a linebreak too
+	struct mrsh_array body = {0};
+	if (!expect_compound_list(state, &body)) {
+		goto error_patterns;
+	}
+
+	if (!operator(state, DSEMI)) {
+		parser_set_error(state, "expected ';;'");
+		goto error_body;
+	}
+
+	linebreak(state);
+
+	struct mrsh_case_item *item = calloc(1, sizeof(struct mrsh_case_item));
+	item->patterns = patterns;
+	item->body = body;
+	return item;
+
+error_body:
+	command_list_array_finish(&body);
+error_patterns:
+	for (size_t i = 0; i < patterns.len; ++i) {
+		struct mrsh_word *w = patterns.data[i];
+		mrsh_word_destroy(w);
+	}
+	mrsh_array_finish(&patterns);
+	return NULL;
+}
+
+static struct mrsh_case_clause *case_clause(struct mrsh_parser *state) {
+	if (!token(state, "case")) {
+		return NULL;
+	}
+
+	struct mrsh_word *w = word(state, 0);
+	if (w == NULL) {
+		parser_set_error(state, "expected a word");
+		return NULL;
+	}
+
+	linebreak(state);
+
+	if (!expect_token(state, "in")) {
+		goto error_word;
+	}
+
+	linebreak(state);
+
+	struct mrsh_array items = {0};
+	while (!token(state, "esac")) {
+		struct mrsh_case_item *item = case_item(state);
+		if (item == NULL) {
+			break;
+		}
+		mrsh_array_add(&items, item);
+	}
+	if (mrsh_parser_error(state, NULL)) {
+		goto error_items;
+	}
+
+	// TODO: case_list_ns
+
+	return mrsh_case_clause_create(w, &items);
+
+error_items:
+	for (size_t i = 0; i < items.len; ++i) {
+		struct mrsh_case_item *item = items.data[i];
+		case_item_destroy(item);
+	}
+	mrsh_array_finish(&items);
+error_word:
+	mrsh_word_destroy(w);
+	return NULL;
+}
+
 static struct mrsh_command *compound_command(struct mrsh_parser *state);
 
 static struct mrsh_function_definition *function_definition(
@@ -744,7 +844,12 @@ static struct mrsh_command *compound_command(struct mrsh_parser *state) {
 		return NULL;
 	}
 
-	// TODO: case_clause
+	struct mrsh_case_clause *cc = case_clause(state);
+	if (cc != NULL) {
+		return &cc->command;
+	} else if (mrsh_parser_error(state, NULL)) {
+		return NULL;
+	}
 
 	struct mrsh_function_definition *fd = function_definition(state);
 	if (fd != NULL) {

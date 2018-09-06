@@ -75,6 +75,16 @@ void command_list_array_finish(struct mrsh_array *cmds) {
 	mrsh_array_finish(cmds);
 }
 
+void case_item_destroy(struct mrsh_case_item *item) {
+	for (size_t j = 0; j < item->patterns.len; ++j) {
+		struct mrsh_word *pattern = item->patterns.data[j];
+		mrsh_word_destroy(pattern);
+	}
+	mrsh_array_finish(&item->patterns);
+	command_list_array_finish(&item->body);
+	free(item);
+}
+
 void mrsh_command_destroy(struct mrsh_command *cmd) {
 	if (cmd == NULL) {
 		return;
@@ -140,13 +150,7 @@ void mrsh_command_destroy(struct mrsh_command *cmd) {
 		mrsh_word_destroy(cc->word);
 		for (size_t i = 0; i < cc->items.len; ++i) {
 			struct mrsh_case_item *item = cc->items.data[i];
-			for (size_t j = 0; j < item->patterns.len; ++j) {
-				struct mrsh_word *pattern = item->patterns.data[j];
-				mrsh_word_destroy(pattern);
-			}
-			mrsh_array_finish(&item->patterns);
-			command_list_array_finish(&item->body);
-			free(item);
+			case_item_destroy(item);
 		}
 		mrsh_array_finish(&cc->items);
 		free(cc);

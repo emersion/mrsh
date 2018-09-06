@@ -257,30 +257,50 @@ struct mrsh_simple_command *mrsh_simple_command_create(struct mrsh_word *name,
 }
 
 struct mrsh_brace_group *mrsh_brace_group_create(struct mrsh_array *body) {
-	struct mrsh_brace_group *group = calloc(1, sizeof(struct mrsh_brace_group));
-	group->command.type = MRSH_BRACE_GROUP;
-	group->body = *body;
-	return group;
+	struct mrsh_brace_group *bg = calloc(1, sizeof(struct mrsh_brace_group));
+	bg->command.type = MRSH_BRACE_GROUP;
+	bg->body = *body;
+	return bg;
 }
 
 struct mrsh_if_clause *mrsh_if_clause_create(struct mrsh_array *condition,
 		struct mrsh_array *body, struct mrsh_command *else_part) {
-	struct mrsh_if_clause *group = calloc(1, sizeof(struct mrsh_if_clause));
-	group->command.type = MRSH_IF_CLAUSE;
-	group->condition = *condition;
-	group->body = *body;
-	group->else_part = else_part;
-	return group;
+	struct mrsh_if_clause *ic = calloc(1, sizeof(struct mrsh_if_clause));
+	ic->command.type = MRSH_IF_CLAUSE;
+	ic->condition = *condition;
+	ic->body = *body;
+	ic->else_part = else_part;
+	return ic;
+}
+
+struct mrsh_for_clause *mrsh_for_clause_create(char *name, bool in,
+		struct mrsh_array *word_list, struct mrsh_array *body) {
+	struct mrsh_for_clause *fc = calloc(1, sizeof(struct mrsh_for_clause));
+	fc->command.type = MRSH_FOR_CLAUSE;
+	fc->name = name;
+	fc->in = in;
+	fc->word_list = *word_list;
+	fc->body = *body;
+	return fc;
+}
+
+struct mrsh_loop_clause *mrsh_loop_clause_create(struct mrsh_array *condition,
+		struct mrsh_array *body) {
+	struct mrsh_loop_clause *lc = calloc(1, sizeof(struct mrsh_loop_clause));
+	lc->command.type = MRSH_LOOP_CLAUSE;
+	lc->condition = *condition;
+	lc->body = *body;
+	return lc;
 }
 
 struct mrsh_function_definition *mrsh_function_definition_create(char *name,
 		struct mrsh_command *body) {
-	struct mrsh_function_definition *def =
+	struct mrsh_function_definition *fd =
 		calloc(1, sizeof(struct mrsh_function_definition));
-	def->command.type = MRSH_FUNCTION_DEFINITION;
-	def->name = name;
-	def->body = body;
-	return def;
+	fd->command.type = MRSH_FUNCTION_DEFINITION;
+	fd->name = name;
+	fd->body = body;
+	return fd;
 }
 
 struct mrsh_simple_command *mrsh_command_get_simple_command(

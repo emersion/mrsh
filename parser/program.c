@@ -367,13 +367,11 @@ static struct mrsh_command_list *term(struct mrsh_parser *state) {
 	return cmd;
 }
 
-static bool expect_compound_list(struct mrsh_parser *state,
-		struct mrsh_array *cmds) {
+static bool compound_list(struct mrsh_parser *state, struct mrsh_array *cmds) {
 	linebreak(state);
 
 	struct mrsh_command_list *l = term(state);
 	if (l == NULL) {
-		parser_set_error(state, "expected a term");
 		return false;
 	}
 	mrsh_array_add(cmds, l);
@@ -384,6 +382,16 @@ static bool expect_compound_list(struct mrsh_parser *state,
 			break;
 		}
 		mrsh_array_add(cmds, l);
+	}
+
+	return true;
+}
+
+static bool expect_compound_list(struct mrsh_parser *state,
+		struct mrsh_array *cmds) {
+	if (!compound_list(state, cmds)) {
+		parser_set_error(state, "expected a compound list");
+		return false;
 	}
 
 	return true;
@@ -653,7 +661,8 @@ static struct mrsh_loop_clause *loop_clause(struct mrsh_parser *state) {
 	return fc;
 }
 
-static struct mrsh_case_item *case_item(struct mrsh_parser *state) {
+static struct mrsh_case_item *expect_case_item(struct mrsh_parser *state,
+		bool *dsemi) {
 	token(state, "(");
 
 	struct mrsh_word *w = word(state, 0);
@@ -678,20 +687,22 @@ static struct mrsh_case_item *case_item(struct mrsh_parser *state) {
 		goto error_patterns;
 	}
 
-	// TODO: allow only a linebreak too
+	// It's okay if there's no body
 	struct mrsh_array body = {0};
-	if (!expect_compound_list(state, &body)) {
+	compound_list(state, &body);
+	if (mrsh_parser_error(state, NULL)) {
 		goto error_patterns;
 	}
 
-	if (!operator(state, DSEMI)) {
-		parser_set_error(state, "expected ';;'");
-		goto error_body;
+	*dsemi = operator(state, DSEMI);
+	if (*dsemi) {
+		linebreak(state);
 	}
 
-	linebreak(state);
-
 	struct mrsh_case_item *item = calloc(1, sizeof(struct mrsh_case_item));
+	if (item == NULL) {
+		goto error_body;
+	}
 	item->patterns = patterns;
 	item->body = body;
 	return item;
@@ -726,19 +737,23 @@ static struct mrsh_case_clause *case_clause(struct mrsh_parser *state) {
 
 	linebreak(state);
 
+	bool dsemi = false;
 	struct mrsh_array items = {0};
 	while (!token(state, "esac")) {
-		struct mrsh_case_item *item = case_item(state);
+		struct mrsh_case_item *item = expect_case_item(state, &dsemi);
 		if (item == NULL) {
-			break;
+			goto error_items;
 		}
 		mrsh_array_add(&items, item);
-	}
-	if (mrsh_parser_error(state, NULL)) {
-		goto error_items;
-	}
 
-	// TODO: case_list_ns
+		if (!dsemi) {
+			// Only the last case can omit `;;`
+			if (!expect_token(state, "esac")) {
+				goto error_items;
+			}
+			break;
+		}
+	}
 
 	return mrsh_case_clause_create(w, &items);
 

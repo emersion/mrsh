@@ -33,6 +33,7 @@ lib_mrsh_static = static_library(
 		'ast.c',
 		'buffer.c',
 		'builtin/alias.c',
+		'builtin/cd.c',
 		'builtin/builtin.c',
 		'builtin/colon.c',
 		'builtin/exit.c',

@@ -200,8 +200,8 @@ int set(struct mrsh_state *state, int argc, char *argv[], bool cmdline) {
 			// TODO: Turn off -m if the user didn't explicitly set it
 			state->interactive = false;
 			if (!state->input) {
-				fprintf(stderr, "could not open %s for reading: %s",
-						argv_0, strerror(errno));
+				fprintf(stderr, "could not open %s for reading: %s\n",
+					argv_0, strerror(errno));
 				return EXIT_FAILURE;
 			}
 		} else {

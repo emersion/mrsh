@@ -595,6 +595,7 @@ static struct mrsh_for_clause *for_clause(struct mrsh_parser *state) {
 	struct mrsh_range in_range = {0};
 	bool in = token(state, "in", &in_range);
 
+	// TODO: save sequential_sep position, if any
 	struct mrsh_array words = {0};
 	if (in) {
 		wordlist(state, &words);

@@ -179,40 +179,71 @@ static void highlight_command(struct highlight_state *state,
 		break;
 	case MRSH_IF_CLAUSE:;
 		struct mrsh_if_clause *ic = mrsh_command_get_if_clause(cmd);
-		// TODO: keywords
+		highlight_str(state, &ic->if_range, FORMAT_BLUE);
 		highlight_command_list_array(state, &ic->condition);
+		highlight_str(state, &ic->then_range, FORMAT_BLUE);
 		highlight_command_list_array(state, &ic->body);
 		if (ic->else_part != NULL) {
+			if (mrsh_range_valid(&ic->else_range)) {
+				highlight_str(state, &ic->else_range, FORMAT_BLUE);
+			}
 			highlight_command(state, ic->else_part);
+		}
+		if (mrsh_range_valid(&ic->fi_range)) {
+			highlight_str(state, &ic->fi_range, FORMAT_BLUE);
 		}
 		break;
 	case MRSH_FOR_CLAUSE:;
 		struct mrsh_for_clause *fc = mrsh_command_get_for_clause(cmd);
-		// TODO: keywords
+		highlight_str(state, &fc->for_range, FORMAT_BLUE);
+		highlight_str(state, &fc->name_range, FORMAT_CYAN);
+		if (mrsh_range_valid(&fc->in_range)) {
+			highlight_str(state, &fc->in_range, FORMAT_BLUE);
+		}
+		for (size_t i = 0; i < fc->word_list.len; ++i) {
+			struct mrsh_word *word = fc->word_list.data[i];
+			highlight_word(state, word, false, false);
+		}
+		highlight_str(state, &fc->do_range, FORMAT_BLUE);
 		highlight_command_list_array(state, &fc->body);
+		highlight_str(state, &fc->done_range, FORMAT_BLUE);
 		break;
 	case MRSH_LOOP_CLAUSE:;
 		struct mrsh_loop_clause *lc = mrsh_command_get_loop_clause(cmd);
-		// TODO: keywords
+		highlight_str(state, &lc->while_until_range, FORMAT_BLUE);
 		highlight_command_list_array(state, &lc->condition);
+		highlight_str(state, &lc->do_range, FORMAT_BLUE);
 		highlight_command_list_array(state, &lc->body);
+		highlight_str(state, &lc->done_range, FORMAT_BLUE);
 		break;
 	case MRSH_CASE_CLAUSE:;
 		struct mrsh_case_clause *cc = mrsh_command_get_case_clause(cmd);
-		// TODO: keywords
+		highlight_str(state, &cc->case_range, FORMAT_BLUE);
+		highlight_word(state, cc->word, false, false);
+		highlight_str(state, &cc->in_range, FORMAT_BLUE);
 		for (size_t i = 0; i < cc->items.len; ++i) {
 			struct mrsh_case_item *item = cc->items.data[i];
-			for (size_t j = 0; j < item->patterns.len; ++i) {
+			if (mrsh_position_valid(&item->lparen_pos)) {
+				highlight_char(state, &item->lparen_pos, FORMAT_GREEN);
+			}
+			for (size_t j = 0; j < item->patterns.len; ++j) {
 				struct mrsh_word *pattern = item->patterns.data[j];
 				highlight_word(state, pattern, false, false);
 			}
+			highlight_char(state, &item->rparen_pos, FORMAT_GREEN);
 			highlight_command_list_array(state, &item->body);
+			if (mrsh_range_valid(&item->dsemi_range)) {
+				highlight_str(state, &item->dsemi_range, FORMAT_GREEN);
+			}
 		}
+		highlight_str(state, &cc->esac_range, FORMAT_BLUE);
 		break;
 	case MRSH_FUNCTION_DEFINITION:;
 		struct mrsh_function_definition *fd =
 			mrsh_command_get_function_definition(cmd);
-		// TODO: parentheses
+		highlight_str(state, &fd->name_range, FORMAT_BLUE);
+		highlight_char(state, &fd->lparen_pos, FORMAT_GREEN);
+		highlight_char(state, &fd->rparen_pos, FORMAT_GREEN);
 		highlight_command(state, fd->body);
 		break;
 	}
@@ -223,6 +254,9 @@ static void highlight_node(struct highlight_state *state,
 	switch (node->type) {
 	case MRSH_NODE_PIPELINE:;
 		struct mrsh_pipeline *pl = mrsh_node_get_pipeline(node);
+		if (mrsh_position_valid(&pl->bang_pos)) {
+			highlight_char(state, &pl->bang_pos, FORMAT_GREEN);
+		}
 		for (size_t i = 0; i < pl->commands.len; ++i) {
 			struct mrsh_command *cmd = pl->commands.data[i];
 			highlight_command(state, cmd);

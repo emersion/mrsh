@@ -5,13 +5,21 @@
 #include <stdbool.h>
 
 /**
- * Position describes an arbitrary source position include line and column
+ * Position describes an arbitrary source position including line and column
  * location.
  */
 struct mrsh_position {
 	size_t offset; // starting at 0
 	int line; // starting at 1
 	int column; // starting at 1
+};
+
+/**
+ * Range describes a continuous source region. It has a beginning position and
+ * a non-included ending position.
+ */
+struct mrsh_range {
+	struct mrsh_position begin, end;
 };
 
 enum mrsh_word_type {
@@ -40,7 +48,7 @@ struct mrsh_word_string {
 	char *str;
 	bool single_quoted;
 
-	struct mrsh_position begin, end;
+	struct mrsh_range range;
 };
 
 enum mrsh_word_parameter_op {
@@ -68,8 +76,8 @@ struct mrsh_word_parameter {
 	struct mrsh_word *arg; // can be NULL
 
 	struct mrsh_position dollar_pos;
-	struct mrsh_position name_begin, name_end;
-	struct mrsh_position op_pos; // can be invalid
+	struct mrsh_range name_range;
+	struct mrsh_range op_range; // can be invalid
 	struct mrsh_position lbrace_pos, rbrace_pos; // can be invalid
 };
 
@@ -82,7 +90,7 @@ struct mrsh_word_command {
 	struct mrsh_program *program; // can be NULL
 	bool back_quoted;
 
-	struct mrsh_position begin, end;
+	struct mrsh_range range;
 };
 
 /**
@@ -121,7 +129,7 @@ struct mrsh_io_redirect {
 	struct mrsh_array here_document; // struct mrsh_word *, only for << and <<-
 
 	struct mrsh_position io_number_pos; // can be invalid
-	struct mrsh_position op_pos;
+	struct mrsh_range op_range;
 };
 
 /**
@@ -131,7 +139,8 @@ struct mrsh_assignment {
 	char *name;
 	struct mrsh_word *value;
 
-	struct mrsh_position name_pos, equal_pos;
+	struct mrsh_range name_range;
+	struct mrsh_position equal_pos;
 };
 
 enum mrsh_command_type {
@@ -207,7 +216,8 @@ struct mrsh_if_clause {
 	struct mrsh_array body; // struct mrsh_command_list *
 	struct mrsh_command *else_part; // can be NULL
 
-	struct mrsh_position if_pos, then_pos, else_pos, fi_pos; // can be invalid
+	// can be invalid
+	struct mrsh_range if_range, then_range, else_range, fi_range;
 };
 
 /**
@@ -225,8 +235,8 @@ struct mrsh_for_clause {
 	struct mrsh_array word_list; // struct mrsh_word *
 	struct mrsh_array body; // struct mrsh_command_list *
 
-	struct mrsh_position for_pos, name_pos, do_pos, done_pos;
-	struct mrsh_position in_pos; // can be invalid
+	struct mrsh_range for_range, name_range, do_range, done_range;
+	struct mrsh_range in_range; // can be invalid
 };
 
 enum mrsh_loop_type {
@@ -248,12 +258,25 @@ struct mrsh_loop_clause {
 	struct mrsh_array condition; // struct mrsh_command_list *
 	struct mrsh_array body; // struct mrsh_command_list *
 
-	struct mrsh_position begin, do_pos, done_pos;
+	struct mrsh_range while_until_range; // for `while` or `until`
+	struct mrsh_range do_range, done_range;
 };
 
+/**
+ * A case item contains one or more patterns with a body. The format is:
+ *
+ *   [(] pattern[ | pattern] ... ) compound-list ;;
+ *
+ * The double-semicolumn is optional if it's the last item.
+ */
 struct mrsh_case_item {
 	struct mrsh_array patterns; // struct mrsh_word *
 	struct mrsh_array body; // struct mrsh_command_list *
+
+	struct mrsh_position lparen_pos; // can be invalid
+	// TODO: pipe positions between each pattern
+	struct mrsh_position rparen_pos;
+	struct mrsh_range dsemi_range; // can be invalid
 };
 
 /**
@@ -269,6 +292,8 @@ struct mrsh_case_clause {
 	struct mrsh_command command;
 	struct mrsh_word *word;
 	struct mrsh_array items; // struct mrsh_case_item *
+
+	struct mrsh_range case_range, in_range, esac_range;
 };
 
 /**
@@ -281,7 +306,8 @@ struct mrsh_function_definition {
 	char *name;
 	struct mrsh_command *body;
 
-	struct mrsh_position name_pos, lparen_pos, rparen_pos;
+	struct mrsh_range name_range;
+	struct mrsh_position lparen_pos, rparen_pos;
 };
 
 enum mrsh_node_type {
@@ -305,6 +331,9 @@ struct mrsh_pipeline {
 	struct mrsh_node node;
 	struct mrsh_array commands; // struct mrsh_command *
 	bool bang; // whether the pipeline begins with `!`
+
+	struct mrsh_position bang_pos; // can be invalid
+	// TODO: pipe positions between each command
 };
 
 enum mrsh_binop_type {
@@ -321,7 +350,7 @@ struct mrsh_binop {
 	enum mrsh_binop_type type;
 	struct mrsh_node *left, *right;
 
-	struct mrsh_position op_pos;
+	struct mrsh_range op_range;
 };
 
 /**
@@ -343,6 +372,7 @@ struct mrsh_program {
 };
 
 bool mrsh_position_valid(const struct mrsh_position *pos);
+bool mrsh_range_valid(const struct mrsh_range *range);
 
 void mrsh_word_destroy(struct mrsh_word *word);
 void mrsh_io_redirect_destroy(struct mrsh_io_redirect *redir);
@@ -396,7 +426,7 @@ struct mrsh_binop *mrsh_binop_create(enum mrsh_binop_type type,
 struct mrsh_pipeline *mrsh_node_get_pipeline(struct mrsh_node *node);
 struct mrsh_binop *mrsh_node_get_binop(struct mrsh_node *node);
 
-void mrsh_word_positions(struct mrsh_word *word, struct mrsh_position *begin,
+void mrsh_word_range(struct mrsh_word *word, struct mrsh_position *begin,
 	struct mrsh_position *end);
 char *mrsh_word_str(struct mrsh_word *word);
 void mrsh_program_print(struct mrsh_program *prog);

@@ -10,6 +10,11 @@ bool mrsh_position_valid(const struct mrsh_position *pos) {
 	return pos->line > 0;
 }
 
+bool mrsh_range_valid(const struct mrsh_range *range) {
+	return mrsh_position_valid(&range->begin) &&
+		mrsh_position_valid(&range->end);
+}
+
 void mrsh_word_destroy(struct mrsh_word *word) {
 	if (word == NULL) {
 		return;
@@ -427,7 +432,7 @@ static void position_next(struct mrsh_position *dst,
 	++dst->column;
 }
 
-void mrsh_word_positions(struct mrsh_word *word, struct mrsh_position *begin,
+void mrsh_word_range(struct mrsh_word *word, struct mrsh_position *begin,
 		struct mrsh_position *end) {
 	if (begin == NULL && end == NULL) {
 		return;
@@ -444,8 +449,8 @@ void mrsh_word_positions(struct mrsh_word *word, struct mrsh_position *begin,
 	switch (word->type) {
 	case MRSH_WORD_STRING:;
 		struct mrsh_word_string *ws = mrsh_word_get_string(word);
-		*begin = ws->begin;
-		*end = ws->end;
+		*begin = ws->range.begin;
+		*end = ws->range.end;
 		return;
 	case MRSH_WORD_PARAMETER:;
 		struct mrsh_word_parameter *wp = mrsh_word_get_parameter(word);
@@ -453,13 +458,13 @@ void mrsh_word_positions(struct mrsh_word *word, struct mrsh_position *begin,
 		if (mrsh_position_valid(&wp->rbrace_pos)) {
 			position_next(end, &wp->rbrace_pos);
 		} else {
-			*end = wp->name_end;
+			*end = wp->name_range.end;
 		}
 		return;
 	case MRSH_WORD_COMMAND:;
 		struct mrsh_word_command *wc = mrsh_word_get_command(word);
-		*begin = wc->begin;
-		*end = wc->end;
+		*begin = wc->range.begin;
+		*end = wc->range.end;
 		return;
 	case MRSH_WORD_LIST:;
 		struct mrsh_word_list *wl = mrsh_word_get_list(word);
@@ -468,8 +473,8 @@ void mrsh_word_positions(struct mrsh_word *word, struct mrsh_position *begin,
 		} else {
 			struct mrsh_word *first = wl->children.data[0];
 			struct mrsh_word *last = wl->children.data[wl->children.len - 1];
-			mrsh_word_positions(first, begin, NULL);
-			mrsh_word_positions(last, NULL, end);
+			mrsh_word_range(first, begin, NULL);
+			mrsh_word_range(last, NULL, end);
 		}
 		return;
 	}

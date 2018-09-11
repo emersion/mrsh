@@ -20,10 +20,13 @@ static const char *operator_str(enum symbol_name sym) {
 	return NULL;
 }
 
-static bool operator(struct mrsh_parser *state, enum symbol_name sym) {
+static bool operator(struct mrsh_parser *state, enum symbol_name sym,
+		struct mrsh_range *range) {
 	if (!symbol(state, sym)) {
 		return false;
 	}
+
+	struct mrsh_position begin = state->pos;
 
 	const char *str = operator_str(sym);
 	assert(str != NULL);
@@ -31,15 +34,21 @@ static bool operator(struct mrsh_parser *state, enum symbol_name sym) {
 	char buf[operators_max_str_len];
 	parser_read(state, buf, strlen(str));
 	assert(strncmp(str, buf, strlen(str)) == 0);
+
+	if (range != NULL) {
+		range->begin = begin;
+		range->end = state->pos;
+	}
+
 	consume_symbol(state);
 	return true;
 }
 
 static int separator_op(struct mrsh_parser *state) {
-	if (token(state, "&")) {
+	if (token(state, "&", NULL)) {
 		return '&';
 	}
-	if (token(state, ";")) {
+	if (token(state, ";", NULL)) {
 		return ';';
 	}
 	return -1;
@@ -107,9 +116,9 @@ static void apply_aliases(struct mrsh_parser *state) {
 }
 
 static bool io_here(struct mrsh_parser *state, struct mrsh_io_redirect *redir) {
-	if (operator(state, DLESS)) {
+	if (operator(state, DLESS, &redir->op_range)) {
 		redir->op = MRSH_IO_DLESS;
-	} else if (operator(state, DLESSDASH)) {
+	} else if (operator(state, DLESSDASH, &redir->op_range)) {
 		redir->op = MRSH_IO_DLESSDASH;
 	} else {
 		return false;
@@ -131,20 +140,20 @@ static struct mrsh_word *filename(struct mrsh_parser *state) {
 	return word(state, 0);
 }
 
-static int io_redirect_op(struct mrsh_parser *state) {
-	if (token(state, "<")) {
+static int io_redirect_op(struct mrsh_parser *state, struct mrsh_range *range) {
+	if (token(state, "<", range)) {
 		return MRSH_IO_LESS;
-	} else if (token(state, ">")) {
+	} else if (token(state, ">", range)) {
 		return MRSH_IO_GREAT;
-	} else if (operator(state, LESSAND)) {
+	} else if (operator(state, LESSAND, range)) {
 		return MRSH_IO_LESSAND;
-	} else if (operator(state, GREATAND)) {
+	} else if (operator(state, GREATAND, range)) {
 		return MRSH_IO_GREATAND;
-	} else if (operator(state, DGREAT)) {
+	} else if (operator(state, DGREAT, range)) {
 		return MRSH_IO_DGREAT;
-	} else if (operator(state, CLOBBER)) {
+	} else if (operator(state, CLOBBER, range)) {
 		return MRSH_IO_CLOBBER;
-	} else if (operator(state, LESSGREAT)) {
+	} else if (operator(state, LESSGREAT, range)) {
 		return MRSH_IO_LESSGREAT;
 	} else {
 		return -1;
@@ -153,7 +162,7 @@ static int io_redirect_op(struct mrsh_parser *state) {
 
 static bool io_file(struct mrsh_parser *state,
 		struct mrsh_io_redirect *redir) {
-	int op = io_redirect_op(state);
+	int op = io_redirect_op(state, &redir->op_range);
 	if (op < 0) {
 		return false;
 	}
@@ -195,17 +204,19 @@ static struct mrsh_io_redirect *io_redirect(struct mrsh_parser *state) {
 		redir.io_number_pos = io_number_pos;
 	}
 
-	redir.op_pos = state->pos;
+	redir.op_range.begin = state->pos;
 	if (io_file(state, &redir)) {
 		struct mrsh_io_redirect *redir_ptr =
 			calloc(1, sizeof(struct mrsh_io_redirect));
 		memcpy(redir_ptr, &redir, sizeof(struct mrsh_io_redirect));
+		redir.op_range.end = state->pos;
 		return redir_ptr;
 	}
 	if (io_here(state, &redir)) {
 		struct mrsh_io_redirect *redir_ptr =
 			calloc(1, sizeof(struct mrsh_io_redirect));
 		memcpy(redir_ptr, &redir, sizeof(struct mrsh_io_redirect));
+		redir.op_range.end = state->pos;
 		mrsh_array_add(&state->here_documents, redir_ptr);
 		return redir_ptr;
 	}
@@ -231,20 +242,18 @@ static struct mrsh_assignment *assignment_word(struct mrsh_parser *state) {
 		return NULL;
 	}
 
-	char *name = strndup(state->buf.data, name_len);
-	struct mrsh_position name_pos = state->pos;
-	parser_read(state, NULL, name_len);
+	struct mrsh_range name_range;
+	char *name = read_token(state, name_len, &name_range);
 
 	struct mrsh_position equal_pos = state->pos;
 	parser_read(state, NULL, 1);
 
 	struct mrsh_word *value = word(state, 0);
-	consume_symbol(state);
 
 	struct mrsh_assignment *assign = calloc(1, sizeof(struct mrsh_assignment));
 	assign->name = name;
 	assign->value = value;
-	assign->name_pos = name_pos;
+	assign->name_range = name_range;
 	assign->equal_pos = equal_pos;
 	return assign;
 }
@@ -267,8 +276,6 @@ static bool cmd_prefix(struct mrsh_parser *state,
 }
 
 static struct mrsh_word *cmd_name(struct mrsh_parser *state) {
-	struct mrsh_position begin = state->pos;
-
 	apply_aliases(state);
 
 	size_t word_len = peek_word(state, 0);
@@ -284,11 +291,11 @@ static struct mrsh_word *cmd_name(struct mrsh_parser *state) {
 		}
 	}
 
-	char *str = read_token(state, word_len);
+	struct mrsh_range range;
+	char *str = read_token(state, word_len, &range);
 
 	struct mrsh_word_string *ws = mrsh_word_string_create(str, false);
-	ws->begin = begin;
-	ws->end = state->pos;
+	ws->range = range;
 	return &ws->word;
 }
 
@@ -399,7 +406,7 @@ static bool expect_compound_list(struct mrsh_parser *state,
 
 static struct mrsh_brace_group *brace_group(struct mrsh_parser *state) {
 	struct mrsh_position lbrace_pos = state->pos;
-	if (!token(state, "{")) {
+	if (!token(state, "{", NULL)) {
 		return NULL;
 	}
 
@@ -409,7 +416,7 @@ static struct mrsh_brace_group *brace_group(struct mrsh_parser *state) {
 	}
 
 	struct mrsh_position rbrace_pos = state->pos;
-	if (!expect_token(state, "}")) {
+	if (!expect_token(state, "}", NULL)) {
 		command_list_array_finish(&body);
 		return NULL;
 	}
@@ -422,7 +429,7 @@ static struct mrsh_brace_group *brace_group(struct mrsh_parser *state) {
 
 static struct mrsh_subshell *subshell(struct mrsh_parser *state) {
 	struct mrsh_position lparen_pos = state->pos;
-	if (!token(state, "(")) {
+	if (!token(state, "(", NULL)) {
 		return NULL;
 	}
 
@@ -432,7 +439,7 @@ static struct mrsh_subshell *subshell(struct mrsh_parser *state) {
 	}
 
 	struct mrsh_position rparen_pos = state->pos;
-	if (!expect_token(state, ")")) {
+	if (!expect_token(state, ")", NULL)) {
 		command_list_array_finish(&body);
 		return NULL;
 	}
@@ -444,16 +451,15 @@ static struct mrsh_subshell *subshell(struct mrsh_parser *state) {
 }
 
 static struct mrsh_command *else_part(struct mrsh_parser *state) {
-	struct mrsh_position begin = state->pos;
-
-	if (token(state, "elif")) {
+	struct mrsh_range if_range = {0};
+	if (token(state, "elif", &if_range)) {
 		struct mrsh_array cond = {0};
 		if (!expect_compound_list(state, &cond)) {
 			return NULL;
 		}
 
-		struct mrsh_position then_pos = state->pos;
-		if (!expect_token(state, "then")) {
+		struct mrsh_range then_range;
+		if (!expect_token(state, "then", &then_range)) {
 			command_list_array_finish(&cond);
 			return NULL;
 		}
@@ -467,12 +473,12 @@ static struct mrsh_command *else_part(struct mrsh_parser *state) {
 		struct mrsh_command *ep = else_part(state);
 
 		struct mrsh_if_clause *ic = mrsh_if_clause_create(&cond, &body, ep);
-		ic->if_pos = begin;
-		ic->then_pos = then_pos;
+		ic->if_range = if_range;
+		ic->then_range = then_range;
 		return &ic->command;
 	}
 
-	if (token(state, "else")) {
+	if (token(state, "else", NULL)) {
 		struct mrsh_array body = {0};
 		if (!expect_compound_list(state, &body)) {
 			return NULL;
@@ -487,8 +493,8 @@ static struct mrsh_command *else_part(struct mrsh_parser *state) {
 }
 
 static struct mrsh_if_clause *if_clause(struct mrsh_parser *state) {
-	struct mrsh_position if_pos = state->pos;
-	if (!token(state, "if")) {
+	struct mrsh_range if_range;
+	if (!token(state, "if", &if_range)) {
 		return NULL;
 	}
 
@@ -497,8 +503,8 @@ static struct mrsh_if_clause *if_clause(struct mrsh_parser *state) {
 		goto error_cond;
 	}
 
-	struct mrsh_position then_pos = state->pos;
-	if (!expect_token(state, "then")) {
+	struct mrsh_range then_range;
+	if (!expect_token(state, "then", &then_range)) {
 		goto error_cond;
 	}
 
@@ -509,15 +515,15 @@ static struct mrsh_if_clause *if_clause(struct mrsh_parser *state) {
 
 	struct mrsh_command *ep = else_part(state);
 
-	struct mrsh_position fi_pos = state->pos;
-	if (!expect_token(state, "fi")) {
+	struct mrsh_range fi_range;
+	if (!expect_token(state, "fi", &fi_range)) {
 		goto error_else_part;
 	}
 
 	struct mrsh_if_clause *ic = mrsh_if_clause_create(&cond, &body, ep);
-	ic->if_pos = if_pos;
-	ic->then_pos = then_pos;
-	ic->fi_pos = fi_pos;
+	ic->if_range = if_range;
+	ic->then_range = then_range;
+	ic->fi_range = fi_range;
 	return ic;
 
 error_else_part:
@@ -530,7 +536,7 @@ error_cond:
 }
 
 static bool sequential_sep(struct mrsh_parser *state) {
-	if (token(state, ";")) {
+	if (token(state, ";", NULL)) {
 		linebreak(state);
 		return true;
 	}
@@ -549,10 +555,9 @@ static void wordlist(struct mrsh_parser *state,
 }
 
 static bool expect_do_group(struct mrsh_parser *state,
-		struct mrsh_array *body, struct mrsh_position *do_pos,
-		struct mrsh_position *done_pos) {
-	*do_pos = state->pos;
-	if (!token(state, "do")) {
+		struct mrsh_array *body, struct mrsh_range *do_range,
+		struct mrsh_range *done_range) {
+	if (!token(state, "do", do_range)) {
 		parser_set_error(state, "expected 'do'");
 		return false;
 	}
@@ -561,8 +566,7 @@ static bool expect_do_group(struct mrsh_parser *state,
 		return false;
 	}
 
-	*done_pos = state->pos;
-	if (!token(state, "done")) {
+	if (!token(state, "done", done_range)) {
 		parser_set_error(state, "expected 'done'");
 		command_list_array_finish(body);
 		return false;
@@ -572,8 +576,8 @@ static bool expect_do_group(struct mrsh_parser *state,
 }
 
 static struct mrsh_for_clause *for_clause(struct mrsh_parser *state) {
-	struct mrsh_position for_pos = state->pos;
-	if (!token(state, "for")) {
+	struct mrsh_range for_range;
+	if (!token(state, "for", &for_range)) {
 		return NULL;
 	}
 
@@ -583,14 +587,13 @@ static struct mrsh_for_clause *for_clause(struct mrsh_parser *state) {
 		return NULL;
 	}
 
-	struct mrsh_position name_pos = state->pos;
-	char *name = read_token(state, name_len);
+	struct mrsh_range name_range;
+	char *name = read_token(state, name_len, &name_range);
 
 	linebreak(state);
 
-	struct mrsh_position maybe_in_pos = state->pos;
-	bool in = token(state, "in");
-	struct mrsh_position in_pos = in ? maybe_in_pos : (struct mrsh_position){0};
+	struct mrsh_range in_range = {0};
+	bool in = token(state, "in", &in_range);
 
 	struct mrsh_array words = {0};
 	if (in) {
@@ -605,18 +608,18 @@ static struct mrsh_for_clause *for_clause(struct mrsh_parser *state) {
 	}
 
 	struct mrsh_array body = {0};
-	struct mrsh_position do_pos = {0}, done_pos = {0};
-	if (!expect_do_group(state, &body, &do_pos, &done_pos)) {
+	struct mrsh_range do_range, done_range;
+	if (!expect_do_group(state, &body, &do_range, &done_range)) {
 		goto error_words;
 	}
 
 	struct mrsh_for_clause *fc =
 		mrsh_for_clause_create(name, in, &words, &body);
-	fc->for_pos = for_pos;
-	fc->name_pos = name_pos;
-	fc->in_pos = in_pos;
-	fc->do_pos = do_pos;
-	fc->done_pos = done_pos;
+	fc->for_range = for_range;
+	fc->name_range = name_range;
+	fc->in_range = in_range;
+	fc->do_range = do_range;
+	fc->done_range = done_range;
 	return fc;
 
 error_words:
@@ -630,12 +633,11 @@ error_words:
 }
 
 static struct mrsh_loop_clause *loop_clause(struct mrsh_parser *state) {
-	struct mrsh_position begin = state->pos;
-
 	enum mrsh_loop_type type;
-	if (token(state, "while")) {
+	struct mrsh_range while_until_range;
+	if (token(state, "while", &while_until_range)) {
 		type = MRSH_LOOP_WHILE;
-	} else if (token(state, "until")) {
+	} else if (token(state, "until", &while_until_range)) {
 		type = MRSH_LOOP_UNTIL;
 	} else {
 		return NULL;
@@ -647,23 +649,26 @@ static struct mrsh_loop_clause *loop_clause(struct mrsh_parser *state) {
 	}
 
 	struct mrsh_array body = {0};
-	struct mrsh_position do_pos = {0}, done_pos = {0};
-	if (!expect_do_group(state, &body, &do_pos, &done_pos)) {
+	struct mrsh_range do_range, done_range;
+	if (!expect_do_group(state, &body, &do_range, &done_range)) {
 		command_list_array_finish(&condition);
 		return NULL;
 	}
 
 	struct mrsh_loop_clause *fc =
 		mrsh_loop_clause_create(type, &condition, &body);
-	fc->begin = begin;
-	fc->do_pos = do_pos;
-	fc->done_pos = done_pos;
+	fc->while_until_range = while_until_range;
+	fc->do_range = do_range;
+	fc->done_range = done_range;
 	return fc;
 }
 
 static struct mrsh_case_item *expect_case_item(struct mrsh_parser *state,
 		bool *dsemi) {
-	token(state, "(");
+	struct mrsh_position lparen_pos = state->pos;
+	if (!token(state, "(", NULL)) {
+		lparen_pos = (struct mrsh_position){0};
+	}
 
 	struct mrsh_word *w = word(state, 0);
 	if (w == NULL) {
@@ -674,7 +679,7 @@ static struct mrsh_case_item *expect_case_item(struct mrsh_parser *state,
 	struct mrsh_array patterns = {0};
 	mrsh_array_add(&patterns, w);
 
-	while (token(state, "|")) {
+	while (token(state, "|", NULL)) {
 		struct mrsh_word *w = word(state, 0);
 		if (w == NULL) {
 			parser_set_error(state, "expected a word");
@@ -683,7 +688,8 @@ static struct mrsh_case_item *expect_case_item(struct mrsh_parser *state,
 		mrsh_array_add(&patterns, w);
 	}
 
-	if (!expect_token(state, ")")) {
+	struct mrsh_position rparen_pos = state->pos;
+	if (!expect_token(state, ")", NULL)) {
 		goto error_patterns;
 	}
 
@@ -694,7 +700,8 @@ static struct mrsh_case_item *expect_case_item(struct mrsh_parser *state,
 		goto error_patterns;
 	}
 
-	*dsemi = operator(state, DSEMI);
+	struct mrsh_range dsemi_range = {0};
+	*dsemi = operator(state, DSEMI, &dsemi_range);
 	if (*dsemi) {
 		linebreak(state);
 	}
@@ -705,6 +712,9 @@ static struct mrsh_case_item *expect_case_item(struct mrsh_parser *state,
 	}
 	item->patterns = patterns;
 	item->body = body;
+	item->lparen_pos = lparen_pos;
+	item->rparen_pos = rparen_pos;
+	item->dsemi_range = dsemi_range;
 	return item;
 
 error_body:
@@ -719,7 +729,8 @@ error_patterns:
 }
 
 static struct mrsh_case_clause *case_clause(struct mrsh_parser *state) {
-	if (!token(state, "case")) {
+	struct mrsh_range case_range;
+	if (!token(state, "case", &case_range)) {
 		return NULL;
 	}
 
@@ -731,7 +742,8 @@ static struct mrsh_case_clause *case_clause(struct mrsh_parser *state) {
 
 	linebreak(state);
 
-	if (!expect_token(state, "in")) {
+	struct mrsh_range in_range;
+	if (!expect_token(state, "in", &in_range)) {
 		goto error_word;
 	}
 
@@ -739,7 +751,8 @@ static struct mrsh_case_clause *case_clause(struct mrsh_parser *state) {
 
 	bool dsemi = false;
 	struct mrsh_array items = {0};
-	while (!token(state, "esac")) {
+	struct mrsh_range esac_range;
+	while (!token(state, "esac", &esac_range)) {
 		struct mrsh_case_item *item = expect_case_item(state, &dsemi);
 		if (item == NULL) {
 			goto error_items;
@@ -748,14 +761,18 @@ static struct mrsh_case_clause *case_clause(struct mrsh_parser *state) {
 
 		if (!dsemi) {
 			// Only the last case can omit `;;`
-			if (!expect_token(state, "esac")) {
+			if (!expect_token(state, "esac", &esac_range)) {
 				goto error_items;
 			}
 			break;
 		}
 	}
 
-	return mrsh_case_clause_create(w, &items);
+	struct mrsh_case_clause *cc = mrsh_case_clause_create(w, &items);
+	cc->case_range = case_range;
+	cc->in_range = in_range;
+	cc->esac_range = esac_range;
+	return cc;
 
 error_items:
 	for (size_t i = 0; i < items.len; ++i) {
@@ -791,17 +808,16 @@ static struct mrsh_function_definition *function_definition(
 		++i;
 	}
 
-	struct mrsh_position name_pos = state->pos;
-
-	char *name = read_token(state, name_len);
+	struct mrsh_range name_range;
+	char *name = read_token(state, name_len, &name_range);
 
 	struct mrsh_position lparen_pos = state->pos;
-	if (!expect_token(state, "(")) {
+	if (!expect_token(state, "(", NULL)) {
 		return NULL;
 	}
 
 	struct mrsh_position rparen_pos = state->pos;
-	if (!expect_token(state, ")")) {
+	if (!expect_token(state, ")", NULL)) {
 		return NULL;
 	}
 
@@ -817,7 +833,7 @@ static struct mrsh_function_definition *function_definition(
 
 	struct mrsh_function_definition *fd =
 		mrsh_function_definition_create(name, cmd);
-	fd->name_pos = name_pos;
+	fd->name_range = name_range;
 	fd->lparen_pos = lparen_pos;
 	fd->rparen_pos = rparen_pos;
 	return fd;
@@ -895,7 +911,9 @@ static struct mrsh_command *command(struct mrsh_parser *state) {
 }
 
 static struct mrsh_pipeline *pipeline(struct mrsh_parser *state) {
-	bool bang = token(state, "!");
+	struct mrsh_range bang_range = {0};
+	bool bang = token(state, "!", &bang_range);
+	struct mrsh_position bang_pos = bang_range.begin; // can be invalid
 
 	struct mrsh_command *cmd = command(state);
 	if (cmd == NULL) {
@@ -905,7 +923,7 @@ static struct mrsh_pipeline *pipeline(struct mrsh_parser *state) {
 	struct mrsh_array commands = {0};
 	mrsh_array_add(&commands, cmd);
 
-	while (token(state, "|")) {
+	while (token(state, "|", NULL)) {
 		linebreak(state);
 		struct mrsh_command *cmd = command(state);
 		if (cmd == NULL) {
@@ -916,7 +934,9 @@ static struct mrsh_pipeline *pipeline(struct mrsh_parser *state) {
 		mrsh_array_add(&commands, cmd);
 	}
 
-	return mrsh_pipeline_create(&commands, bang);
+	struct mrsh_pipeline *p = mrsh_pipeline_create(&commands, bang);
+	p->bang_pos = bang_pos;
+	return p;
 }
 
 static struct mrsh_node *and_or(struct mrsh_parser *state) {
@@ -926,10 +946,10 @@ static struct mrsh_node *and_or(struct mrsh_parser *state) {
 	}
 
 	enum mrsh_binop_type binop_type;
-	struct mrsh_position op_pos = state->pos;
-	if (operator(state, AND_IF)) {
+	struct mrsh_range op_range;
+	if (operator(state, AND_IF, &op_range)) {
 		binop_type = MRSH_BINOP_AND;
-	} else if (operator(state, OR_IF)) {
+	} else if (operator(state, OR_IF, &op_range)) {
 		binop_type = MRSH_BINOP_OR;
 	} else {
 		return &pl->node;
@@ -944,7 +964,7 @@ static struct mrsh_node *and_or(struct mrsh_parser *state) {
 	}
 
 	struct mrsh_binop *binop = mrsh_binop_create(binop_type, &pl->node, node);
-	binop->op_pos = op_pos;
+	binop->op_range = op_range;
 	return &binop->node;
 }
 

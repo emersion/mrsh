@@ -63,9 +63,12 @@ size_t parser_peek(struct mrsh_parser *state, char *buf, size_t size);
 char parser_peek_char(struct mrsh_parser *state);
 size_t parser_read(struct mrsh_parser *state, char *buf, size_t size);
 char parser_read_char(struct mrsh_parser *state);
-bool token(struct mrsh_parser *state, const char *str);
-bool expect_token(struct mrsh_parser *state, const char *str);
-char *read_token(struct mrsh_parser *state, size_t len);
+bool token(struct mrsh_parser *state, const char *str,
+	struct mrsh_range *range);
+bool expect_token(struct mrsh_parser *state, const char *str,
+	struct mrsh_range *range);
+char *read_token(struct mrsh_parser *state, size_t len,
+	struct mrsh_range *range);
 void parser_set_error(struct mrsh_parser *state, const char *msg);
 bool is_operator_start(char c);
 enum symbol_name get_symbol(struct mrsh_parser *state);

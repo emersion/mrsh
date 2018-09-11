@@ -37,8 +37,8 @@ static struct mrsh_word *single_quotes(struct mrsh_parser *state) {
 	buffer_append_char(&buf, '\0');
 	char *data = buffer_steal(&buf);
 	struct mrsh_word_string *ws = mrsh_word_string_create(data, true);
-	ws->begin = begin;
-	ws->end = state->pos;
+	ws->range.begin = begin;
+	ws->range.end = state->pos;
 	return &ws->word;
 }
 
@@ -100,10 +100,13 @@ size_t peek_word(struct mrsh_parser *state, char end) {
 	}
 }
 
-bool token(struct mrsh_parser *state, const char *str) {
+bool token(struct mrsh_parser *state, const char *str,
+		struct mrsh_range *range) {
 	if (!symbol(state, TOKEN)) {
 		return false;
 	}
+
+	struct mrsh_position begin = state->pos;
 
 	size_t len = strlen(str);
 	assert(len > 0);
@@ -113,39 +116,52 @@ bool token(struct mrsh_parser *state, const char *str) {
 			return false;
 		}
 		parser_read_char(state);
-		consume_symbol(state);
-		return true;
+	} else {
+		size_t word_len = peek_word(state, 0);
+		if (len != word_len || strncmp(state->buf.data, str, word_len) != 0) {
+			return false;
+		}
+		// assert(isalpha(str[i]));
+
+		parser_read(state, NULL, len);
 	}
 
-	size_t word_len = peek_word(state, 0);
-	if (len != word_len || strncmp(state->buf.data, str, word_len) != 0) {
-		return false;
+	if (range != NULL) {
+		range->begin = begin;
+		range->end = state->pos;
 	}
-	// assert(isalpha(str[i]));
 
-	parser_read(state, NULL, len);
 	consume_symbol(state);
 	return true;
 }
 
-bool expect_token(struct mrsh_parser *state, const char *str) {
-	if (token(state, str)) {
+bool expect_token(struct mrsh_parser *state, const char *str,
+		struct mrsh_range *range) {
+	if (token(state, str, range)) {
 		return true;
 	}
 	char msg[128];
-	snprintf(msg, sizeof(msg), "unexpected token: expected %s", str);
+	snprintf(msg, sizeof(msg), "expected '%s'", str);
 	parser_set_error(state, msg);
 	return false;
 }
 
-char *read_token(struct mrsh_parser *state, size_t len) {
+char *read_token(struct mrsh_parser *state, size_t len,
+		struct mrsh_range *range) {
 	if (!symbol(state, TOKEN)) {
 		return NULL;
 	}
 
+	struct mrsh_position begin = state->pos;
+
 	char *tok = malloc(len + 1);
 	parser_read(state, tok, len);
 	tok[len] = '\0';
+
+	if (range != NULL) {
+		range->begin = begin;
+		range->end = state->pos;
+	}
 
 	consume_symbol(state);
 
@@ -181,8 +197,8 @@ static struct mrsh_word *word_list(struct mrsh_parser *state, char end) {
 		buffer_append_char(&buf, '\0');
 		struct mrsh_word_string *ws =
 			mrsh_word_string_create(buffer_steal(&buf), false);
-		ws->begin = begin;
-		ws->end = state->pos;
+		ws->range.begin = begin;
+		ws->range.end = state->pos;
 		mrsh_array_add(&children, &ws->word);
 		buffer_finish(&buf);
 	}
@@ -263,10 +279,11 @@ static struct mrsh_word_parameter *expect_parameter_expression(
 	assert(c == '{');
 
 	enum mrsh_word_parameter_op op = MRSH_PARAM_NONE;
-	struct mrsh_position op_pos = {0};
+	struct mrsh_range op_range = {0};
 	if (parser_peek_char(state) == '#') {
-		op_pos = state->pos;
+		op_range.begin = state->pos;
 		parser_read_char(state);
+		op_range.end = state->pos;
 		op = MRSH_PARAM_LEADING_HASH;
 	}
 
@@ -276,19 +293,17 @@ static struct mrsh_word_parameter *expect_parameter_expression(
 		return NULL;
 	}
 
-	struct mrsh_position name_begin = state->pos;
-
-	char *name = read_token(state, name_len);
-
-	struct mrsh_position name_end = state->pos;
+	struct mrsh_range name_range;
+	char *name = read_token(state, name_len, &name_range);
 
 	bool colon = false;
 	struct mrsh_word *arg = NULL;
 	if (op == MRSH_PARAM_NONE && parser_peek_char(state) != '}') {
-		op_pos = state->pos;
+		op_range.begin = state->pos;
 		if (!expect_parameter_op(state, &op, &colon)) {
 			return NULL;
 		}
+		op_range.end = state->pos;
 		arg = word_list(state, '}');
 	}
 
@@ -300,9 +315,8 @@ static struct mrsh_word_parameter *expect_parameter_expression(
 
 	struct mrsh_word_parameter *wp =
 		mrsh_word_parameter_create(name, op, colon, arg);
-	wp->name_begin = name_begin;
-	wp->name_end = name_end;
-	wp->op_pos = op_pos;
+	wp->name_range = name_range;
+	wp->op_range = op_range;
 	wp->lbrace_pos = lbrace_pos;
 	wp->rbrace_pos = rbrace_pos;
 	return wp;
@@ -321,7 +335,7 @@ static struct mrsh_word_command *expect_word_command(
 		return NULL;
 	}
 
-	if (!expect_token(state, ")")) {
+	if (!expect_token(state, ")", NULL)) {
 		mrsh_program_destroy(prog);
 		return NULL;
 	}
@@ -367,14 +381,12 @@ struct mrsh_word *expect_dollar(struct mrsh_parser *state) {
 			name_len = 1;
 		}
 
-		struct mrsh_position name_begin = state->pos;
-		char *name = read_token(state, name_len);
-		struct mrsh_position name_end = state->pos;
+		struct mrsh_range name_range;
+		char *name = read_token(state, name_len, &name_range);
 
 		wp = mrsh_word_parameter_create(name, MRSH_PARAM_NONE, false, NULL);
 		wp->dollar_pos = dollar_pos;
-		wp->name_begin = name_begin;
-		wp->name_end = name_end;
+		wp->name_range = name_range;
 		return &wp->word;
 	}
 }
@@ -434,8 +446,8 @@ struct mrsh_word *back_quotes(struct mrsh_parser *state) {
 	buffer_finish(&buf);
 
 	struct mrsh_word_command *wc = mrsh_word_command_create(prog, true);
-	wc->begin = begin;
-	wc->end = state->pos;
+	wc->range.begin = begin;
+	wc->range.end = state->pos;
 	return &wc->word;
 
 error:
@@ -460,8 +472,8 @@ static void push_buffer_word_string(struct mrsh_parser *state,
 
 	char *data = buffer_steal(buf);
 	struct mrsh_word_string *ws = mrsh_word_string_create(data, false);
-	ws->begin = *child_begin;
-	ws->end = state->pos;
+	ws->range.begin = *child_begin;
+	ws->range.end = state->pos;
 	mrsh_array_add(children, &ws->word);
 
 	*child_begin = (struct mrsh_position){0};

@@ -56,15 +56,16 @@ static void highlight(struct highlight_state *state, struct mrsh_position *pos,
 }
 
 static void highlight_str(struct highlight_state *state,
-		struct mrsh_position *pos, size_t len, enum format fmt) {
-	highlight(state, pos, fmt);
-	struct mrsh_position end = { .offset = pos->offset + len };
-	highlight(state, &end, FORMAT_RESET);
+		struct mrsh_range *range, enum format fmt) {
+	highlight(state, &range->begin, fmt);
+	highlight(state, &range->end, FORMAT_RESET);
 }
 
 static void highlight_char(struct highlight_state *state,
 		struct mrsh_position *pos, enum format fmt) {
-	highlight_str(state, pos, 1, fmt);
+	struct mrsh_position next = { .offset = pos->offset + 1 };
+	highlight(state, pos, fmt);
+	highlight(state, &next, FORMAT_RESET);
 }
 
 static void highlight_word(struct highlight_state *state,
@@ -79,8 +80,7 @@ static void highlight_word(struct highlight_state *state,
 			} else if (cmd_name) {
 				fmt = FORMAT_BLUE;
 			}
-			highlight(state, &ws->begin, fmt);
-			highlight(state, &ws->end, FORMAT_RESET);
+			highlight_str(state, &ws->range, fmt);
 		}
 		break;
 	case MRSH_WORD_PARAMETER:;
@@ -90,8 +90,8 @@ static void highlight_word(struct highlight_state *state,
 		if (mrsh_position_valid(&wp->lbrace_pos)) {
 			highlight_char(state, &wp->lbrace_pos, FORMAT_GREEN);
 		}
-		if (mrsh_position_valid(&wp->op_pos)) {
-			highlight_str(state, &wp->op_pos, wp->colon ? 2 : 1, FORMAT_GREEN);
+		if (mrsh_range_valid(&wp->op_range)) {
+			highlight_str(state, &wp->op_range, FORMAT_GREEN);
 		}
 		if (wp->arg != NULL) {
 			highlight_word(state, wp->arg, false, false);
@@ -101,18 +101,20 @@ static void highlight_word(struct highlight_state *state,
 			highlight_char(state, &wp->rbrace_pos, FORMAT_GREEN);
 			end.offset = wp->rbrace_pos.offset + 1;
 		} else {
-			end = wp->name_end;
+			end = wp->name_range.end;
 		}
 		highlight(state, &end, FORMAT_RESET);
 		break;
 	case MRSH_WORD_COMMAND:;
 		struct mrsh_word_command *wc = mrsh_word_get_command(word);
 		if (wc->back_quoted) {
-			highlight_char(state, &wc->begin, FORMAT_GREEN);
+			highlight_char(state, &wc->range.begin, FORMAT_GREEN);
 		}
 		// TODO: highlight inside
 		if (wc->back_quoted) {
-			struct mrsh_position rquote = { .offset = wc->end.offset - 1 };
+			struct mrsh_position rquote = {
+				.offset = wc->range.end.offset - 1,
+			};
 			highlight_char(state, &rquote, FORMAT_GREEN);
 		}
 		break;
@@ -229,7 +231,7 @@ static void highlight_node(struct highlight_state *state,
 	case MRSH_NODE_BINOP:;
 		struct mrsh_binop *binop = mrsh_node_get_binop(node);
 		highlight_node(state, binop->left);
-		highlight_str(state, &binop->op_pos, 2, FORMAT_GREEN);
+		highlight_str(state, &binop->op_range, FORMAT_GREEN);
 		highlight_node(state, binop->right);
 		break;
 	}

@@ -22,10 +22,9 @@ static void print_prefix(const char *prefix, bool last) {
 	printf("%s%s", prefix, last ? L_LAST : L_VAL);
 }
 
-static void print_positions(const struct mrsh_position *begin,
-		const struct mrsh_position *end) {
-	printf("[%d:%d → %d:%d]", begin->line, begin->column,
-		end->line, end->column);
+static void print_range(const struct mrsh_range *range) {
+	printf("[%d:%d → %d:%d]", range->begin.line, range->begin.column,
+		range->end.line, range->end.column);
 }
 
 static const char *word_parameter_op_str(enum mrsh_word_parameter_op op) {
@@ -63,7 +62,7 @@ static void print_word(struct mrsh_word *word, const char *prefix) {
 	case MRSH_WORD_STRING:;
 		struct mrsh_word_string *ws = mrsh_word_get_string(word);
 		printf("word_string%s ", ws->single_quoted ? " (quoted)" : "");
-		print_positions(&ws->begin, &ws->end);
+		print_range(&ws->range);
 		printf(" %s\n", ws->str);
 		break;
 	case MRSH_WORD_PARAMETER:;

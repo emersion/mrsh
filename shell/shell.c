@@ -106,8 +106,9 @@ static struct task *handle_command(struct mrsh_command *cmd) {
 	case MRSH_BRACE_GROUP:;
 		struct mrsh_brace_group *bg = mrsh_command_get_brace_group(cmd);
 		return handle_command_list_array(&bg->body);
-	case MRSH_SUBSHELL:
-		assert(false); // TODO: implement this
+	case MRSH_SUBSHELL:;
+		struct mrsh_subshell *s = mrsh_command_get_subshell(cmd);
+		return task_subshell_create(handle_command_list_array(&s->body));
 	case MRSH_IF_CLAUSE:;
 		struct mrsh_if_clause *ic = mrsh_command_get_if_clause(cmd);
 		return handle_if_clause(ic);

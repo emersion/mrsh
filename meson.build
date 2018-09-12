@@ -79,6 +79,7 @@ executable(
 		'shell/task_if_clause.c',
 		'shell/task_list.c',
 		'shell/task_pipeline.c',
+		'shell/task_subshell.c',
 		'shell/task_word.c',
 		'shell/task.c',
 		'shell/word.c',

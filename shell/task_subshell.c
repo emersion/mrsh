@@ -1,0 +1,64 @@
+#include <stdlib.h>
+#include <unistd.h>
+#include <string.h>
+#include <errno.h>
+#include "shell.h"
+
+struct task_subshell {
+	struct task task;
+	struct task *subtask;
+	bool started;
+	struct process process;
+};
+
+static void task_subshell_destroy(struct task *task) {
+	struct task_subshell *ts = (struct task_subshell *)task;
+	task_destroy(ts->subtask);
+	process_finish(&ts->process);
+	free(ts);
+}
+
+static bool task_subshell_start(struct task_subshell *ts, struct context *ctx) {
+	pid_t pid = fork();
+	if (pid < 0) {
+		fprintf(stderr, "failed to fork(): %s\n", strerror(errno));
+		return false;
+	} else if (pid == 0) {
+		errno = 0;
+		int ret = task_run(ts->subtask, ctx);
+		if (ret < 0) {
+			fprintf(stderr, "failed to run task: %s\n", strerror(errno));
+			exit(127);
+		}
+
+		exit(ret);
+	} else {
+		process_init(&ts->process, pid);
+		return true;
+	}
+}
+
+static int task_subshell_poll(struct task *task, struct context *ctx) {
+	struct task_subshell *ts = (struct task_subshell *)task;
+
+	if (!ts->started) {
+		if (!task_subshell_start(ts, ctx)) {
+			return TASK_STATUS_ERROR;
+		}
+		ts->started = true;
+	}
+
+	return process_poll(&ts->process);
+}
+
+static const struct task_interface task_subshell_impl = {
+	.destroy = task_subshell_destroy,
+	.poll = task_subshell_poll,
+};
+
+struct task *task_subshell_create(struct task *subtask) {
+	struct task_subshell *ts = calloc(1, sizeof(struct task_subshell));
+	task_init(&ts->task, &task_subshell_impl);
+	ts->subtask = subtask;
+	return &ts->task;
+}

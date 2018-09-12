@@ -94,6 +94,8 @@ struct task *task_async_create(struct task *async);
 
 struct task *task_assignment_create(struct mrsh_array *assignments);
 
+struct task *task_subshell_create(struct task *subtask);
+
 /**
  * Creates a task that mutates `word_ptr`, executing all substitutions. After
  * the task has finished, the word tree is guaranteed to only contain word

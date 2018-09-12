@@ -1,19 +1,8 @@
-#include <mrsh/shell.h>
+#ifndef _SHELL_TASK_H
+#define _SHELL_TASK_H
 
-struct context {
-	struct mrsh_state *state;
-	int stdin_fileno;
-	int stdout_fileno;
-};
-
-/**
- * This struct is used to track child processes.
- */
-struct process {
-	pid_t pid;
-	bool finished;
-	int stat;
-};
+#include "shell/shell.h"
+#include "shell/word.h"
 
 #define TASK_STATUS_WAIT -1
 #define TASK_STATUS_ERROR -2
@@ -55,22 +44,6 @@ struct task_interface {
 	void (*destroy)(struct task *task);
 };
 
-enum tilde_expansion {
-	// Don't perform tilde expansion at all
-	TILDE_EXPANSION_NONE,
-	// Only expand at the begining of words
-	TILDE_EXPANSION_NAME,
-	// Expand at the begining of words and after semicolons
-	TILDE_EXPANSION_ASSIGNMENT,
-};
-
-int create_anonymous_file(void);
-
-void process_init(struct process *process, pid_t pid);
-void process_finish(struct process *process);
-int process_poll(struct process *process);
-void process_notify(pid_t pid, int stat);
-
 void task_init(struct task *task, const struct task_interface *impl);
 void task_destroy(struct task *task);
 int task_poll(struct task *task, struct context *ctx);
@@ -94,8 +67,6 @@ struct task *task_async_create(struct task *async);
 
 struct task *task_assignment_create(struct mrsh_array *assignments);
 
-struct task *task_subshell_create(struct task *subtask);
-
 /**
  * Creates a task that mutates `word_ptr`, executing all substitutions. After
  * the task has finished, the word tree is guaranteed to only contain word
@@ -104,17 +75,6 @@ struct task *task_subshell_create(struct task *subtask);
 struct task *task_word_create(struct mrsh_word **word_ptr,
 	enum tilde_expansion tilde_expansion);
 
-/**
- * Performs tilde expansion. It leaves the string as-is in case of error.
- */
-void expand_tilde(struct mrsh_state *state, char **str_ptr);
-/**
- * Performs field splitting on `word`, writing fields to `fields`. This should
- * be done after expansions/substitutions.
- */
-void split_fields(struct mrsh_array *fields, struct mrsh_word *word,
-	const char *ifs);
-/**
- * Performs pathname expansion on each item in `fields`.
- */
-bool expand_pathnames(struct mrsh_array *expanded, struct mrsh_array *fields);
+struct task *task_subshell_create(struct task *subtask);
+
+#endif

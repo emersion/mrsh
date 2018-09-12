@@ -2,7 +2,8 @@
 #include <unistd.h>
 #include <string.h>
 #include <errno.h>
-#include "shell.h"
+#include "shell/process.h"
+#include "shell/task.h"
 
 struct task_subshell {
 	struct task task;

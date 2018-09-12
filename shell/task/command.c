@@ -7,7 +7,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include "shell.h"
+#include "shell/process.h"
+#include "shell/shm.h"
+#include "shell/task.h"
 
 struct task_command {
 	struct task task;

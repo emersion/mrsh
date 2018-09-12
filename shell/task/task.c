@@ -4,7 +4,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/wait.h>
-#include "shell.h"
+#include "shell/process.h"
+#include "shell/task.h"
 
 void task_init(struct task *task, const struct task_interface *impl) {
 	assert(impl->poll);

@@ -1,5 +1,5 @@
 #include <stdlib.h>
-#include "shell.h"
+#include "shell/task.h"
 
 struct task_binop {
 	struct task task;

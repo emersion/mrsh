@@ -11,7 +11,9 @@
 
 #include "buffer.h"
 #include "builtin.h"
-#include "shell.h"
+#include "shell/process.h"
+#include "shell/shm.h"
+#include "shell/task.h"
 
 #define TOKEN_COMMAND_READ_SIZE 128
 

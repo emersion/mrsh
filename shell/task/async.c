@@ -4,7 +4,7 @@
 #include <string.h>
 #include <sys/wait.h>
 #include <unistd.h>
-#include "shell.h"
+#include "shell/task.h"
 
 struct task_async {
 	struct task task;

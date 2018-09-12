@@ -1,7 +1,8 @@
 #include <assert.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include "shell.h"
+#include "shell/shell.h"
+#include "shell/task.h"
 
 void mrsh_state_init(struct mrsh_state *state) {
 	state->exit = -1;

@@ -1,6 +1,6 @@
 #include <unistd.h>
 #include <stdlib.h>
-#include "shell.h"
+#include "shell/task.h"
 
 struct task_pipeline {
 	struct task task;

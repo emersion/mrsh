@@ -7,7 +7,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include "buffer.h"
-#include "shell.h"
+#include "shell/shell.h"
+#include "shell/word.h"
 
 void expand_tilde(struct mrsh_state *state, char **str_ptr) {
 	char *str = *str_ptr;

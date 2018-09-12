@@ -1,7 +1,8 @@
 #include <mrsh/array.h>
+#include <stdbool.h>
 #include <string.h>
 #include <sys/wait.h>
-#include "shell.h"
+#include "shell/process.h"
 
 // TODO: don't use a global
 // TODO: use a linked list instead

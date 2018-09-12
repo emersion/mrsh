@@ -107,7 +107,7 @@ static const char *parameter_get_value(struct mrsh_state *state, char *name) {
 		return value;
 	} else if (strcmp(name, "!") == 0) {
 		// TODO
-	} else if (!end[0]) {
+	} else if (end[0] == '\0') {
 		if (lvalue >= state->argc) {
 			return NULL;
 		}
@@ -132,6 +132,15 @@ static int task_word_poll(struct task *task, struct context *ctx) {
 	case MRSH_WORD_PARAMETER:;
 		struct mrsh_word_parameter *wp = mrsh_word_get_parameter(word);
 		const char *value = parameter_get_value(ctx->state, wp->name);
+		if (value == NULL && strcmp(wp->name, "LINENO") == 0) {
+			struct mrsh_position pos;
+			mrsh_word_range(word, &pos, NULL);
+
+			char lineno[16];
+			snprintf(lineno, sizeof(lineno), "%d", pos.line);
+
+			value = lineno;
+		}
 		if (value == NULL) {
 			if ((ctx->state->options & MRSH_OPT_NOUNSET)) {
 				fprintf(stderr, "%s: %s: unbound variable\n",

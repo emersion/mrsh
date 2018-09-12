@@ -216,8 +216,9 @@ struct mrsh_if_clause {
 	struct mrsh_array body; // struct mrsh_command_list *
 	struct mrsh_command *else_part; // can be NULL
 
-	// can be invalid
-	struct mrsh_range if_range, then_range, else_range, fi_range;
+	struct mrsh_range if_range; // for `if` or `elif`
+	struct mrsh_range then_range, fi_range;
+	struct mrsh_range else_range; // can be invalid
 };
 
 /**
@@ -427,6 +428,8 @@ struct mrsh_pipeline *mrsh_node_get_pipeline(struct mrsh_node *node);
 struct mrsh_binop *mrsh_node_get_binop(struct mrsh_node *node);
 
 void mrsh_word_range(struct mrsh_word *word, struct mrsh_position *begin,
+	struct mrsh_position *end);
+void mrsh_command_range(struct mrsh_command *cmd, struct mrsh_position *begin,
 	struct mrsh_position *end);
 char *mrsh_word_str(struct mrsh_word *word);
 void mrsh_program_print(struct mrsh_program *prog);

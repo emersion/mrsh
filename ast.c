@@ -481,6 +481,95 @@ void mrsh_word_range(struct mrsh_word *word, struct mrsh_position *begin,
 	assert(false);
 }
 
+void mrsh_command_range(struct mrsh_command *cmd, struct mrsh_position *begin,
+		struct mrsh_position *end) {
+	if (begin == NULL && end == NULL) {
+		return;
+	}
+
+	struct mrsh_position _begin, _end;
+	if (begin == NULL) {
+		begin = &_begin;
+	}
+	if (end == NULL) {
+		end = &_end;
+	}
+
+	switch (cmd->type) {
+	case MRSH_SIMPLE_COMMAND:;
+		struct mrsh_simple_command *sc = mrsh_command_get_simple_command(cmd);
+
+		if (sc->name != NULL) {
+			mrsh_word_range(sc->name, begin, end);
+		} else {
+			assert(sc->assignments.len > 0);
+			struct mrsh_assignment *first = sc->assignments.data[0];
+			*begin = first->name_range.begin;
+			*end = *begin; // That's a lie, but it'll be fixed by the code below
+		}
+
+		struct mrsh_position maybe_end;
+		for (size_t i = 0; i < sc->arguments.len; ++i) {
+			struct mrsh_word *arg = sc->arguments.data[i];
+			mrsh_word_range(arg, NULL, &maybe_end);
+			if (maybe_end.offset > end->offset) {
+				*end = maybe_end;
+			}
+		}
+		for (size_t i = 0; i < sc->io_redirects.len; ++i) {
+			struct mrsh_io_redirect *redir = sc->io_redirects.data[i];
+			mrsh_word_range(redir->name, NULL, &maybe_end);
+			if (maybe_end.offset > end->offset) {
+				*end = maybe_end;
+			}
+		}
+		for (size_t i = 0; i < sc->assignments.len; ++i) {
+			struct mrsh_assignment *assign = sc->assignments.data[i];
+			mrsh_word_range(assign->value, NULL, &maybe_end);
+			if (maybe_end.offset > end->offset) {
+				*end = maybe_end;
+			}
+		}
+		return;
+	case MRSH_BRACE_GROUP:;
+		struct mrsh_brace_group *bg = mrsh_command_get_brace_group(cmd);
+		*begin = bg->lbrace_pos;
+		position_next(end, &bg->rbrace_pos);
+		return;
+	case MRSH_SUBSHELL:;
+		struct mrsh_subshell *s = mrsh_command_get_subshell(cmd);
+		*begin = s->lparen_pos;
+		position_next(end, &s->rparen_pos);
+		return;
+	case MRSH_IF_CLAUSE:;
+		struct mrsh_if_clause *ic = mrsh_command_get_if_clause(cmd);
+		*begin = ic->if_range.begin;
+		*end = ic->fi_range.end;
+		return;
+	case MRSH_FOR_CLAUSE:;
+		struct mrsh_for_clause *fc = mrsh_command_get_for_clause(cmd);
+		*begin = fc->for_range.begin;
+		*end = fc->done_range.end;
+		return;
+	case MRSH_LOOP_CLAUSE:;
+		struct mrsh_loop_clause *lc = mrsh_command_get_loop_clause(cmd);
+		*begin = lc->while_until_range.begin;
+		*end = lc->done_range.end;
+		return;
+	case MRSH_CASE_CLAUSE:;
+		struct mrsh_case_clause *cc = mrsh_command_get_case_clause(cmd);
+		*begin = cc->case_range.begin;
+		*end = cc->esac_range.end;
+		return;
+	case MRSH_FUNCTION_DEFINITION:;
+		struct mrsh_function_definition *fd =
+			mrsh_command_get_function_definition(cmd);
+		*begin = fd->name_range.begin;
+		mrsh_command_range(fd->body, NULL, end);
+	}
+	assert(false);
+}
+
 static void word_str(struct mrsh_word *word, struct buffer *buf) {
 	switch (word->type) {
 	case MRSH_WORD_STRING:;

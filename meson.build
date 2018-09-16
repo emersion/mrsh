@@ -45,6 +45,7 @@ lib_mrsh_static = static_library(
 		'parser/parser.c',
 		'parser/program.c',
 		'parser/word.c',
+		'shell/path.c',
 		'shell/process.c',
 		'shell/shell.c',
 		'shell/shm.c',

@@ -8,6 +8,7 @@
 #include <string.h>
 #include <stdio.h>
 #include "builtin.h"
+#include "shell/path.h"
 
 static const char source_usage[] = "usage: . <path>\n";
 
@@ -17,12 +18,10 @@ int builtin_source(struct mrsh_state *state, int argc, char *argv[]) {
 		return EXIT_FAILURE;
 	}
 
-	const char *path;
-	if (strchr(argv[1], '/')) {
-		path = argv[1];
-	} else {
-		// TODO: Implement $PATH resolution internally
-		path = argv[1];
+	const char *path = expand_path(state, argv[1], false);
+	if (!path) {
+		fprintf(stderr, "%s: not found\n", argv[1]);
+		return EXIT_FAILURE;
 	}
 
 	FILE *f = fopen(path, "r");

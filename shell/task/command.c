@@ -7,6 +7,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include "shell/path.h"
 #include "shell/process.h"
 #include "shell/shm.h"
 #include "shell/task.h"
@@ -122,14 +123,18 @@ static int task_builtin_poll(struct task *task, struct context *ctx) {
 
 static bool task_process_start(struct task_command *tc, struct context *ctx) {
 	struct mrsh_simple_command *sc = tc->sc;
+	char **argv = (char **)tc->args.data;
+	const char *path = expand_path(ctx->state, argv[0], true);
+	if (!path) {
+		fprintf(stderr, "%s: not found\n", argv[0]);
+		return false;
+	}
 
 	pid_t pid = fork();
 	if (pid < 0) {
 		fprintf(stderr, "failed to fork(): %s\n", strerror(errno));
 		return false;
 	} else if (pid == 0) {
-		char **argv = (char **)tc->args.data;
-
 		for (size_t i = 0; i < sc->assignments.len; ++i) {
 			struct mrsh_assignment *assign = sc->assignments.data[i];
 			char *value = mrsh_word_str(assign->value);
@@ -209,7 +214,7 @@ static bool task_process_start(struct task_command *tc, struct context *ctx) {
 		}
 
 		errno = 0;
-		execvp(argv[0], argv);
+		execv(path, argv);
 
 		// Something went wrong
 		fprintf(stderr, "%s: %s\n", argv[0], strerror(errno));

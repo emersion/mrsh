@@ -3,6 +3,7 @@
 
 #include <stdio.h>
 #include <mrsh/parser.h>
+#include "buffer.h"
 
 enum symbol_name {
 	EOF_TOKEN,

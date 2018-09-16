@@ -14,6 +14,7 @@ struct builtin {
 
 static const struct builtin builtins[] = {
 	// Keep alpha sorted
+	{ ".", builtin_source, true },
 	{ ":", builtin_colon, true },
 	{ "alias", builtin_alias, false },
 	{ "cd", builtin_cd, true },

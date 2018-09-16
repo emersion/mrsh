@@ -1219,13 +1219,17 @@ static struct mrsh_program *program(struct mrsh_parser *state) {
 struct mrsh_program *mrsh_parse_line(struct mrsh_parser *state) {
 	parser_set_error(state, NULL);
 
-	if (eof(state) || newline(state)) {
+	if (eof(state)) {
 		return NULL;
 	}
 
 	struct mrsh_program *prog = calloc(1, sizeof(struct mrsh_program));
 	if (prog == NULL) {
 		return NULL;
+	}
+
+	if (newline(state)) {
+		return prog;
 	}
 
 	if (!expect_complete_command(state, &prog->body)) {

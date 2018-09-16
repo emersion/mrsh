@@ -115,7 +115,9 @@ int main(int argc, char *argv[]) {
 				state.exit = state.last_status;
 				break;
 			} else {
-				continue;
+				fprintf(stderr, "unknown error\n");
+				state.exit = EXIT_FAILURE;
+				break;
 			}
 		}
 		if ((state.options & MRSH_OPT_NOEXEC)) {

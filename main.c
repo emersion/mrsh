@@ -1,6 +1,8 @@
 #define _POSIX_C_SOURCE 200809L
 #include <errno.h>
+#include <limits.h>
 #include <mrsh/ast.h>
+#include <mrsh/builtin.h>
 #include <mrsh/parser.h>
 #include <mrsh/shell.h>
 #include <stdlib.h>
@@ -34,6 +36,20 @@ static void print_ps1(struct mrsh_state *state) {
 	}
 
 	fflush(stderr);
+}
+
+static void source_profile(struct mrsh_state *state) {
+	char path[PATH_MAX + 1];
+	int n = snprintf(path, sizeof(path), "%s/.profile", getenv("HOME"));
+	if (n == sizeof(path)) {
+		fprintf(stderr, "Warning: $HOME/.profile is longer than PATH_MAX\n");
+		return;
+	}
+	if (access(path, F_OK) == -1) {
+		return;
+	}
+	char *profile_argv[2] = { ".", path };
+	mrsh_run_builtin(state, 2, profile_argv);
 }
 
 static const char *get_alias(const char *name, void *data) {
@@ -71,6 +87,8 @@ int main(int argc, char *argv[]) {
 	snprintf(ppid_str, ppid_len, "%d", ppid);
 	char *prev_ppid = mrsh_hashtable_set(&state.variables, "PPID", ppid_str);
 	free(prev_ppid);
+
+	source_profile(&state);
 
 	// TODO: set PWD
 

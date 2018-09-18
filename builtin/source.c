@@ -21,6 +21,9 @@ int builtin_source(struct mrsh_state *state, int argc, char *argv[]) {
 	const char *path = expand_path(state, argv[1], false);
 	if (!path) {
 		fprintf(stderr, "%s: not found\n", argv[1]);
+		if (!state->interactive) {
+			state->exit = EXIT_FAILURE;
+		}
 		return EXIT_FAILURE;
 	}
 

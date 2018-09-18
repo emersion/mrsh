@@ -57,6 +57,9 @@ void task_list_add(struct task *task, struct task *child);
 struct task *task_if_clause_create(struct task *condition, struct task *body,
 	struct task *else_part);
 
+struct task *task_loop_clause_create(
+		struct task *condition, struct task *body, bool until);
+
 struct task *task_pipeline_create(void);
 void task_pipeline_add(struct task *task, struct task *child);
 

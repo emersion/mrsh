@@ -49,6 +49,7 @@ lib_mrsh_static = static_library(
 		'shell/process.c',
 		'shell/shell.c',
 		'shell/shm.c',
+		'shell/tasks.c',
 		'shell/task/assignment.c',
 		'shell/task/async.c',
 		'shell/task/binop.c',

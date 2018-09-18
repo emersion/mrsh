@@ -4,7 +4,13 @@
 #include "shell/shell.h"
 #include "shell/word.h"
 
+/**
+ * The task is waiting for child processes to finish.
+ */
 #define TASK_STATUS_WAIT -1
+/**
+ * A fatal error occured, the task should be destroyed.
+ */
 #define TASK_STATUS_ERROR -2
 
 struct task_interface;
@@ -38,7 +44,7 @@ struct task_interface {
 	 *
 	 * `poll` will be called over and over until the task goes out of the
 	 * TASK_STATUS_WAIT state. Once the task is no longer in progress, the
-	 * returned state is cached and `poll` won't be called anymore..
+	 * returned state is cached and `poll` won't be called anymore.
 	 */
 	int (*poll)(struct task *task, struct context *ctx);
 	void (*destroy)(struct task *task);

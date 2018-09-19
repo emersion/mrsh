@@ -108,7 +108,7 @@ static int varcmp(const void *p1, const void *p2) {
 	return strcmp(v1->key, v2->key);
 }
 
-int set(struct mrsh_state *state, int argc, char *argv[], bool cmdline) {
+static int set(struct mrsh_state *state, int argc, char *argv[], bool cmdline) {
 	if (argc == 1 && !cmdline) {
 		struct collect_iter iter = {
 			.len = 64,
@@ -221,4 +221,8 @@ int set(struct mrsh_state *state, int argc, char *argv[], bool cmdline) {
 
 int builtin_set(struct mrsh_state *state, int argc, char *argv[]) {
 	return set(state, argc, argv, false);
+}
+
+int mrsh_process_args(struct mrsh_state *state, int argc, char *argv[]) {
+	return set(state, argc, argv, true);
 }

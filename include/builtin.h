@@ -15,9 +15,8 @@ int builtin_exit(struct mrsh_state *state, int argc, char *argv[]);
 int builtin_eval(struct mrsh_state *state, int argc, char *argv[]);
 int builtin_source(struct mrsh_state *state, int argc, char *argv[]);
 int builtin_times(struct mrsh_state *state, int argc, char *argv[]);
-
-int set(struct mrsh_state *state, int argc, char *argv[], bool cmdline);
 int builtin_set(struct mrsh_state *state, int argc, char *argv[]);
+
 const char *print_options(struct mrsh_state *state);
 
 #endif

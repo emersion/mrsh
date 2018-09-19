@@ -91,7 +91,7 @@ executable(
 	files([
 		'main.c',
 	]),
-	dependencies: [mrsh_static],
+	dependencies: [mrsh],
 	install: true,
 )
 

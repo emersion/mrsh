@@ -63,7 +63,7 @@ int main(int argc, char *argv[]) {
 	struct mrsh_state state = {0};
 	mrsh_state_init(&state);
 
-	if (set(&state, argc, argv, true) != EXIT_SUCCESS) {
+	if (mrsh_process_args(&state, argc, argv) != EXIT_SUCCESS) {
 		mrsh_state_finish(&state);
 		return EXIT_FAILURE;
 	}

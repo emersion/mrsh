@@ -30,7 +30,12 @@ static struct mrsh_word *single_quotes(struct mrsh_parser *state) {
 			break;
 		}
 
-		parser_read_char(state);
+		if (c == '\n') {
+			read_continuation_line(state);
+		} else {
+			parser_read_char(state);
+		}
+
 		buffer_append_char(&buf, c);
 	}
 
@@ -423,7 +428,12 @@ struct mrsh_word *back_quotes(struct mrsh_parser *state) {
 			}
 		}
 
-		parser_read_char(state);
+		if (c == '\n') {
+			read_continuation_line(state);
+		} else {
+			parser_read_char(state);
+		}
+
 		buffer_append_char(&buf, c);
 	}
 
@@ -541,7 +551,8 @@ static struct mrsh_word *double_quotes(struct mrsh_parser *state) {
 			}
 
 			if (next[1] == '\n') {
-				parser_read(state, NULL, 2 * sizeof(char));
+				parser_read_char(state); // read backslash
+				read_continuation_line(state);
 				continue;
 			}
 		}
@@ -629,7 +640,7 @@ struct mrsh_word *word(struct mrsh_parser *state, char end) {
 			c = parser_peek_char(state);
 			if (c == '\n') {
 				// Continuation line
-				parser_read_char(state);
+				read_continuation_line(state);
 				continue;
 			}
 		} else if (is_operator_start(c) || isblank(c)) {

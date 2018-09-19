@@ -127,6 +127,8 @@ size_t parser_read(struct mrsh_parser *state, char *buf, size_t size) {
 		}
 		memmove(state->buf.data, state->buf.data + n, state->buf.len - n);
 		state->buf.len -= n;
+
+		state->continuation_line = false;
 	}
 	return n;
 }
@@ -135,6 +137,12 @@ char parser_read_char(struct mrsh_parser *state) {
 	char c = '\0';
 	parser_read(state, &c, sizeof(char));
 	return c;
+}
+
+void read_continuation_line(struct mrsh_parser *state) {
+	char c = parser_read_char(state);
+	assert(c == '\n');
+	state->continuation_line = true;
 }
 
 bool is_operator_start(char c) {
@@ -283,4 +291,8 @@ void mrsh_parser_set_alias(struct mrsh_parser *state,
 		mrsh_parser_alias_func_t alias, void *user_data) {
 	state->alias = alias;
 	state->alias_user_data = user_data;
+}
+
+bool mrsh_parser_continuation_line(struct mrsh_parser *state) {
+	return state->continuation_line;
 }

@@ -20,5 +20,9 @@ void mrsh_parser_set_alias(struct mrsh_parser *state,
 	mrsh_parser_alias_func_t alias, void *user_data);
 const char *mrsh_parser_error(struct mrsh_parser *state,
 	struct mrsh_position *pos);
+/**
+ * Check if the input ends on a continuation line.
+ */
+bool mrsh_parser_continuation_line(struct mrsh_parser *state);
 
 #endif

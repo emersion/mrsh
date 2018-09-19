@@ -55,6 +55,7 @@ struct mrsh_parser {
 	enum symbol_name sym;
 
 	struct mrsh_array here_documents;
+	bool continuation_line;
 
 	mrsh_parser_alias_func_t alias;
 	void *alias_user_data;
@@ -70,6 +71,7 @@ bool expect_token(struct mrsh_parser *state, const char *str,
 	struct mrsh_range *range);
 char *read_token(struct mrsh_parser *state, size_t len,
 	struct mrsh_range *range);
+void read_continuation_line(struct mrsh_parser *state);
 void parser_set_error(struct mrsh_parser *state, const char *msg);
 bool is_operator_start(char c);
 enum symbol_name get_symbol(struct mrsh_parser *state);

@@ -1095,6 +1095,8 @@ static bool expect_here_document(struct mrsh_parser *state,
 	bool trim_tabs = redir->op == MRSH_IO_DLESSDASH;
 	bool expand_lines = !is_word_quoted(redir->name);
 
+	state->continuation_line = true;
+
 	struct buffer buf = {0};
 	while (true) {
 		buf.len = 0;
@@ -1118,12 +1120,11 @@ static bool expect_here_document(struct mrsh_parser *state,
 		if (strcmp(line, delim) == 0) {
 			break;
 		}
-		if (eof(state)) {
+		if (parser_peek_char(state) == '\0') {
 			parser_set_error(state, "unterminated here-document");
 			return false;
 		}
-		bool ok = newline(state);
-		assert(ok);
+		read_continuation_line(state);
 
 		struct mrsh_word *word;
 		if (expand_lines) {
@@ -1216,8 +1217,13 @@ static struct mrsh_program *program(struct mrsh_parser *state) {
 	return prog;
 }
 
-struct mrsh_program *mrsh_parse_line(struct mrsh_parser *state) {
+static void parser_begin(struct mrsh_parser *state) {
 	parser_set_error(state, NULL);
+	state->continuation_line = false;
+}
+
+struct mrsh_program *mrsh_parse_line(struct mrsh_parser *state) {
+	parser_begin(state);
 
 	if (eof(state)) {
 		return NULL;
@@ -1264,6 +1270,6 @@ error:
 }
 
 struct mrsh_program *mrsh_parse_program(struct mrsh_parser *state) {
-	parser_set_error(state, NULL);
+	parser_begin(state);
 	return program(state);
 }

@@ -71,6 +71,11 @@ struct task *task_for_if_clause(struct mrsh_if_clause *ic) {
 	return task_if_clause_create(condition, body, else_part);
 }
 
+struct task *task_for_loop_clause(struct mrsh_loop_clause *lc) {
+	return task_loop_clause_create(&lc->condition, &lc->body,
+			lc->type == MRSH_LOOP_UNTIL);
+}
+
 struct task *task_for_command(struct mrsh_command *cmd) {
 	switch (cmd->type) {
 	case MRSH_SIMPLE_COMMAND:;
@@ -85,7 +90,9 @@ struct task *task_for_command(struct mrsh_command *cmd) {
 	case MRSH_IF_CLAUSE:;
 		struct mrsh_if_clause *ic = mrsh_command_get_if_clause(cmd);
 		return task_for_if_clause(ic);
-	case MRSH_LOOP_CLAUSE:
+	case MRSH_LOOP_CLAUSE:;
+		struct mrsh_loop_clause *lc = mrsh_command_get_loop_clause(cmd);
+		return task_for_loop_clause(lc);
 	case MRSH_FOR_CLAUSE:
 	case MRSH_CASE_CLAUSE:
 	case MRSH_FUNCTION_DEFINITION:

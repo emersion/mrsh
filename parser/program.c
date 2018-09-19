@@ -1217,11 +1217,6 @@ static struct mrsh_program *program(struct mrsh_parser *state) {
 	return prog;
 }
 
-static void parser_begin(struct mrsh_parser *state) {
-	parser_set_error(state, NULL);
-	state->continuation_line = false;
-}
-
 struct mrsh_program *mrsh_parse_line(struct mrsh_parser *state) {
 	parser_begin(state);
 

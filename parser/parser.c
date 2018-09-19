@@ -183,6 +183,11 @@ const char *mrsh_parser_error(struct mrsh_parser *state,
 	return state->error.msg;
 }
 
+void parser_begin(struct mrsh_parser *state) {
+	parser_set_error(state, NULL);
+	state->continuation_line = false;
+}
+
 // See section 2.3 Token Recognition
 static void next_symbol(struct mrsh_parser *state) {
 	state->has_sym = true;

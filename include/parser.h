@@ -73,6 +73,7 @@ char *read_token(struct mrsh_parser *state, size_t len,
 	struct mrsh_range *range);
 void read_continuation_line(struct mrsh_parser *state);
 void parser_set_error(struct mrsh_parser *state, const char *msg);
+void parser_begin(struct mrsh_parser *state);
 bool is_operator_start(char c);
 enum symbol_name get_symbol(struct mrsh_parser *state);
 void consume_symbol(struct mrsh_parser *state);

@@ -1,10 +1,8 @@
-#include <stdbool.h>
+#include <mrsh/buffer.h>
 #include <stdlib.h>
 #include <string.h>
 
-#include "buffer.h"
-
-char *buffer_reserve(struct buffer *buf, size_t size) {
+char *mrsh_buffer_reserve(struct mrsh_buffer *buf, size_t size) {
 	size_t new_len = buf->len + size;
 	if (new_len > buf->cap) {
 		size_t new_cap = 2 * buf->cap;
@@ -26,8 +24,8 @@ char *buffer_reserve(struct buffer *buf, size_t size) {
 	return &buf->data[buf->len];
 }
 
-char *buffer_add(struct buffer *buf, size_t size) {
-	char *data = buffer_reserve(buf, size);
+char *mrsh_buffer_add(struct mrsh_buffer *buf, size_t size) {
+	char *data = mrsh_buffer_reserve(buf, size);
 	if (data == NULL) {
 		return NULL;
 	}
@@ -36,8 +34,8 @@ char *buffer_add(struct buffer *buf, size_t size) {
 	return data;
 }
 
-bool buffer_append(struct buffer *buf, const char *data, size_t size) {
-	char *dst = buffer_add(buf, size);
+bool mrsh_buffer_append(struct mrsh_buffer *buf, const char *data, size_t size) {
+	char *dst = mrsh_buffer_add(buf, size);
 	if (dst == NULL) {
 		return false;
 	}
@@ -46,8 +44,8 @@ bool buffer_append(struct buffer *buf, const char *data, size_t size) {
 	return true;
 }
 
-bool buffer_append_char(struct buffer *buf, char c) {
-	char *dst = buffer_add(buf, sizeof(char));
+bool mrsh_buffer_append_char(struct mrsh_buffer *buf, char c) {
+	char *dst = mrsh_buffer_add(buf, sizeof(char));
 	if (dst == NULL) {
 		return false;
 	}
@@ -56,14 +54,14 @@ bool buffer_append_char(struct buffer *buf, char c) {
 	return true;
 }
 
-char *buffer_steal(struct buffer *buf) {
+char *mrsh_buffer_steal(struct mrsh_buffer *buf) {
 	char *data = buf->data;
 	buf->data = NULL;
 	buf->cap = buf->len = 0;
 	return data;
 }
 
-void buffer_finish(struct buffer *buf) {
+void mrsh_buffer_finish(struct mrsh_buffer *buf) {
 	free(buf->data);
 	buf->cap = buf->len = 0;
 }

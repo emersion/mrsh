@@ -1,7 +1,10 @@
 #ifndef _BUFFER_H
 #define _BUFFER_H
 
-struct buffer {
+#include <stdbool.h>
+#include <stddef.h>
+
+struct mrsh_buffer {
 	char *data;
 	size_t len, cap;
 };
@@ -11,18 +14,18 @@ struct buffer {
  * increasing its length. Returns a pointer to the end of the buffer, or NULL if
  * resizing fails.
  */
-char *buffer_reserve(struct buffer *buf, size_t size);
+char *mrsh_buffer_reserve(struct mrsh_buffer *buf, size_t size);
 /**
  * Increases the length of the buffer by `size` bytes. Returns a pointer to the
  * beginning of the newly appended space, or NULL if resizing fails.
  */
-char *buffer_add(struct buffer *buf, size_t size);
-bool buffer_append(struct buffer *buf, const char *data, size_t size);
-bool buffer_append_char(struct buffer *buf, char c);
+char *mrsh_buffer_add(struct mrsh_buffer *buf, size_t size);
+bool mrsh_buffer_append(struct mrsh_buffer *buf, const char *data, size_t size);
+bool mrsh_buffer_append_char(struct mrsh_buffer *buf, char c);
 /**
  * Get the buffer's current data and reset it.
  */
-char *buffer_steal(struct buffer *buf);
-void buffer_finish(struct buffer *buf);
+char *mrsh_buffer_steal(struct mrsh_buffer *buf);
+void mrsh_buffer_finish(struct mrsh_buffer *buf);
 
 #endif

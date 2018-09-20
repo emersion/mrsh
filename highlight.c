@@ -1,12 +1,11 @@
 #include <assert.h>
 #include <errno.h>
+#include <mrsh/buffer.h>
 #include <mrsh/parser.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <unistd.h>
 #include <string.h>
-
-#include "buffer.h"
+#include <unistd.h>
 
 #define READ_SIZE 1024
 #define FORMAT_STACK_SIZE 64
@@ -293,9 +292,9 @@ static void highlight_program(struct highlight_state *state,
 }
 
 int main(int argc, char *argv[]) {
-	struct buffer buf = {0};
+	struct mrsh_buffer buf = {0};
 	while (true) {
-		char *dst = buffer_reserve(&buf, READ_SIZE);
+		char *dst = mrsh_buffer_reserve(&buf, READ_SIZE);
 		ssize_t n_read = read(STDIN_FILENO, dst, READ_SIZE);
 		if (n_read < 0) {
 			fprintf(stderr, "read() failed: %s\n", strerror(errno));
@@ -332,6 +331,6 @@ int main(int argc, char *argv[]) {
 	highlight(&state, &end, FORMAT_RESET);
 	assert(state.fmt_stack_len == 0);
 
-	buffer_finish(&buf);
+	mrsh_buffer_finish(&buf);
 	return EXIT_SUCCESS;
 }

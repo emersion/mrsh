@@ -25,8 +25,8 @@ install_subdir('include/mrsh', install_dir: get_option('includedir'))
 
 libmrsh_sym_path = meson.current_source_dir() + '/libmrsh.sym'
 
-lib_mrsh_static = static_library(
-	meson.project_name() + '_static',
+lib_mrsh = library(
+	meson.project_name(),
 	files(
 		'array.c',
 		'ast_print.c',
@@ -65,20 +65,9 @@ lib_mrsh_static = static_library(
 	),
 	dependencies: [rt],
 	include_directories: mrsh_inc,
-)
-
-lib_mrsh = library(
-	meson.project_name(),
-	link_whole: lib_mrsh_static,
-	include_directories: mrsh_inc,
 	version: meson.project_version(),
 	link_args: ['-Wl,--version-script=' + libmrsh_sym_path],
 	install: true,
-)
-
-mrsh_static = declare_dependency(
-	link_with: lib_mrsh_static,
-	include_directories: mrsh_inc,
 )
 
 mrsh = declare_dependency(
@@ -100,7 +89,7 @@ executable(
 	files([
 		'highlight.c',
 	]),
-	dependencies: [mrsh_static],
+	dependencies: [mrsh],
 )
 
 pkgconfig = import('pkgconfig')

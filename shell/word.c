@@ -2,11 +2,11 @@
 #include <assert.h>
 #include <ctype.h>
 #include <glob.h>
+#include <mrsh/buffer.h>
 #include <pwd.h>
 #include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
-#include "buffer.h"
 #include "shell/shell.h"
 #include "shell/word.h"
 
@@ -61,7 +61,7 @@ struct split_fields_data {
 	bool in_ifs, in_ifs_non_space;
 };
 
-static void _split_fields(struct mrsh_array *fields, struct buffer *buf,
+static void _split_fields(struct mrsh_array *fields, struct mrsh_buffer *buf,
 		struct mrsh_word *word, bool double_quoted,
 		struct split_fields_data *data) {
 	switch (word->type) {
@@ -69,7 +69,7 @@ static void _split_fields(struct mrsh_array *fields, struct buffer *buf,
 		struct mrsh_word_string *ws = mrsh_word_get_string(word);
 
 		if (double_quoted || ws->single_quoted) {
-			buffer_append(buf, ws->str, strlen(ws->str));
+			mrsh_buffer_append(buf, ws->str, strlen(ws->str));
 			data->in_ifs = data->in_ifs_non_space = false;
 			return;
 		}
@@ -78,15 +78,15 @@ static void _split_fields(struct mrsh_array *fields, struct buffer *buf,
 		for (size_t i = 0; i < len; ++i) {
 			char c = ws->str[i];
 			if (strchr(data->ifs, c) == NULL) {
-				buffer_append_char(buf, c);
+				mrsh_buffer_append_char(buf, c);
 				data->in_ifs = data->in_ifs_non_space = false;
 				continue;
 			}
 
 			bool is_ifs_non_space = strchr(data->ifs_non_space, c) != NULL;
 			if (!data->in_ifs || (is_ifs_non_space && data->in_ifs_non_space)) {
-				buffer_append_char(buf, '\0');
-				char *str = buffer_steal(buf);
+				mrsh_buffer_append_char(buf, '\0');
+				char *str = mrsh_buffer_steal(buf);
 				mrsh_array_add(fields, str);
 				data->in_ifs = true;
 			} else if (is_ifs_non_space) {
@@ -126,7 +126,7 @@ void split_fields(struct mrsh_array *fields, struct mrsh_word *word,
 		}
 	}
 
-	struct buffer buf = {0};
+	struct mrsh_buffer buf = {0};
 	struct split_fields_data data = {
 		.ifs = ifs,
 		.ifs_non_space = ifs_non_space,
@@ -134,11 +134,11 @@ void split_fields(struct mrsh_array *fields, struct mrsh_word *word,
 	};
 	_split_fields(fields, &buf, word, false, &data);
 	if (!data.in_ifs) {
-		buffer_append_char(&buf, '\0');
-		char *str = buffer_steal(&buf);
+		mrsh_buffer_append_char(&buf, '\0');
+		char *str = mrsh_buffer_steal(&buf);
 		mrsh_array_add(fields, str);
 	}
-	buffer_finish(&buf);
+	mrsh_buffer_finish(&buf);
 
 	free(ifs_non_space);
 }

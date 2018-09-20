@@ -1,6 +1,7 @@
 #define _POSIX_C_SOURCE 200809L
 #include <assert.h>
 #include <ctype.h>
+#include <mrsh/buffer.h>
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdio.h>
@@ -8,7 +9,6 @@
 #include <string.h>
 
 #include "ast.h"
-#include "buffer.h"
 #include "parser.h"
 
 static const char *operator_str(enum symbol_name sym) {
@@ -102,7 +102,7 @@ static void apply_aliases(struct mrsh_parser *state) {
 		size_t trailing_len = state->buf.len - alias_len;
 		size_t repl_len = strlen(repl);
 		if (repl_len > alias_len) {
-			buffer_reserve(&state->buf, repl_len - alias_len);
+			mrsh_buffer_reserve(&state->buf, repl_len - alias_len);
 		}
 		memmove(&state->buf.data[repl_len], &state->buf.data[alias_len],
 			state->buf.len - alias_len);
@@ -997,21 +997,21 @@ static struct mrsh_command_list *list(struct mrsh_parser *state) {
  * `buf`.
  */
 static void push_buffer_word_string(struct mrsh_array *children,
-		struct buffer *buf) {
+		struct mrsh_buffer *buf) {
 	if (buf->len == 0) {
 		return;
 	}
 
-	buffer_append_char(buf, '\0');
+	mrsh_buffer_append_char(buf, '\0');
 
-	char *data = buffer_steal(buf);
+	char *data = mrsh_buffer_steal(buf);
 	struct mrsh_word_string *ws = mrsh_word_string_create(data, false);
 	mrsh_array_add(children, &ws->word);
 }
 
 static struct mrsh_word *here_document_line(struct mrsh_parser *state) {
 	struct mrsh_array children = {0};
-	struct buffer buf = {0};
+	struct mrsh_buffer buf = {0};
 
 	while (true) {
 		char c = parser_peek_char(state);
@@ -1052,11 +1052,11 @@ static struct mrsh_word *here_document_line(struct mrsh_parser *state) {
 		}
 
 		parser_read_char(state);
-		buffer_append_char(&buf, c);
+		mrsh_buffer_append_char(&buf, c);
 	}
 
 	push_buffer_word_string(&children, &buf);
-	buffer_finish(&buf);
+	mrsh_buffer_finish(&buf);
 
 	if (children.len == 1) {
 		struct mrsh_word *word = children.data[0];
@@ -1097,7 +1097,7 @@ static bool expect_here_document(struct mrsh_parser *state,
 
 	state->continuation_line = true;
 
-	struct buffer buf = {0};
+	struct mrsh_buffer buf = {0};
 	while (true) {
 		buf.len = 0;
 		while (true) {
@@ -1106,9 +1106,9 @@ static bool expect_here_document(struct mrsh_parser *state,
 				break;
 			}
 
-			buffer_append_char(&buf, parser_read_char(state));
+			mrsh_buffer_append_char(&buf, parser_read_char(state));
 		}
-		buffer_append_char(&buf, '\0');
+		mrsh_buffer_append_char(&buf, '\0');
 
 		const char *line = buf.data;
 		if (trim_tabs) {
@@ -1140,7 +1140,7 @@ static bool expect_here_document(struct mrsh_parser *state,
 
 		mrsh_array_add(&redir->here_document, word);
 	}
-	buffer_finish(&buf);
+	mrsh_buffer_finish(&buf);
 
 	return true;
 }

@@ -1,6 +1,7 @@
 #define _POSIX_C_SOURCE 200809L
 #include <assert.h>
 #include <ctype.h>
+#include <mrsh/buffer.h>
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdio.h>
@@ -8,7 +9,6 @@
 #include <string.h>
 
 #include "ast.h"
-#include "buffer.h"
 #include "parser.h"
 
 // Keep sorted from the longest to the shortest
@@ -46,7 +46,6 @@ const char *keywords[] = {
 	"{",
 	"}",
 	"!",
-
 	"in",
 };
 
@@ -66,8 +65,8 @@ struct mrsh_parser *mrsh_parser_create(FILE *f) {
 
 struct mrsh_parser *mrsh_parser_create_from_buffer(const char *buf, size_t len) {
 	struct mrsh_parser *state = parser_create();
-	buffer_append(&state->buf, buf, len);
-	buffer_append_char(&state->buf, '\0');
+	mrsh_buffer_append(&state->buf, buf, len);
+	mrsh_buffer_append_char(&state->buf, '\0');
 	return state;
 }
 
@@ -75,7 +74,7 @@ void mrsh_parser_destroy(struct mrsh_parser *state) {
 	if (state == NULL) {
 		return;
 	}
-	buffer_finish(&state->buf);
+	mrsh_buffer_finish(&state->buf);
 	free(state->error.msg);
 	free(state);
 }
@@ -83,12 +82,12 @@ void mrsh_parser_destroy(struct mrsh_parser *state) {
 size_t parser_peek(struct mrsh_parser *state, char *buf, size_t size) {
 	if (state->f != NULL && size > state->buf.len) {
 		size_t n_more = size - state->buf.len;
-		char *dst = buffer_reserve(&state->buf, n_more);
+		char *dst = mrsh_buffer_reserve(&state->buf, n_more);
 		size_t n_read = fread(dst, 1, n_more, state->f);
 		state->buf.len += n_read;
 		if (n_read < n_more) {
 			if (feof(state->f)) {
-				buffer_append_char(&state->buf, '\0');
+				mrsh_buffer_append_char(&state->buf, '\0');
 				size = state->buf.len;
 			} else {
 				// TODO: better error handling

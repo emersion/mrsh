@@ -1,6 +1,7 @@
 #define _POSIX_C_SOURCE 200809L
 #include <assert.h>
 #include <errno.h>
+#include <mrsh/buffer.h>
 #include <mrsh/parser.h>
 #include <stdio.h>
 #include <stdio.h>
@@ -9,7 +10,6 @@
 #include <sys/mman.h>
 #include <unistd.h>
 
-#include "buffer.h"
 #include "builtin.h"
 #include "shell/process.h"
 #include "shell/shm.h"

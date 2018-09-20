@@ -2,8 +2,8 @@
 #define _PARSER_H
 
 #include <stdio.h>
+#include <mrsh/buffer.h>
 #include <mrsh/parser.h>
-#include "buffer.h"
 
 enum symbol_name {
 	EOF_TOKEN,
@@ -43,7 +43,7 @@ extern const size_t keywords_len;
 struct mrsh_parser {
 	FILE *f; // can be NULL
 
-	struct buffer buf;
+	struct mrsh_buffer buf;
 	struct mrsh_position pos;
 
 	struct {

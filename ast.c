@@ -1,10 +1,10 @@
 #include <assert.h>
+#include <mrsh/buffer.h>
 #include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
 
 #include "ast.h"
-#include "buffer.h"
 
 bool mrsh_position_valid(const struct mrsh_position *pos) {
 	return pos->line > 0;
@@ -570,11 +570,11 @@ void mrsh_command_range(struct mrsh_command *cmd, struct mrsh_position *begin,
 	assert(false);
 }
 
-static void word_str(struct mrsh_word *word, struct buffer *buf) {
+static void word_str(struct mrsh_word *word, struct mrsh_buffer *buf) {
 	switch (word->type) {
 	case MRSH_WORD_STRING:;
 		struct mrsh_word_string *ws = mrsh_word_get_string(word);
-		buffer_append(buf, ws->str, strlen(ws->str));
+		mrsh_buffer_append(buf, ws->str, strlen(ws->str));
 		return;
 	case MRSH_WORD_PARAMETER:
 	case MRSH_WORD_COMMAND:
@@ -591,8 +591,8 @@ static void word_str(struct mrsh_word *word, struct buffer *buf) {
 }
 
 char *mrsh_word_str(struct mrsh_word *word) {
-	struct buffer buf = {0};
+	struct mrsh_buffer buf = {0};
 	word_str(word, &buf);
-	buffer_append_char(&buf, '\0');
-	return buffer_steal(&buf);
+	mrsh_buffer_append_char(&buf, '\0');
+	return mrsh_buffer_steal(&buf);
 }

@@ -12,7 +12,7 @@ tasks:
       CC=clang meson build-clang
   - gcc: |
       cd mrsh
-      ninja -C build-gcc
+      ninja -C build-gcc test
   - clang: |
       cd mrsh
-      ninja -C build-clang
+      ninja -C build-clang test

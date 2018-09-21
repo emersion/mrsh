@@ -75,7 +75,7 @@ mrsh = declare_dependency(
 	include_directories: mrsh_inc,
 )
 
-executable(
+mrsh_exe = executable(
 	'mrsh',
 	files([
 		'main.c',
@@ -91,6 +91,8 @@ executable(
 	]),
 	dependencies: [mrsh],
 )
+
+subdir('test')
 
 pkgconfig = import('pkgconfig')
 pkgconfig.generate(

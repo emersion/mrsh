@@ -20,8 +20,10 @@ static const struct builtin builtins[] = {
 	{ "cd", builtin_cd, false },
 	{ "eval", builtin_eval, true },
 	{ "exit", builtin_exit, true },
+	{ "false", builtin_false, false },
 	{ "set", builtin_set, true },
 	{ "times", builtin_times, true },
+	{ "true", builtin_true, false },
 };
 
 static int builtin_compare(const void *_a, const void *_b) {

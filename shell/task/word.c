@@ -97,7 +97,7 @@ static const char *parameter_get_value(struct mrsh_state *state, char *name) {
 	} else if (strcmp(name, "*") == 0) {
 		// TODO
 	} else if (strcmp(name, "#") == 0) {
-		sprintf(value, "%d", state->argc);
+		sprintf(value, "%d", state->argc - 1);
 		return value;
 	} else if (strcmp(name, "?") == 0) {
 		sprintf(value, "%d", state->last_status);

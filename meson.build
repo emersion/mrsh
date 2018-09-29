@@ -39,6 +39,7 @@ lib_mrsh = library(
 		'builtin/eval.c',
 		'builtin/exit.c',
 		'builtin/set.c',
+		'builtin/shift.c',
 		'builtin/source.c',
 		'builtin/times.c',
 		'builtin/true.c',

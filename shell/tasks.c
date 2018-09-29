@@ -5,8 +5,18 @@
 #include "shell/task.h"
 #include "shell/tasks.h"
 
+struct mrsh_simple_command *copy_simple_command(
+		const struct mrsh_simple_command *sc) {
+	struct mrsh_command *cmd = mrsh_command_copy(&sc->command);
+	return mrsh_command_get_simple_command(cmd);
+}
+
 struct task *task_for_simple_command(struct mrsh_simple_command *sc) {
 	struct task *task_list = task_list_create();
+
+	// Copy the command from the AST, because during expansion and substitution
+	// we'll mutate the tree
+	sc = copy_simple_command(sc);
 
 	for (size_t i = 0; i < sc->assignments.len; ++i) {
 		struct mrsh_assignment *assign = sc->assignments.data[i];

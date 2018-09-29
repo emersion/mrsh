@@ -25,6 +25,7 @@ struct task_command {
 
 static void task_command_destroy(struct task *task) {
 	struct task_command *tc = (struct task_command *)task;
+	mrsh_command_destroy(&tc->sc->command);
 	for (size_t i = 0; i < tc->args.len; ++i) {
 		free(tc->args.data[i]);
 	}

@@ -55,6 +55,10 @@ void task_destroy(struct task *task);
 int task_poll(struct task *task, struct context *ctx);
 int task_run(struct task *task, struct context *ctx);
 
+/**
+ * Creates a task executing the provided simple command. The simple command will
+ * be mutated during expansion and substitution.
+ */
 struct task *task_command_create(struct mrsh_simple_command *sc);
 
 struct task *task_list_create(void);

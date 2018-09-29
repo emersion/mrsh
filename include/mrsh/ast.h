@@ -382,6 +382,7 @@ void mrsh_command_destroy(struct mrsh_command *cmd);
 void mrsh_node_destroy(struct mrsh_node *node);
 void mrsh_command_list_destroy(struct mrsh_command_list *l);
 void mrsh_program_destroy(struct mrsh_program *prog);
+
 struct mrsh_word_string *mrsh_word_string_create(char *str,
 	bool single_quoted);
 struct mrsh_word_parameter *mrsh_word_parameter_create(char *name,
@@ -390,10 +391,12 @@ struct mrsh_word_command *mrsh_word_command_create(struct mrsh_program *prog,
 	bool back_quoted);
 struct mrsh_word_list *mrsh_word_list_create(struct mrsh_array *children,
 	bool double_quoted);
-struct mrsh_word_string *mrsh_word_get_string(struct mrsh_word *word);
-struct mrsh_word_parameter *mrsh_word_get_parameter(struct mrsh_word *word);
-struct mrsh_word_command *mrsh_word_get_command(struct mrsh_word *word);
-struct mrsh_word_list *mrsh_word_get_list(struct mrsh_word *word);
+struct mrsh_word_string *mrsh_word_get_string(const struct mrsh_word *word);
+struct mrsh_word_parameter *mrsh_word_get_parameter(
+	const struct mrsh_word *word);
+struct mrsh_word_command *mrsh_word_get_command(const struct mrsh_word *word);
+struct mrsh_word_list *mrsh_word_get_list(const struct mrsh_word *word);
+
 struct mrsh_simple_command *mrsh_simple_command_create(struct mrsh_word *name,
 	struct mrsh_array *arguments, struct mrsh_array *io_redirects,
 	struct mrsh_array *assignments);
@@ -410,22 +413,28 @@ struct mrsh_case_clause *mrsh_case_clause_create(struct mrsh_word *word,
 struct mrsh_function_definition *mrsh_function_definition_create(char *name,
 	struct mrsh_command *body);
 struct mrsh_simple_command *mrsh_command_get_simple_command(
-	struct mrsh_command *cmd);
-struct mrsh_brace_group *mrsh_command_get_brace_group(struct mrsh_command *cmd);
-struct mrsh_subshell *mrsh_command_get_subshell(struct mrsh_command *cmd);
-struct mrsh_if_clause *mrsh_command_get_if_clause(struct mrsh_command *cmd);
-struct mrsh_for_clause *mrsh_command_get_for_clause(struct mrsh_command *cmd);
-struct mrsh_loop_clause *mrsh_command_get_loop_clause(struct mrsh_command *cmd);
-struct mrsh_case_clause *mrsh_command_get_case_clause(struct mrsh_command *cmd);
+	const struct mrsh_command *cmd);
+struct mrsh_brace_group *mrsh_command_get_brace_group(
+	const struct mrsh_command *cmd);
+struct mrsh_subshell *mrsh_command_get_subshell(
+	const struct mrsh_command *cmd);
+struct mrsh_if_clause *mrsh_command_get_if_clause(
+	const struct mrsh_command *cmd);
+struct mrsh_for_clause *mrsh_command_get_for_clause(
+	const struct mrsh_command *cmd);
+struct mrsh_loop_clause *mrsh_command_get_loop_clause(
+	const struct mrsh_command *cmd);
+struct mrsh_case_clause *mrsh_command_get_case_clause(
+	const struct mrsh_command *cmd);
 struct mrsh_function_definition *mrsh_command_get_function_definition(
-	struct mrsh_command *cmd);
+	const struct mrsh_command *cmd);
 
 struct mrsh_pipeline *mrsh_pipeline_create(struct mrsh_array *commands,
 	bool bang);
 struct mrsh_binop *mrsh_binop_create(enum mrsh_binop_type type,
 	struct mrsh_node *left, struct mrsh_node *right);
-struct mrsh_pipeline *mrsh_node_get_pipeline(struct mrsh_node *node);
-struct mrsh_binop *mrsh_node_get_binop(struct mrsh_node *node);
+struct mrsh_pipeline *mrsh_node_get_pipeline(const struct mrsh_node *node);
+struct mrsh_binop *mrsh_node_get_binop(const struct mrsh_node *node);
 
 void mrsh_word_range(struct mrsh_word *word, struct mrsh_position *begin,
 	struct mrsh_position *end);
@@ -433,5 +442,16 @@ void mrsh_command_range(struct mrsh_command *cmd, struct mrsh_position *begin,
 	struct mrsh_position *end);
 char *mrsh_word_str(struct mrsh_word *word);
 void mrsh_program_print(struct mrsh_program *prog);
+
+struct mrsh_word *mrsh_word_copy(const struct mrsh_word *word);
+struct mrsh_io_redirect *mrsh_io_redirect_copy(
+	const struct mrsh_io_redirect *redir);
+struct mrsh_assignment *mrsh_assignment_copy(
+	const struct mrsh_assignment *assign);
+struct mrsh_command *mrsh_command_copy(const struct mrsh_command *cmd);
+struct mrsh_node *mrsh_node_copy(const struct mrsh_node *node);
+struct mrsh_command_list *mrsh_command_list_copy(
+	const struct mrsh_command_list *l);
+struct mrsh_program *mrsh_program_copy(const struct mrsh_program *prog);
 
 #endif

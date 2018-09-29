@@ -27,6 +27,7 @@ static const struct builtin builtins[] = {
 	{ "shift", builtin_shift, true },
 	{ "times", builtin_times, true },
 	{ "true", builtin_true, false },
+	{ "unset", builtin_unset, true },
 };
 
 static int builtin_compare(const void *_a, const void *_b) {

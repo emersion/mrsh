@@ -45,6 +45,7 @@ lib_mrsh = library(
 		'builtin/times.c',
 		'builtin/true.c',
 		'builtin/false.c',
+		'builtin/unset.c',
 		'hashtable.c',
 		'parser/parser.c',
 		'parser/program.c',

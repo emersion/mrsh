@@ -128,6 +128,10 @@ int main(int argc, char *argv[]) {
 		mrsh_program_destroy(prog);
 	}
 
+	if (state.interactive) {
+		printf("\n");
+	}
+
 	mrsh_parser_destroy(parser);
 	mrsh_state_finish(&state);
 	fclose(state.input);

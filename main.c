@@ -88,7 +88,9 @@ int main(int argc, char *argv[]) {
 	char *prev_ppid = mrsh_hashtable_set(&state.variables, "PPID", ppid_str);
 	free(prev_ppid);
 
-	source_profile(&state);
+	if (state.interactive && !(state.options & MRSH_OPT_NOEXEC)) {
+		source_profile(&state);
+	}
 
 	// TODO: set PWD
 

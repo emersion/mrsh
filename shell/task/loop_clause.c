@@ -25,7 +25,7 @@ static void task_loop_clause_destroy(struct task *task) {
 static int task_loop_clause_poll(struct task *task, struct context *ctx) {
 	struct task_loop_clause *tlc = (struct task_loop_clause *)task;
 
-	while (true) {
+	while (ctx->state->exit == -1) {
 		if (tlc->tasks.condition) {
 			int condition_status = task_poll(tlc->tasks.condition, ctx);
 			if (condition_status < 0) {
@@ -50,6 +50,8 @@ static int task_loop_clause_poll(struct task *task, struct context *ctx) {
 			tlc->tasks.body = task_for_command_list_array(tlc->ast.body);
 		}
 	}
+
+	return ctx->state->exit;
 }
 
 static const struct task_interface task_loop_clause_impl = {

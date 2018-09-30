@@ -87,6 +87,7 @@ int mrsh_run_program(struct mrsh_state *state, struct mrsh_program *prog) {
 int mrsh_run_word(struct mrsh_state *state, struct mrsh_word **word) {
 	struct task *task = task_word_create(word, TILDE_EXPANSION_NAME);
 
+	int last_status = state->last_status;
 	struct context ctx = {
 		.state = state,
 		.stdin_fileno = -1,
@@ -94,5 +95,6 @@ int mrsh_run_word(struct mrsh_state *state, struct mrsh_word **word) {
 	};
 	int ret = task_run(task, &ctx);
 	task_destroy(task);
+	state->last_status = last_status;
 	return ret;
 }

@@ -1,16 +1,16 @@
 #!/bin/sh
-
 dir=$(dirname "$0")
+testcase="$dir/$1"
 
-mrsh="$1"
-ref="$2"
-testcase="$dir/$3"
-
-mrsh_out=$("$mrsh" "$testcase")
+env
+echo >&2 "Running with mrsh"
+mrsh_out=$("$MRSH" "$testcase")
 mrsh_ret=$?
-ref_out=$("$ref" "$testcase")
+echo >&2 "Running with reference shell"
+ref_out=$("$REF_SH" "$testcase")
 ref_ret=$?
-if [ "$mrsh_ret" != "$ref_ret" ] || [ "$mrsh_out" != "$ref_out" ] ; then
+if [ $mrsh_ret -ne $ref_ret ] || [ "$mrsh_out" != "$ref_out" ]
+then
 	echo >&2 "$testcase: mismatch"
 	echo >&2 ""
 	echo >&2 "mrsh: $mrsh_ret"

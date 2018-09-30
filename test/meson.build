@@ -1,8 +1,9 @@
-test_exe = find_program('./test.sh')
-ref_exe = find_program('sh', required: false)
+harness = find_program('./harness.sh')
+ref_sh = find_program('sh', required: false)
 
 test_files = [
-	'if.sh',
+	'conformance/if.sh',
+
 	'loop.sh',
 	'subshell.sh',
 	'word.sh',
@@ -11,7 +12,11 @@ test_files = [
 foreach test_file : test_files
 	test(
 		test_file,
-		test_exe,
-		args: [mrsh_exe.full_path(), ref_exe.path(), 'data/'+test_file],
+		harness,
+		env: [
+			'MRSH=@0@'.format(mrsh_exe.full_path()),
+			'REF_SH=@0@'.format(ref_sh.path()),
+		],
+		args: [test_file],
 	)
 endforeach

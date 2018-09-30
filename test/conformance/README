@@ -1,0 +1,3 @@
+Tests in this directory test each specified behavior of a feature in the POSIX
+specification. If mrsh passes such a test, it is considered compliant with the
+appropriate part of the spec.

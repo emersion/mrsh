@@ -32,6 +32,9 @@ static bool task_subshell_start(struct task_subshell *ts, struct context *ctx) {
 			exit(127);
 		}
 
+		if (ctx->state->exit >= 0) {
+			exit(ctx->state->exit);
+		}
 		exit(ret);
 	} else {
 		process_init(&ts->process, pid);

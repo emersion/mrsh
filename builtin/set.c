@@ -83,49 +83,17 @@ static void argv_free(int argc, char **argv) {
 	free(argv);
 }
 
-struct collect_var {
-	const char *key, *value;
-};
-
-struct collect_iter {
-	size_t len;
-	size_t count;
-	struct collect_var *values;
-};
-
-static void collect_vars(const char *key, void *_var, void *user_data) {
-	const struct mrsh_variable *var = _var;
-	struct collect_iter *iter = user_data;
-	if ((iter->count + 1) * sizeof(struct collect_var) >= iter->len) {
-		iter->len *= 2;
-		iter->values = realloc(iter->values,
-				iter->len * sizeof(struct collect_var));
-	}
-	iter->values[iter->count].key = key;
-	iter->values[iter->count++].value = var->value;
-}
-
-static int varcmp(const void *p1, const void *p2) {
-	const struct collect_var *v1 = p1;
-	const struct collect_var *v2 = p2;
-	return strcmp(v1->key, v2->key);
-}
-
 static int set(struct mrsh_state *state, int argc, char *argv[], bool cmdline) {
 	if (argc == 1 && !cmdline) {
-		struct collect_iter iter = {
-			.len = 64,
-			.count = 0,
-			.values = malloc(64 * sizeof(struct collect_var)),
-		};
-		mrsh_hashtable_for_each(&state->variables, collect_vars, &iter);
-		qsort(iter.values, iter.count, sizeof(struct collect_var), varcmp);
-		for (size_t i = 0; i < iter.count; ++i) {
-			printf("%s=", iter.values[i].key);
-			print_escaped(iter.values[i].value);
+		size_t count;
+		struct mrsh_collect_var *vars = mrsh_collect_vars(
+				state, MRSH_VAR_ATTRIB_NONE, &count);
+		for (size_t i = 0; i < count; ++i) {
+			printf("%s=", vars[i].key);
+			print_escaped(vars[i].value);
 			printf("\n");
 		}
-		free(iter.values);
+		free(vars);
 		return EXIT_SUCCESS;
 	}
 

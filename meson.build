@@ -38,6 +38,7 @@ lib_mrsh = library(
 		'builtin/colon.c',
 		'builtin/eval.c',
 		'builtin/exit.c',
+		'builtin/export.c',
 		'builtin/set.c',
 		'builtin/shift.c',
 		'builtin/source.c',

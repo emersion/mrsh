@@ -93,8 +93,8 @@ struct collect_iter {
 	struct collect_var *values;
 };
 
-static void collect_vars(const char *key, void *_value, void *user_data) {
-	const char *value = _value;
+static void collect_vars(const char *key, void *_var, void *user_data) {
+	const struct mrsh_variable *var = _var;
 	struct collect_iter *iter = user_data;
 	if ((iter->count + 1) * sizeof(struct collect_var) >= iter->len) {
 		iter->len *= 2;
@@ -102,7 +102,7 @@ static void collect_vars(const char *key, void *_value, void *user_data) {
 				iter->len * sizeof(struct collect_var));
 	}
 	iter->values[iter->count].key = key;
-	iter->values[iter->count++].value = value;
+	iter->values[iter->count++].value = var->value;
 }
 
 static int varcmp(const void *p1, const void *p2) {

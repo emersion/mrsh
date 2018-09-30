@@ -57,6 +57,17 @@ enum mrsh_option {
 	MRSH_OPT_INTERACTIVE = MRSH_OPT_MONITOR,
 };
 
+enum mrsh_variable_attrib {
+	MRSH_VAR_ATTRIB_NONE = 0,
+	MRSH_VAR_ATTRIB_EXPORT = 1 << 0,
+	MRSH_VAR_ATTRIB_READONLY = 1 << 1,
+};
+
+struct mrsh_variable {
+	char *value;
+	uint32_t attribs;
+};
+
 struct mrsh_state {
 	int exit;
 	uint32_t options; // enum mrsh_option
@@ -64,13 +75,18 @@ struct mrsh_state {
 	char **argv;
 	int argc;
 	bool interactive;
-	struct mrsh_hashtable variables; // char *
+	struct mrsh_hashtable variables; // mrsh_variable *
 	struct mrsh_hashtable aliases; // char *
 	int last_status;
 };
 
 void mrsh_state_init(struct mrsh_state *state);
 void mrsh_state_finish(struct mrsh_state *state);
+void mrsh_env_set(struct mrsh_state *state,
+		const char *key, const char *value, uint32_t attribs);
+void mrsh_env_unset(struct mrsh_state *state, const char *key);
+const char *mrsh_env_get(struct mrsh_state *state,
+		const char *key, uint32_t *attribs);
 int mrsh_run_program(struct mrsh_state *state, struct mrsh_program *prog);
 int mrsh_run_word(struct mrsh_state *state, struct mrsh_word **word);
 

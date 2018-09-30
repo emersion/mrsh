@@ -25,7 +25,7 @@ char *expand_ps1(struct mrsh_state *state, const char *ps1) {
 }
 
 static void print_ps1(struct mrsh_state *state) {
-	const char *ps1 = mrsh_hashtable_get(&state->variables, "PS1");
+	const char *ps1 = mrsh_env_get(state, "PS1", NULL);
 	if (ps1 != NULL) {
 		char *expanded_ps1 = expand_ps1(state, ps1);
 		// TODO: Replace ! with next history ID
@@ -72,21 +72,17 @@ int main(int argc, char *argv[]) {
 		char *eql = strchr(environ[i], '=');
 		size_t klen = eql - environ[i];
 		char *key = strndup(environ[i], klen);
-		char *val = strdup(&eql[1]);
-		mrsh_hashtable_set(&state.variables, key, val);
+		char *val = &eql[1];
+		mrsh_env_set(&state, key, val, MRSH_VAR_ATTRIB_EXPORT);
 		free(key);
 	}
 
-	char *prev_ifs =
-		mrsh_hashtable_set(&state.variables, "IFS", strdup(" \t\n"));
-	free(prev_ifs);
+	mrsh_env_set(&state, "IFS", " \t\n", MRSH_VAR_ATTRIB_NONE);
 
 	pid_t ppid = getppid();
-	size_t ppid_len = 24;
-	char *ppid_str = malloc(ppid_len * sizeof(char));
-	snprintf(ppid_str, ppid_len, "%d", ppid);
-	char *prev_ppid = mrsh_hashtable_set(&state.variables, "PPID", ppid_str);
-	free(prev_ppid);
+	char ppid_str[24];
+	snprintf(ppid_str, sizeof(ppid_str), "%d", ppid);
+	mrsh_env_set(&state, "PPID", ppid_str, MRSH_VAR_ATTRIB_NONE);
 
 	if (state.interactive && !(state.options & MRSH_OPT_NOEXEC)) {
 		source_profile(&state);

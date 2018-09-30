@@ -13,9 +13,8 @@ static int task_assignment_poll(struct task *task, struct context *ctx) {
 	for (size_t i = 0; i < ta->assignments->len; ++i) {
 		struct mrsh_assignment *assign = ta->assignments->data[i];
 		char *new_value = mrsh_word_str(assign->value);
-		char *old_value = mrsh_hashtable_set(&ctx->state->variables,
-			assign->name, new_value);
-		free(old_value);
+		// TODO: MRSH_OPT_ALLEXPORT
+		mrsh_env_set(ctx->state, assign->name, new_value, MRSH_VAR_ATTRIB_NONE);
 	}
 
 	return 0;

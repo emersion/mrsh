@@ -11,9 +11,8 @@
 
 // usage: cd [-|directory]
 
-static int cd(struct mrsh_state *state, char *path) {
-	char *oldPWD = mrsh_hashtable_get(&state->variables, "PWD");
-	char *oldOLDPWD = mrsh_hashtable_get(&state->variables, "OLDPWD");
+static int cd(struct mrsh_state *state, const char *path) {
+	const char *oldPWD = mrsh_env_get(state, "PWD", NULL);
 	if (chdir(path) != 0) {
 		// TODO make better error messages
 		fprintf(stderr, "cd: %s\n", strerror(errno));
@@ -25,9 +24,8 @@ static int cd(struct mrsh_state *state, char *path) {
 			"is too long\n");
 		return EXIT_FAILURE;
 	}
-	mrsh_hashtable_set(&state->variables, "PWD", strdup(cwd));
-	mrsh_hashtable_set(&state->variables, "OLDPWD", oldPWD);
-	free(oldOLDPWD);
+	mrsh_env_set(state, "PWD", cwd, MRSH_VAR_ATTRIB_EXPORT);
+	mrsh_env_set(state, "OLDPWD", oldPWD, MRSH_VAR_ATTRIB_NONE);
 	return EXIT_SUCCESS;
 }
 
@@ -43,7 +41,7 @@ int builtin_cd(struct mrsh_state *state, int argc, char *argv[]) {
 		fprintf(stderr, "Too many args for cd\n");
 		return EXIT_FAILURE;
 	} else if (argc == 1) {
-		char *home = mrsh_hashtable_get(&state->variables, "HOME");
+		const char *home = mrsh_env_get(state, "HOME", NULL);
 		if (home && home[0] != '\0') {
 			return cd(state, home);
 		}
@@ -55,8 +53,8 @@ int builtin_cd(struct mrsh_state *state, int argc, char *argv[]) {
 	// `cd -`
 	if (strcmp(curpath, "-") == 0) {
 		// This case is special as we print `pwd` at the end
-		char *oldpwd = mrsh_hashtable_get(&state->variables, "OLDPWD");
-		char *pwd = mrsh_hashtable_get(&state->variables, "PWD");
+		const char *oldpwd = mrsh_env_get(state, "OLDPWD", NULL);
+		const char *pwd = mrsh_env_get(state, "PWD", NULL);
 		if (!oldpwd) {
 			fprintf(stderr, "cd: OLDPWD is not set\n");
 		}
@@ -64,19 +62,21 @@ int builtin_cd(struct mrsh_state *state, int argc, char *argv[]) {
 			fprintf(stderr, "cd: %s\n", strerror(errno));
 			return EXIT_FAILURE;
 		}
-		mrsh_hashtable_set(&state->variables, "PWD", oldpwd);
-		mrsh_hashtable_set(&state->variables, "OLDPWD", pwd);
+		char *_pwd = strdup(pwd);
+		mrsh_env_set(state, "PWD", oldpwd, MRSH_VAR_ATTRIB_EXPORT);
+		mrsh_env_set(state, "OLDPWD", _pwd, MRSH_VAR_ATTRIB_NONE);
+		free(_pwd);
 		puts(oldpwd);
 		return EXIT_SUCCESS;
 	}
 	// $CDPATH
 	if (curpath[0] != '/' && strncmp(curpath, "./", 2) != 0 &&
 			strncmp(curpath, "../", 3) != 0) {
-		char *cdpath = mrsh_hashtable_get(&state->variables, "CDPATH");
+		const char *cdpath = mrsh_env_get(state, "CDPATH", NULL);
+		char *c = NULL;
 		if (cdpath) {
-			cdpath = strdup(cdpath);
+			c = strdup(cdpath);
 		}
-		char *c = cdpath;
 		while (c != NULL) {
 			char *next = strchr(c, ':');
 			char *slash = strrchr(c, '/');
@@ -106,12 +106,11 @@ int builtin_cd(struct mrsh_state *state, int argc, char *argv[]) {
 				continue;
 			}
 			if (isdir(path)) {
-				free(cdpath);
 				return cd(state, path);
 			}
 			c = next;
 		}
-		free(cdpath);
+		free(c);
 	}
 	return cd(state, curpath);
 }

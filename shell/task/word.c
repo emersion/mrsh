@@ -116,7 +116,7 @@ static const char *parameter_get_value(struct mrsh_state *state, char *name) {
 		return state->argv[lvalue];
 	}
 	// User-set cases
-	return (const char *)mrsh_hashtable_get(&state->variables, name);
+	return (const char *)mrsh_env_get(state, name, NULL);
 }
 
 static int task_word_poll(struct task *task, struct context *ctx) {

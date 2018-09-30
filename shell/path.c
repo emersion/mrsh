@@ -13,8 +13,12 @@ const char *expand_path(struct mrsh_state *state, const char *file, bool exec) {
 		return file;
 	}
 	static char path[PATH_MAX + 1];
-	char *pathe = mrsh_hashtable_get(&state->variables, "PATH");
-	if (!pathe || !(pathe = strdup(pathe))) {
+	const char *_pathe = mrsh_env_get(state, "PATH", NULL);
+	if (!_pathe) {
+		return NULL;
+	}
+	char *pathe = strdup(_pathe);
+	if (!pathe) {
 		return NULL;
 	}
 	char *basedir = strtok(pathe, ":");

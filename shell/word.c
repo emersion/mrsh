@@ -29,7 +29,7 @@ void expand_tilde(struct mrsh_state *state, char **str_ptr) {
 
 	const char *dir = NULL;
 	if (name == NULL) {
-		dir = mrsh_hashtable_get(&state->variables, "HOME");
+		dir = mrsh_env_get(state, "HOME", NULL);
 	} else {
 		struct passwd *pw = getpwnam(name);
 		if (pw != NULL) {

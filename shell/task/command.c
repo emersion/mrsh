@@ -88,7 +88,7 @@ static int create_here_document_file(struct mrsh_array *lines) {
 static void get_args(struct mrsh_array *args, struct mrsh_simple_command *sc,
 		struct context *ctx) {
 	struct mrsh_array fields = {0};
-	const char *ifs = mrsh_hashtable_get(&ctx->state->variables, "IFS");
+	const char *ifs = mrsh_env_get(ctx->state, "IFS", NULL);
 	split_fields(&fields, sc->name, ifs);
 	for (size_t i = 0; i < sc->arguments.len; ++i) {
 		struct mrsh_word *word = sc->arguments.data[i];

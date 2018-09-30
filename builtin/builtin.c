@@ -22,6 +22,7 @@ static const struct builtin builtins[] = {
 	{ "exit", builtin_exit, true },
 	{ "export", builtin_export, true },
 	{ "false", builtin_false, false },
+	{ "readonly", builtin_export, true },
 	{ "set", builtin_set, true },
 	{ "shift", builtin_shift, true },
 	{ "times", builtin_times, true },

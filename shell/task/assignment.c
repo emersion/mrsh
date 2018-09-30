@@ -17,6 +17,14 @@ static int task_assignment_poll(struct task *task, struct context *ctx) {
 		if ((ctx->state->options & MRSH_OPT_ALLEXPORT)) {
 			attribs = MRSH_VAR_ATTRIB_EXPORT;
 		}
+		uint32_t prev_attribs = 0;
+		if (mrsh_env_get(ctx->state, assign->name, &prev_attribs) != NULL
+				&& (prev_attribs & MRSH_VAR_ATTRIB_READONLY)) {
+			fprintf(stderr, "cannot modify readonly variable %s\n",
+					assign->name);
+			task->status = EXIT_FAILURE;
+			return TASK_STATUS_ERROR;
+		}
 		mrsh_env_set(ctx->state, assign->name, new_value, attribs);
 	}
 

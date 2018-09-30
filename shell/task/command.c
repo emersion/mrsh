@@ -145,6 +145,13 @@ static bool task_process_start(struct task_command *tc, struct context *ctx) {
 	} else if (pid == 0) {
 		for (size_t i = 0; i < sc->assignments.len; ++i) {
 			struct mrsh_assignment *assign = sc->assignments.data[i];
+			uint32_t prev_attribs;
+			if (mrsh_env_get(ctx->state, assign->name, &prev_attribs)
+					&& (prev_attribs & MRSH_VAR_ATTRIB_READONLY)) {
+				fprintf(stderr, "cannot modify readonly variable %s\n",
+						assign->name);
+				return false;
+			}
 			char *value = mrsh_word_str(assign->value);
 			setenv(assign->name, value, true);
 			free(value);

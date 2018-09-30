@@ -4,6 +4,7 @@ ref_exe = find_program('sh', required: false)
 test_files = [
 	'if.sh',
 	'loop.sh',
+	'subshell.sh',
 	'word.sh',
 ]
 

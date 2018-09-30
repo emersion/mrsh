@@ -122,6 +122,13 @@ static int task_builtin_poll(struct task *task, struct context *ctx) {
 	return mrsh_run_builtin(ctx->state, argc, argv);
 }
 
+static void populate_env_iterator(const char *key, void *_var, void *_) {
+	struct mrsh_variable *var = _var;
+	if ((var->attribs & MRSH_VAR_ATTRIB_EXPORT)) {
+		setenv(key, var->value, 1);
+	}
+}
+
 static bool task_process_start(struct task_command *tc, struct context *ctx) {
 	struct mrsh_simple_command *sc = tc->sc;
 	char **argv = (char **)tc->args.data;
@@ -142,6 +149,9 @@ static bool task_process_start(struct task_command *tc, struct context *ctx) {
 			setenv(assign->name, value, true);
 			free(value);
 		}
+
+		mrsh_hashtable_for_each(&ctx->state->variables,
+				populate_env_iterator, NULL);
 
 		if (ctx->stdin_fileno >= 0) {
 			dup2(ctx->stdin_fileno, STDIN_FILENO);

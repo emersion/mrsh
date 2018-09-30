@@ -74,6 +74,9 @@ static char **argv_dup(char *argv_0, int argc, char *argv[]) {
 }
 
 static void argv_free(int argc, char **argv) {
+	if (!argv) {
+		return;
+	}
 	for (int i = 0; i < argc; ++i) {
 		free(argv[i]);
 	}

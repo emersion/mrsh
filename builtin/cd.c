@@ -55,6 +55,10 @@ int builtin_cd(struct mrsh_state *state, int argc, char *argv[]) {
 		// This case is special as we print `pwd` at the end
 		const char *oldpwd = mrsh_env_get(state, "OLDPWD", NULL);
 		const char *pwd = mrsh_env_get(state, "PWD", NULL);
+		if (!pwd) {
+			fprintf(stderr, "cd: PWD is not set\n");
+			return EXIT_FAILURE;
+		}
 		if (!oldpwd) {
 			fprintf(stderr, "cd: OLDPWD is not set\n");
 			return EXIT_FAILURE;

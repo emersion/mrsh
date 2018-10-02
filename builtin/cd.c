@@ -24,8 +24,8 @@ static int cd(struct mrsh_state *state, const char *path) {
 			"is too long\n");
 		return EXIT_FAILURE;
 	}
-	mrsh_env_set(state, "PWD", cwd, MRSH_VAR_ATTRIB_EXPORT);
 	mrsh_env_set(state, "OLDPWD", oldPWD, MRSH_VAR_ATTRIB_NONE);
+	mrsh_env_set(state, "PWD", cwd, MRSH_VAR_ATTRIB_EXPORT);
 	return EXIT_SUCCESS;
 }
 
@@ -57,16 +57,17 @@ int builtin_cd(struct mrsh_state *state, int argc, char *argv[]) {
 		const char *pwd = mrsh_env_get(state, "PWD", NULL);
 		if (!oldpwd) {
 			fprintf(stderr, "cd: OLDPWD is not set\n");
+			return EXIT_FAILURE;
 		}
 		if (chdir(oldpwd) != 0) {
 			fprintf(stderr, "cd: %s\n", strerror(errno));
 			return EXIT_FAILURE;
 		}
 		char *_pwd = strdup(pwd);
+		puts(oldpwd);
 		mrsh_env_set(state, "PWD", oldpwd, MRSH_VAR_ATTRIB_EXPORT);
 		mrsh_env_set(state, "OLDPWD", _pwd, MRSH_VAR_ATTRIB_NONE);
 		free(_pwd);
-		puts(oldpwd);
 		return EXIT_SUCCESS;
 	}
 	// $CDPATH

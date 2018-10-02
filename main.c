@@ -88,7 +88,13 @@ int main(int argc, char *argv[]) {
 		source_profile(&state);
 	}
 
-	// TODO: set PWD
+	// TODO check if path is well-formed, has . or .., and handle symbolic links
+	const char *pwd = mrsh_env_get(&state, "PWD", NULL);
+	if (pwd == NULL || strlen(pwd) >= PATH_MAX) {
+		char cwd[PATH_MAX];
+		getcwd(cwd, PATH_MAX);
+		mrsh_env_set(&state, "PWD", cwd, MRSH_VAR_ATTRIB_EXPORT);
+	}
 
 	struct mrsh_parser *parser = mrsh_parser_create(state.input);
 	mrsh_parser_set_alias(parser, get_alias, &state);

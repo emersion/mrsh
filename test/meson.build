@@ -7,6 +7,7 @@ test_files = [
 	'loop.sh',
 	'subshell.sh',
 	'word.sh',
+	'for.sh',
 ]
 
 foreach test_file : test_files

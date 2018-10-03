@@ -86,6 +86,10 @@ struct task *task_for_loop_clause(struct mrsh_loop_clause *lc) {
 			lc->type == MRSH_LOOP_UNTIL);
 }
 
+struct task *task_for_for_clause(struct mrsh_for_clause *fc) {
+	return task_for_clause_create(fc->name, &fc->word_list, &fc->body);
+}
+
 struct task *task_for_command(struct mrsh_command *cmd) {
 	switch (cmd->type) {
 	case MRSH_SIMPLE_COMMAND:;
@@ -103,7 +107,9 @@ struct task *task_for_command(struct mrsh_command *cmd) {
 	case MRSH_LOOP_CLAUSE:;
 		struct mrsh_loop_clause *lc = mrsh_command_get_loop_clause(cmd);
 		return task_for_loop_clause(lc);
-	case MRSH_FOR_CLAUSE:
+	case MRSH_FOR_CLAUSE:;
+		struct mrsh_for_clause *fc = mrsh_command_get_for_clause(cmd);
+		return task_for_for_clause(fc);
 	case MRSH_CASE_CLAUSE:
 	case MRSH_FUNCTION_DEFINITION:
 		assert(false); // TODO: implement this

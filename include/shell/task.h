@@ -70,6 +70,9 @@ struct task *task_if_clause_create(struct task *condition, struct task *body,
 struct task *task_loop_clause_create(struct mrsh_array *condition,
 		struct mrsh_array *body, bool until);
 
+struct task *task_for_clause_create(char *name, struct mrsh_array* word_list,
+		struct mrsh_array* body);
+
 struct task *task_pipeline_create(void);
 void task_pipeline_add(struct task *task, struct task *child);
 

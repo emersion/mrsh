@@ -40,6 +40,7 @@ lib_mrsh = library(
 		'builtin/exit.c',
 		'builtin/export.c',
 		'builtin/pwd.c',
+		'builtin/read.c',
 		'builtin/set.c',
 		'builtin/shift.c',
 		'builtin/source.c',

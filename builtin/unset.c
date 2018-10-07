@@ -6,7 +6,7 @@
 #include <unistd.h>
 #include "builtin.h"
 
-static const char unset_usage[] = "unset: unset [-fv] name...\n";
+static const char unset_usage[] = "usage: unset [-fv] name...\n";
 
 int builtin_unset(struct mrsh_state *state, int argc, char *argv[]) {
 	int funcs = 0;

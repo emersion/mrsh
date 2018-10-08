@@ -933,9 +933,8 @@ static struct mrsh_pipeline *pipeline(struct mrsh_parser *state) {
 		linebreak(state);
 		struct mrsh_command *cmd = command(state);
 		if (cmd == NULL) {
-			// TODO: free commands
 			parser_set_error(state, "expected a command");
-			return NULL;
+			goto error_commands;
 		}
 		mrsh_array_add(&commands, cmd);
 	}
@@ -943,6 +942,13 @@ static struct mrsh_pipeline *pipeline(struct mrsh_parser *state) {
 	struct mrsh_pipeline *p = mrsh_pipeline_create(&commands, bang);
 	p->bang_pos = bang_pos;
 	return p;
+
+error_commands:
+	for (size_t i = 0; i < commands.len; ++i) {
+		mrsh_command_destroy((struct mrsh_command *)commands.data[i]);
+	}
+	mrsh_array_finish(&commands);
+	return NULL;
 }
 
 static struct mrsh_node *and_or(struct mrsh_parser *state) {

@@ -96,6 +96,8 @@ int main(int argc, char *argv[]) {
 		mrsh_env_set(&state, "PWD", cwd, MRSH_VAR_ATTRIB_EXPORT);
 	}
 	
+	mrsh_env_set(&state, "PS2", "> ", MRSH_VAR_ATTRIB_NONE);
+	
 	mrsh_env_set(&state, "OPTIND", "1", MRSH_VAR_ATTRIB_NONE);
 
 	struct mrsh_parser *parser = mrsh_parser_create(state.input);

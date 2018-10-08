@@ -14,6 +14,7 @@ int builtin_colon(struct mrsh_state *state, int argc, char *argv[]);
 int builtin_exit(struct mrsh_state *state, int argc, char *argv[]);
 int builtin_export(struct mrsh_state *state, int argc, char *argv[]);
 int builtin_eval(struct mrsh_state *state, int argc, char *argv[]);
+int builtin_getopts(struct mrsh_state *state, int argc, char *argv[]);
 int builtin_pwd(struct mrsh_state *state, int argc, char *argv[]);
 int builtin_read(struct mrsh_state *state, int argc, char *argv[]);
 int builtin_shift(struct mrsh_state *state, int argc, char *argv[]);

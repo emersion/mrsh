@@ -251,6 +251,9 @@ static struct mrsh_assignment *assignment_word(struct mrsh_parser *state) {
 	parser_read(state, NULL, 1);
 
 	struct mrsh_word *value = word(state, 0);
+	if (value == NULL) {
+		value = &mrsh_word_string_create(strdup(""), false)->word;
+	}
 
 	struct mrsh_assignment *assign = calloc(1, sizeof(struct mrsh_assignment));
 	assign->name = name;

@@ -95,6 +95,8 @@ int main(int argc, char *argv[]) {
 		getcwd(cwd, PATH_MAX);
 		mrsh_env_set(&state, "PWD", cwd, MRSH_VAR_ATTRIB_EXPORT);
 	}
+	
+	mrsh_env_set(&state, "OPTIND", "1", MRSH_VAR_ATTRIB_NONE);
 
 	struct mrsh_parser *parser = mrsh_parser_create(state.input);
 	mrsh_parser_set_alias(parser, get_alias, &state);

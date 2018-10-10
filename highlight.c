@@ -117,6 +117,8 @@ static void highlight_word(struct highlight_state *state,
 			highlight_char(state, &rquote, FORMAT_GREEN);
 		}
 		break;
+	case MRSH_WORD_ARITHMETIC:
+		assert(false); // TODO
 	case MRSH_WORD_LIST:;
 		struct mrsh_word_list *wl = mrsh_word_get_list(word);
 		if (wl->children.len == 0) {

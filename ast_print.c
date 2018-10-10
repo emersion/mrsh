@@ -91,6 +91,8 @@ static void print_word(struct mrsh_word *word, const char *prefix) {
 		printf("word_command%s ─ ", wc->back_quoted ? " (quoted)" : "");
 		print_program(wc->program, prefix);
 		break;
+	case MRSH_WORD_ARITHMETIC:
+		assert(false); // TODO
 	case MRSH_WORD_LIST:;
 		struct mrsh_word_list *wl = mrsh_word_get_list(word);
 		printf("word_list%s\n", wl->double_quoted ? " (quoted)" : "");

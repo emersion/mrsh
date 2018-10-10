@@ -197,10 +197,12 @@ static int task_word_poll(struct task *task, struct context *ctx) {
 			task_word_swap(tt, &ws->word);
 		}
 		return ret;
+	case MRSH_WORD_ARITHMETIC:
+		assert(false); // TODO
 	case MRSH_WORD_LIST:
-		assert(0);
+		assert(false);
 	}
-	assert(0);
+	assert(false);
 }
 
 static const struct task_interface task_word_impl = {

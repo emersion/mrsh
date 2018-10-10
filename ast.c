@@ -38,6 +38,11 @@ void mrsh_word_destroy(struct mrsh_word *word) {
 		mrsh_program_destroy(wc->program);
 		free(wc);
 		return;
+	case MRSH_WORD_ARITHMETIC:;
+		struct mrsh_word_arithmetic *wa = mrsh_word_get_arithmetic(word);
+		// TODO: destroy wa->expr
+		free(wa);
+		return;
 	case MRSH_WORD_LIST:;
 		struct mrsh_word_list *wl = mrsh_word_get_list(word);
 		for (size_t i = 0; i < wl->children.len; ++i) {
@@ -246,6 +251,15 @@ struct mrsh_word_command *mrsh_word_command_create(struct mrsh_program *prog,
 	return wc;
 }
 
+struct mrsh_word_arithmetic *mrsh_word_arithmetic_create(
+		struct mrsh_arithm_expr *expr) {
+	struct mrsh_word_arithmetic *wa =
+		calloc(1, sizeof(struct mrsh_word_arithmetic));
+	wa->word.type = MRSH_WORD_ARITHMETIC;
+	wa->expr = expr;
+	return wa;
+}
+
 struct mrsh_word_list *mrsh_word_list_create(struct mrsh_array *children,
 		bool double_quoted) {
 	struct mrsh_word_list *wl = calloc(1, sizeof(struct mrsh_word_list));
@@ -269,6 +283,12 @@ struct mrsh_word_parameter *mrsh_word_get_parameter(
 struct mrsh_word_command *mrsh_word_get_command(const struct mrsh_word *word) {
 	assert(word->type == MRSH_WORD_COMMAND);
 	return (struct mrsh_word_command *)word;
+}
+
+struct mrsh_word_arithmetic *mrsh_word_get_arithmetic(
+		const struct mrsh_word *word) {
+	assert(word->type == MRSH_WORD_ARITHMETIC);
+	return (struct mrsh_word_arithmetic *)word;
 }
 
 struct mrsh_word_list *mrsh_word_get_list(const struct mrsh_word *word) {
@@ -471,6 +491,8 @@ void mrsh_word_range(struct mrsh_word *word, struct mrsh_position *begin,
 		*begin = wc->range.begin;
 		*end = wc->range.end;
 		return;
+	case MRSH_WORD_ARITHMETIC:
+		assert(false); // TODO
 	case MRSH_WORD_LIST:;
 		struct mrsh_word_list *wl = mrsh_word_get_list(word);
 		if (wl->children.len == 0) {
@@ -583,6 +605,7 @@ static void word_str(struct mrsh_word *word, struct mrsh_buffer *buf) {
 		return;
 	case MRSH_WORD_PARAMETER:
 	case MRSH_WORD_COMMAND:
+	case MRSH_WORD_ARITHMETIC:
 		assert(false);
 	case MRSH_WORD_LIST:;
 		struct mrsh_word_list *wl = mrsh_word_get_list(word);
@@ -625,6 +648,8 @@ struct mrsh_word *mrsh_word_copy(const struct mrsh_word *word) {
 		struct mrsh_word_command *wc_copy = mrsh_word_command_create(
 			mrsh_program_copy(wc->program), wc->back_quoted);
 		return &wc_copy->word;
+	case MRSH_WORD_ARITHMETIC:;
+		assert(false); // TODO
 	case MRSH_WORD_LIST:;
 		struct mrsh_word_list *wl = mrsh_word_get_list(word);
 		struct mrsh_array children = {0};

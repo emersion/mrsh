@@ -2,6 +2,7 @@
 #define _MRSH_AST_H
 
 #include <mrsh/array.h>
+#include <mrsh/ast_arithm.h>
 #include <stdbool.h>
 
 /**
@@ -26,6 +27,7 @@ enum mrsh_word_type {
 	MRSH_WORD_STRING,
 	MRSH_WORD_PARAMETER,
 	MRSH_WORD_COMMAND,
+	MRSH_WORD_ARITHMETIC,
 	MRSH_WORD_LIST,
 };
 
@@ -34,6 +36,7 @@ enum mrsh_word_type {
  * - An unquoted or a single-quoted string
  * - A candidate for parameter expansion
  * - A candidate for command substitution
+ * - A candidate for arithmetic expansion
  * - An unquoted or a double-quoted list of words
  */
 struct mrsh_word {
@@ -91,6 +94,15 @@ struct mrsh_word_command {
 	bool back_quoted;
 
 	struct mrsh_range range;
+};
+
+/**
+ * An arithmetic word is a type of word containing an arithmetic expression. The
+ * format is `$((expression))`.
+ */
+struct mrsh_word_arithmetic {
+	struct mrsh_word word;
+	struct mrsh_arithm_expr *expr;
 };
 
 /**
@@ -389,12 +401,16 @@ struct mrsh_word_parameter *mrsh_word_parameter_create(char *name,
 	enum mrsh_word_parameter_op op, bool colon, struct mrsh_word *arg);
 struct mrsh_word_command *mrsh_word_command_create(struct mrsh_program *prog,
 	bool back_quoted);
+struct mrsh_word_arithmetic *mrsh_word_arithmetic_create(
+	struct mrsh_arithm_expr *expr);
 struct mrsh_word_list *mrsh_word_list_create(struct mrsh_array *children,
 	bool double_quoted);
 struct mrsh_word_string *mrsh_word_get_string(const struct mrsh_word *word);
 struct mrsh_word_parameter *mrsh_word_get_parameter(
 	const struct mrsh_word *word);
 struct mrsh_word_command *mrsh_word_get_command(const struct mrsh_word *word);
+struct mrsh_word_arithmetic *mrsh_word_get_arithmetic(
+	const struct mrsh_word *word);
 struct mrsh_word_list *mrsh_word_get_list(const struct mrsh_word *word);
 
 struct mrsh_simple_command *mrsh_simple_command_create(struct mrsh_word *name,

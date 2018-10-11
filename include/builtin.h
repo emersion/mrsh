@@ -23,6 +23,7 @@ int builtin_source(struct mrsh_state *state, int argc, char *argv[]);
 int builtin_times(struct mrsh_state *state, int argc, char *argv[]);
 int builtin_set(struct mrsh_state *state, int argc, char *argv[]);
 int builtin_true(struct mrsh_state *state, int argc, char *argv[]);
+int builtin_type(struct mrsh_state *state, int argc, char *argv[]);
 int builtin_unalias(struct mrsh_state *state, int argc, char *argv[]);
 int builtin_unset(struct mrsh_state *state, int argc, char *argv[]);
 

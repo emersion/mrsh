@@ -48,6 +48,7 @@ lib_mrsh = library(
 		'builtin/source.c',
 		'builtin/times.c',
 		'builtin/true.c',
+		'builtin/type.c',
 		'builtin/unalias.c',
 		'builtin/unset.c',
 		'hashtable.c',

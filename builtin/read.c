@@ -1,12 +1,12 @@
 #define _POSIX_C_SOURCE 200809L
 #include <errno.h>
+#include <mrsh/buffer.h>
+#include <mrsh/shell.h>
+#include <shell/word.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include <mrsh/buffer.h>
-#include <mrsh/shell.h>
-#include <shell/word.h>
 #include "builtin.h"
 
 static const char read_usage[] = "usage: read [-r] var...\n";
@@ -14,18 +14,20 @@ static const char read_usage[] = "usage: read [-r] var...\n";
 int builtin_read(struct mrsh_state *state, int argc, char *argv[]) {
 	bool raw = false;
 	
+	optind = 1;
 	int opt;
-	while ((opt = getopt(argc, argv, "r")) != -1) {
+	while ((opt = getopt(argc, argv, ":r")) != -1) {
 		switch (opt) {
 		case 'r':
 			raw = true;
 			break;
 		default:
+			fprintf(stderr, "read: unknown option -- %c\n", optopt);
 			fprintf(stderr, read_usage);
 			return EXIT_FAILURE;
 		}
 	}
-	if (optind >= argc) {
+	if (optind == argc) {
 		fprintf(stderr, read_usage);
 		return EXIT_FAILURE;
 	}

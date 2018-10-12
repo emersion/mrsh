@@ -1,15 +1,15 @@
 #define _POSIX_C_SOURCE 200809L
 #include <errno.h>
 #include <limits.h>
+#include <mrsh/shell.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
 #include <unistd.h>
-#include <mrsh/shell.h>
 #include "builtin.h"
 
-// usage: cd [-|directory]
+static const char cd_usage[] = "usage: cd [-|[-L|-P] directory]\n";
 
 static int cd(struct mrsh_state *state, const char *path) {
 	const char *oldPWD = mrsh_env_get(state, "PWD", NULL);
@@ -36,11 +36,27 @@ static int isdir(char *path) {
 }
 
 int builtin_cd(struct mrsh_state *state, int argc, char *argv[]) {
-	// TODO `-P` and `-L`
-	if (argc > 2) {
-		fprintf(stderr, "Too many args for cd\n");
+	optind = 1;
+	int opt;
+	while ((opt = getopt(argc, argv, ":LP")) != -1) {
+		switch (opt) {
+		case 'L':
+		case 'P':
+			// TODO implement `-L` and `-P`
+			fprintf(stderr, "cd: `-L` and `-P` not yet implemented\n");
+			return EXIT_FAILURE;
+		default:
+			fprintf(stderr, "cd: unknown option -- %c\n", optopt);
+			fprintf(stderr, cd_usage);
+			return EXIT_FAILURE;
+		}
+	}
+	if (optind + 1 > argc) {
+		fprintf(stderr, cd_usage);
 		return EXIT_FAILURE;
-	} else if (argc == 1) {
+	}
+	
+	if (optind == argc) {
 		const char *home = mrsh_env_get(state, "HOME", NULL);
 		if (home && home[0] != '\0') {
 			return cd(state, home);
@@ -49,7 +65,8 @@ int builtin_cd(struct mrsh_state *state, int argc, char *argv[]) {
 			"is not defined.\n");
 		return EXIT_FAILURE;
 	}
-	char *curpath = argv[1];
+	
+	char *curpath = argv[optind];
 	// `cd -`
 	if (strcmp(curpath, "-") == 0) {
 		// This case is special as we print `pwd` at the end

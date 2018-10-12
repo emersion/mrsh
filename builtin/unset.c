@@ -11,8 +11,9 @@ static const char unset_usage[] = "usage: unset [-fv] name...\n";
 int builtin_unset(struct mrsh_state *state, int argc, char *argv[]) {
 	int funcs = 0;
 
+	optind = 1;
 	int opt;
-	while ((opt = getopt(argc, argv, "fv")) != -1) {
+	while ((opt = getopt(argc, argv, ":fv")) != -1) {
 		switch (opt) {
 		case 'f':
 			funcs = 1;
@@ -21,6 +22,7 @@ int builtin_unset(struct mrsh_state *state, int argc, char *argv[]) {
 			funcs = 0;
 			break;
 		default:
+			fprintf(stderr, "unset: unknown option -- %c\n", optopt);
 			fprintf(stderr, unset_usage);
 			return EXIT_FAILURE;
 		}

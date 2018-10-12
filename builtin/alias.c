@@ -1,11 +1,12 @@
 #define _POSIX_C_SOURCE 200809L
+#include <getopt.h>
 #include <mrsh/builtin.h>
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
 #include "builtin.h"
 
-// usage: alias [alias-name[=string]...]
+static const char alias_usage[] = "usage: alias [alias-name[=string]...]\n";
 
 static void print_alias_iterator(const char *key, void *_value,
 		void *user_data) {
@@ -16,12 +17,19 @@ static void print_alias_iterator(const char *key, void *_value,
 }
 
 int builtin_alias(struct mrsh_state *state, int argc, char *argv[]) {
-	if (argc == 1) {
+	optind = 1;
+	if (getopt(argc, argv, ":") != -1) {
+		fprintf(stderr, "alias: unknown option -- %c\n", optopt);
+		fprintf(stderr, alias_usage);
+		return EXIT_FAILURE;
+	}
+	
+	if (optind == argc) {
 		mrsh_hashtable_for_each(&state->aliases, print_alias_iterator, NULL);
 		return EXIT_SUCCESS;
 	}
 
-	for (int i = 1; i < argc; ++i) {
+	for (int i = optind; i < argc; ++i) {
 		char *alias = argv[i];
 		char *equal = strchr(alias, '=');
 		if (equal != NULL) {

@@ -1,32 +1,39 @@
 #define _POSIX_C_SOURCE 200809L
 #include <errno.h>
+#include <limits.h>
+#include <mrsh/buffer.h>
+#include <mrsh/shell.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include <mrsh/buffer.h>
-#include <mrsh/shell.h>
-#include <limits.h>
 #include "builtin.h"
 
-static const char read_usage[] = "usage: getopts optstring name [arg...]\n";
+static const char getopts_usage[] = "usage: getopts optstring name [arg...]\n";
 
 int builtin_getopts(struct mrsh_state *state, int argc, char *argv[]) {
-	if (argc < 3) {
-		fprintf(stderr, read_usage);
+	optind = 1;
+	if (getopt(argc, argv, ":") != -1) {
+		fprintf(stderr, "getopts: unknown option -- %c\n", optopt);
+		fprintf(stderr, getopts_usage);
 		return EXIT_FAILURE;
 	}
-	
+	if (optind + 2 < argc) {
+		fprintf(stderr, getopts_usage);
+		return EXIT_FAILURE;
+	}
+
 	int optc;
 	char **optv;
-	if (argc > 3) {
-		optc = argc - 2;
-		optv = &argv[2];
+	if (optind + 2 > argc) {
+		optc = argc - optind - 2;
+		optv = &argv[optind + 2];
 	} else {
 		optc = state->argc;
 		optv = state->argv;
 	}
-	char *optstring = argv[1];
+	char *optstring = argv[optind];
+	char *name = argv[optind + 1];
 	
 	const char *optind_str = mrsh_env_get(state, "OPTIND", NULL);
 	if (optind_str == NULL) {
@@ -80,7 +87,7 @@ int builtin_getopts(struct mrsh_state *state, int argc, char *argv[]) {
 	}
 	
 	char value[] = {opt == -1 ? (char)'?' : (char)opt, '\0'};
-	mrsh_env_set(state, argv[2], value, MRSH_VAR_ATTRIB_NONE);
+	mrsh_env_set(state, name, value, MRSH_VAR_ATTRIB_NONE);
 	
 	if (opt == -1) {
 		return EXIT_FAILURE;

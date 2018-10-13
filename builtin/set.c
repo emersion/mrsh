@@ -136,6 +136,7 @@ static int set(struct mrsh_state *state, int argc, char *argv[], bool cmdline) {
 				fprintf(stderr, set_usage);
 				return EXIT_FAILURE;
 			}
+			state->interactive = false;
 			state->input = fmemopen(argv[i + 1], strlen(argv[i + 1]), "r");
 			++i;
 			if (!state->input) {

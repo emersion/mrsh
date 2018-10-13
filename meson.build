@@ -17,6 +17,7 @@ add_project_arguments('-Wno-missing-field-initializers', language: 'c')
 
 cc = meson.get_compiler('c')
 
+readline = cc.find_library('readline', required: false)
 rt = cc.find_library('rt')
 
 mrsh_inc = include_directories('include')
@@ -88,12 +89,21 @@ mrsh = declare_dependency(
 	include_directories: mrsh_inc,
 )
 
+shell_deps = [mrsh]
+shell_files = [
+	'main.c'
+]
+if readline.found()
+	shell_deps += [readline]
+	shell_files += ['readline.c']
+else
+	shell_files += ['basic.c']
+endif
+
 mrsh_exe = executable(
 	'mrsh',
-	files([
-		'main.c',
-	]),
-	dependencies: [mrsh],
+	files(shell_files),
+	dependencies: shell_deps,
 	install: true,
 )
 

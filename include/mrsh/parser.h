@@ -28,6 +28,7 @@ struct mrsh_program *mrsh_parse_line(struct mrsh_parser *state);
  * Parse a single word. Continuation lines are consumed.
  */
 struct mrsh_word *mrsh_parse_word(struct mrsh_parser *state);
+
 /**
  * Parse an arithmetic expression.
  */

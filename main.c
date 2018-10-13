@@ -3,14 +3,17 @@
 #include <limits.h>
 #include <mrsh/ast.h>
 #include <mrsh/builtin.h>
+#include <mrsh/buffer.h>
 #include <mrsh/parser.h>
 #include <mrsh/shell.h>
 #include <stdlib.h>
+#include <stdio.h>
 #include <string.h>
 #include <unistd.h>
 #include "builtin.h"
+#include "frontend.h"
 
-char *expand_ps1(struct mrsh_state *state, const char *ps1) {
+static char *expand_ps1(struct mrsh_state *state, const char *ps1) {
 	struct mrsh_parser *parser =
 		mrsh_parser_create_from_buffer(ps1, strlen(ps1));
 	struct mrsh_word *word = mrsh_parse_word(parser);
@@ -24,18 +27,23 @@ char *expand_ps1(struct mrsh_state *state, const char *ps1) {
 	return mrsh_word_str(word);
 }
 
-static void print_ps1(struct mrsh_state *state) {
+static char *get_ps1(struct mrsh_state *state) {
 	const char *ps1 = mrsh_env_get(state, "PS1", NULL);
 	if (ps1 != NULL) {
-		char *expanded_ps1 = expand_ps1(state, ps1);
 		// TODO: Replace ! with next history ID
-		fprintf(stderr, "%s", expanded_ps1);
-		free(expanded_ps1);
-	} else {
-		fprintf(stderr, "%s", getuid() ? "$ " : "# ");
+		return expand_ps1(state, ps1);
 	}
+	char *p = malloc(3);
+	sprintf(p, "%s", getuid() ? "$ " : "# ");
+	return p;
+}
 
-	fflush(stderr);
+static char *get_ps2(struct mrsh_state *state) {
+	const char *ps2 = mrsh_env_get(state, "PS2", NULL);
+	if (ps2 != NULL) {
+		return expand_ps1(state, ps2);
+	}
+	return strdup("> ");
 }
 
 static void source_profile(struct mrsh_state *state) {
@@ -95,22 +103,52 @@ int main(int argc, char *argv[]) {
 		getcwd(cwd, PATH_MAX);
 		mrsh_env_set(&state, "PWD", cwd, MRSH_VAR_ATTRIB_EXPORT);
 	}
-	
-	mrsh_env_set(&state, "PS2", "> ", MRSH_VAR_ATTRIB_NONE);
-	
+
 	mrsh_env_set(&state, "OPTIND", "1", MRSH_VAR_ATTRIB_NONE);
 
-	struct mrsh_parser *parser = mrsh_parser_create(state.input);
-	mrsh_parser_set_alias(parser, get_alias, &state);
+	struct mrsh_parser *parser;
+
+	FILE *input = state.input;
+	if (state.interactive) {
+		interactive_init(&state);
+	} else {
+		parser = mrsh_parser_create(state.input);
+		mrsh_parser_set_alias(parser, get_alias, &state);
+	}
+
+	struct mrsh_buffer read_buffer = {0};
+
 	while (state.exit == -1) {
+		struct mrsh_program *prog;
 		if (state.interactive) {
-			print_ps1(&state);
+			char *prompt;
+			if (read_buffer.len > 0) {
+				prompt = get_ps2(&state);
+			} else {
+				prompt = get_ps1(&state);
+			}
+			char *line = NULL;
+			size_t n = interactive_next(&state, &line, prompt);
+			if (!line) {
+				state.exit = 1;
+				continue;
+			}
+			mrsh_buffer_append(&read_buffer, line, n);
+			free(prompt);
+			free(line);
+			parser = mrsh_parser_create_from_buffer(
+					read_buffer.data, read_buffer.len);
+			mrsh_parser_set_alias(parser, get_alias, &state);
 		}
-		struct mrsh_program *prog = mrsh_parse_line(parser);
+
+		prog = mrsh_parse_line(parser);
+
 		if (prog == NULL) {
 			struct mrsh_position err_pos;
 			const char *err_msg = mrsh_parser_error(parser, &err_pos);
-			if (err_msg != NULL) {
+			if (mrsh_parser_continuation_line(parser)) {
+				// Nothing to see here
+			} else if (err_msg != NULL) {
 				fprintf(stderr, "%s:%d:%d: syntax error: %s\n",
 					state.argv[0], err_pos.line, err_pos.column, err_msg);
 				if (state.interactive) {
@@ -119,7 +157,7 @@ int main(int argc, char *argv[]) {
 					state.exit = EXIT_FAILURE;
 					break;
 				}
-			} else if (mrsh_parser_eof(parser)) {
+			} else if (feof(input)) {
 				state.exit = state.last_status;
 				break;
 			} else {
@@ -127,21 +165,26 @@ int main(int argc, char *argv[]) {
 				state.exit = EXIT_FAILURE;
 				break;
 			}
-		}
-		if ((state.options & MRSH_OPT_NOEXEC)) {
-			mrsh_program_print(prog);
 		} else {
-			mrsh_run_program(&state, prog);
+			if ((state.options & MRSH_OPT_NOEXEC)) {
+				mrsh_program_print(prog);
+			} else {
+				mrsh_run_program(&state, prog);
+			}
+			mrsh_program_destroy(prog);
+			mrsh_buffer_steal(&read_buffer);
 		}
-		mrsh_program_destroy(prog);
+		if (state.interactive) {
+			mrsh_parser_destroy(parser);
+		}
 	}
 
 	if (state.interactive) {
 		printf("\n");
 	}
 
-	mrsh_parser_destroy(parser);
 	mrsh_state_finish(&state);
 	fclose(state.input);
+
 	return state.exit;
 }

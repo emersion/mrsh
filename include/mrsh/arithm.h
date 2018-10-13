@@ -95,8 +95,6 @@ struct mrsh_arithm_assign {
 };
 
 void mrsh_arithm_expr_destroy(struct mrsh_arithm_expr *expr);
-struct mrsh_arithm_expr *mrsh_arithm_expr_copy(
-	const struct mrsh_arithm_expr *expr);
 struct mrsh_arithm_token *mrsh_arithm_token_create(struct mrsh_word *word);
 struct mrsh_arithm_token *mrsh_arithm_expr_get_token(
 	const struct mrsh_arithm_expr *expr);

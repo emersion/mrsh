@@ -40,7 +40,7 @@ void mrsh_word_destroy(struct mrsh_word *word) {
 		return;
 	case MRSH_WORD_ARITHMETIC:;
 		struct mrsh_word_arithmetic *wa = mrsh_word_get_arithmetic(word);
-		mrsh_arithm_expr_destroy(wa->expr);
+		mrsh_word_destroy(wa->body);
 		free(wa);
 		return;
 	case MRSH_WORD_LIST:;
@@ -252,11 +252,11 @@ struct mrsh_word_command *mrsh_word_command_create(struct mrsh_program *prog,
 }
 
 struct mrsh_word_arithmetic *mrsh_word_arithmetic_create(
-		struct mrsh_arithm_expr *expr) {
+		struct mrsh_word *body) {
 	struct mrsh_word_arithmetic *wa =
 		calloc(1, sizeof(struct mrsh_word_arithmetic));
 	wa->word.type = MRSH_WORD_ARITHMETIC;
-	wa->expr = expr;
+	wa->body = body;
 	return wa;
 }
 
@@ -651,7 +651,7 @@ struct mrsh_word *mrsh_word_copy(const struct mrsh_word *word) {
 	case MRSH_WORD_ARITHMETIC:;
 		struct mrsh_word_arithmetic *wa = mrsh_word_get_arithmetic(word);
 		struct mrsh_word_arithmetic *wa_copy = mrsh_word_arithmetic_create(
-			mrsh_arithm_expr_copy(wa->expr));
+			mrsh_word_copy(wa->body));
 		return &wa_copy->word;
 	case MRSH_WORD_LIST:;
 		struct mrsh_word_list *wl = mrsh_word_get_list(word);

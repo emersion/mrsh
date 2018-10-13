@@ -28,8 +28,8 @@ libmrsh_sym_path = meson.current_source_dir() + '/libmrsh.sym'
 lib_mrsh = library(
 	meson.project_name(),
 	files(
+		'arithm.c',
 		'array.c',
-		'ast_arithm.c',
 		'ast_print.c',
 		'ast.c',
 		'buffer.c',

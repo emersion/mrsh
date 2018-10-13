@@ -355,8 +355,8 @@ static struct mrsh_word_arithmetic *expect_word_arithmetic(
 	c = parser_read_char(state);
 	assert(c == '(');
 
-	struct mrsh_arithm_expr *expr = arithm_expr(state);
-	if (expr == NULL) {
+	struct mrsh_word *body = word_list(state, ')');
+	if (body == NULL) {
 		if (!mrsh_parser_error(state, NULL)) {
 			parser_set_error(state, "expected an arithmetic expression");
 		}
@@ -364,15 +364,15 @@ static struct mrsh_word_arithmetic *expect_word_arithmetic(
 	}
 
 	if (!expect_token(state, ")", NULL)) {
-		mrsh_arithm_expr_destroy(expr);
+		mrsh_word_destroy(body);
 		return NULL;
 	}
 	if (!expect_token(state, ")", NULL)) {
-		mrsh_arithm_expr_destroy(expr);
+		mrsh_word_destroy(body);
 		return NULL;
 	}
 
-	return mrsh_word_arithmetic_create(expr);
+	return mrsh_word_arithmetic_create(body);
 }
 
 // Expect parameter expansion or command substitution

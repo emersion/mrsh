@@ -2,7 +2,6 @@
 #define _MRSH_AST_H
 
 #include <mrsh/array.h>
-#include <mrsh/ast_arithm.h>
 #include <stdbool.h>
 
 /**
@@ -102,7 +101,7 @@ struct mrsh_word_command {
  */
 struct mrsh_word_arithmetic {
 	struct mrsh_word word;
-	struct mrsh_arithm_expr *expr;
+	struct mrsh_word *body;
 };
 
 /**
@@ -402,7 +401,7 @@ struct mrsh_word_parameter *mrsh_word_parameter_create(char *name,
 struct mrsh_word_command *mrsh_word_command_create(struct mrsh_program *prog,
 	bool back_quoted);
 struct mrsh_word_arithmetic *mrsh_word_arithmetic_create(
-	struct mrsh_arithm_expr *expr);
+	struct mrsh_word *body);
 struct mrsh_word_list *mrsh_word_list_create(struct mrsh_array *children,
 	bool double_quoted);
 struct mrsh_word_string *mrsh_word_get_string(const struct mrsh_word *word);

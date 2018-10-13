@@ -29,6 +29,10 @@ struct mrsh_program *mrsh_parse_line(struct mrsh_parser *state);
  */
 struct mrsh_word *mrsh_parse_word(struct mrsh_parser *state);
 /**
+ * Parse an arithmetic expression.
+ */
+struct mrsh_arithm_expr *mrsh_parse_arithm_expr(struct mrsh_parser *state);
+/**
  * Check if the input has been completely consumed.
  */
 bool mrsh_parser_eof(struct mrsh_parser *state);

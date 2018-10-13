@@ -173,6 +173,7 @@ static int set(struct mrsh_state *state, int argc, char *argv[], bool cmdline) {
 			if (!state->input) {
 				fprintf(stderr, "could not open %s for reading: %s\n",
 					argv_0, strerror(errno));
+				free(argv_0);
 				return EXIT_FAILURE;
 			}
 		} else {

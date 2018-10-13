@@ -39,12 +39,22 @@ int builtin_source(struct mrsh_state *state, int argc, char *argv[]) {
 
 	struct mrsh_parser *parser = mrsh_parser_create(f);
 	struct mrsh_program *program = mrsh_parse_program(parser);
+
+	int ret;
 	if (!program) {
-		struct mrsh_position pos;
-		fprintf(stderr, "%s %d:%d: %s\n",
-				argv[1], pos.line, pos.column,
-				mrsh_parser_error(parser, &pos));
-		return EXIT_FAILURE;
+		struct mrsh_position err_pos;
+		const char *err_msg = mrsh_parser_error(parser, &err_pos);
+		if (err_msg != NULL) {
+			fprintf(stderr, "%s %d:%d: %s\n",
+				argv[1], err_pos.line, err_pos.column, err_msg);
+			ret = EXIT_FAILURE;
+		} else {
+			ret = EXIT_SUCCESS;
+		}
+	} else {
+		ret = mrsh_run_program(state, program);
 	}
-	return mrsh_run_program(state, program);
+
+	mrsh_parser_destroy(parser);
+	return ret;
 }

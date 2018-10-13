@@ -21,10 +21,6 @@ int builtin_eval(struct mrsh_state *state, int argc, char *argv[]) {
 	struct mrsh_buffer buf = {0};
 
 	for (int i = 1; i < argc; ++i) {
-		if (!mrsh_buffer_reserve(&buf, strlen(argv[i]) + 1)) {
-			fprintf(stderr, "Failed to expand parse buffer");
-			return EXIT_FAILURE;
-		}
 		mrsh_buffer_append(&buf, argv[i], strlen(argv[i]));
 		if (i != argc - 1) {
 			mrsh_buffer_append_char(&buf, ' ');
@@ -35,13 +31,23 @@ int builtin_eval(struct mrsh_state *state, int argc, char *argv[]) {
 	struct mrsh_parser *parser =
 		mrsh_parser_create_from_buffer(buf.data, buf.len);
 	struct mrsh_program *program = mrsh_parse_program(parser);
-	mrsh_buffer_finish(&buf);
+
+	int ret;
 	if (!program) {
-		struct mrsh_position pos;
-		fprintf(stderr, "%s %d:%d: %s\n",
-				argv[1], pos.line, pos.column,
-				mrsh_parser_error(parser, &pos));
-		return EXIT_FAILURE;
+		struct mrsh_position err_pos;
+		const char *err_msg = mrsh_parser_error(parser, &err_pos);
+		if (err_msg != NULL) {
+			fprintf(stderr, "%s %d:%d: %s\n",
+				argv[1], err_pos.line, err_pos.column, err_msg);
+			ret = EXIT_FAILURE;
+		} else {
+			ret = EXIT_SUCCESS;
+		}
+	} else {
+		ret = mrsh_run_program(state, program);
 	}
-	return mrsh_run_program(state, program);
+
+	mrsh_parser_destroy(parser);
+	mrsh_buffer_finish(&buf);
+	return ret;
 }

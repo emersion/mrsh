@@ -77,11 +77,12 @@ int builtin_cd(struct mrsh_state *state, int argc, char *argv[]) {
 	// $CDPATH
 	if (curpath[0] != '/' && strncmp(curpath, "./", 2) != 0 &&
 			strncmp(curpath, "../", 3) != 0) {
-		const char *cdpath = mrsh_env_get(state, "CDPATH", NULL);
-		char *c = NULL;
-		if (cdpath) {
-			c = strdup(cdpath);
+		const char *_cdpath = mrsh_env_get(state, "CDPATH", NULL);
+		char *cdpath = NULL;
+		if (_cdpath) {
+			cdpath = strdup(_cdpath);
 		}
+		char *c = cdpath;
 		while (c != NULL) {
 			char *next = strchr(c, ':');
 			char *slash = strrchr(c, '/');
@@ -111,11 +112,12 @@ int builtin_cd(struct mrsh_state *state, int argc, char *argv[]) {
 				continue;
 			}
 			if (isdir(path)) {
+				free(cdpath);
 				return cd(state, path);
 			}
 			c = next;
 		}
-		free(c);
+		free(cdpath);
 	}
 	return cd(state, curpath);
 }

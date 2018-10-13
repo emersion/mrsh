@@ -20,6 +20,7 @@ static int task_assignment_poll(struct task *task, struct context *ctx) {
 		uint32_t prev_attribs = 0;
 		if (mrsh_env_get(ctx->state, assign->name, &prev_attribs) != NULL
 				&& (prev_attribs & MRSH_VAR_ATTRIB_READONLY)) {
+			free(new_value);
 			fprintf(stderr, "cannot modify readonly variable %s\n",
 					assign->name);
 			task->status = EXIT_FAILURE;

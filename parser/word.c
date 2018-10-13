@@ -348,6 +348,33 @@ static struct mrsh_word_command *expect_word_command(
 	return mrsh_word_command_create(prog, false);
 }
 
+static struct mrsh_word_arithmetic *expect_word_arithmetic(
+		struct mrsh_parser *state) {
+	char c = parser_read_char(state);
+	assert(c == '(');
+	c = parser_read_char(state);
+	assert(c == '(');
+
+	struct mrsh_arithm_expr *expr = arithm_expr(state);
+	if (expr == NULL) {
+		if (!mrsh_parser_error(state, NULL)) {
+			parser_set_error(state, "expected an arithmetic expression");
+		}
+		return NULL;
+	}
+
+	if (!expect_token(state, ")", NULL)) {
+		mrsh_arithm_expr_destroy(expr);
+		return NULL;
+	}
+	if (!expect_token(state, ")", NULL)) {
+		mrsh_arithm_expr_destroy(expr);
+		return NULL;
+	}
+
+	return mrsh_word_arithmetic_create(expr);
+}
+
 // Expect parameter expansion or command substitution
 struct mrsh_word *expect_dollar(struct mrsh_parser *state) {
 	struct mrsh_position dollar_pos = state->pos;
@@ -369,9 +396,12 @@ struct mrsh_word *expect_dollar(struct mrsh_parser *state) {
 		char next[2];
 		parser_peek(state, next, sizeof(next));
 		if (next[1] == '(') {
-			// TODO: implement it
-			parser_set_error(state, "arithmetic expansion not yet implemented");
-			return NULL;
+			struct mrsh_word_arithmetic *wa = expect_word_arithmetic(state);
+			if (wa == NULL) {
+				return NULL;
+			}
+			// TODO: store dollar_pos in wa
+			return &wa->word;
 		} else {
 			struct mrsh_word_command *wc = expect_word_command(state);
 			if (wc == NULL) {

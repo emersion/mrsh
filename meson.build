@@ -29,6 +29,7 @@ lib_mrsh = library(
 	meson.project_name(),
 	files(
 		'array.c',
+		'ast_arithm.c',
 		'ast_print.c',
 		'ast.c',
 		'buffer.c',
@@ -52,6 +53,7 @@ lib_mrsh = library(
 		'builtin/unalias.c',
 		'builtin/unset.c',
 		'hashtable.c',
+		'parser/arithm.c',
 		'parser/parser.c',
 		'parser/program.c',
 		'parser/word.c',

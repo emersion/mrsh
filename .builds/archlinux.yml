@@ -1,0 +1,13 @@
+image: archlinux
+packages:
+  - gcc
+  - meson
+sources:
+  - https://github.com/emersion/mrsh
+tasks:
+  - setup: |
+      cd mrsh
+      meson build -Db_sanitize=address
+  - build: |
+      cd mrsh
+      ninja -C build test

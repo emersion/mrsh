@@ -44,8 +44,7 @@ static int task_for_clause_poll(struct task *task, struct context *ctx) {
 			}
 			struct mrsh_word_string *word = (struct mrsh_word_string *)
 				tfc->ast.word_list -> data[tfc->index - 1];
-			char *value = strdup(word->str);
-			mrsh_env_set(ctx->state, tfc->ast.name, value,
+			mrsh_env_set(ctx->state, tfc->ast.name, word->str,
 				MRSH_VAR_ATTRIB_NONE);
 			task_destroy(tfc->tasks.word);
 			tfc->tasks.word = NULL;

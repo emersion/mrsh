@@ -4,7 +4,7 @@
 struct mrsh_word;
 
 enum mrsh_arithm_expr_type {
-	MRSH_ARITHM_TOKEN,
+	MRSH_ARITHM_LITERAL,
 	MRSH_ARITHM_UNOP,
 	MRSH_ARITHM_BINOP,
 	MRSH_ARITHM_COND,
@@ -13,7 +13,7 @@ enum mrsh_arithm_expr_type {
 
 /**
  * An aritmetic expression. One of:
- * - A token (which may need to be expansed)
+ * - A literal
  * - An unary operation
  * - A binary operation
  * - A condition
@@ -23,9 +23,9 @@ struct mrsh_arithm_expr {
 	enum mrsh_arithm_expr_type type;
 };
 
-struct mrsh_arithm_token {
+struct mrsh_arithm_literal {
 	struct mrsh_arithm_expr expr;
-	struct mrsh_word *word;
+	long value;
 };
 
 enum mrsh_arithm_unop_type {
@@ -95,8 +95,8 @@ struct mrsh_arithm_assign {
 };
 
 void mrsh_arithm_expr_destroy(struct mrsh_arithm_expr *expr);
-struct mrsh_arithm_token *mrsh_arithm_token_create(struct mrsh_word *word);
-struct mrsh_arithm_token *mrsh_arithm_expr_get_token(
+struct mrsh_arithm_literal *mrsh_arithm_literal_create(long value);
+struct mrsh_arithm_literal *mrsh_arithm_expr_get_literal(
 	const struct mrsh_arithm_expr *expr);
 
 #endif

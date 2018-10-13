@@ -8,7 +8,7 @@ sources:
 tasks:
   - setup: |
       cd mrsh
-      CC=gcc meson build-gcc
+      CC=gcc meson build-gcc -Db_sanitize=address
       CC=clang meson build-clang
   - gcc: |
       cd mrsh

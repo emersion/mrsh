@@ -1,8 +1,6 @@
 #ifndef _MRSH_AST_ARITHM_H
 #define _MRSH_AST_ARITHM_H
 
-struct mrsh_word;
-
 enum mrsh_arithm_expr_type {
 	MRSH_ARITHM_LITERAL,
 	MRSH_ARITHM_UNOP,

@@ -5,32 +5,48 @@
 #include "shell/task.h"
 #include "shell/tasks.h"
 
-struct mrsh_simple_command *copy_simple_command(
+static struct mrsh_simple_command *copy_simple_command(
 		const struct mrsh_simple_command *sc) {
 	struct mrsh_command *cmd = mrsh_command_copy(&sc->command);
 	return mrsh_command_get_simple_command(cmd);
 }
 
+static void expand_assignments(struct task *task_list,
+		struct mrsh_array *assignments) {
+	for (size_t i = 0; i < assignments->len; ++i) {
+		struct mrsh_assignment *assign = assignments->data[i];
+		task_list_add(task_list,
+			task_word_create(&assign->value, TILDE_EXPANSION_ASSIGNMENT));
+	}
+}
+
 struct task *task_for_simple_command(struct mrsh_simple_command *sc) {
 	struct task *task_list = task_list_create();
+
+	if (sc->name == NULL) {
+		// Copy each assignment from the AST, because during expansion and
+		// substitution we'll mutate the tree
+		struct mrsh_array assignments = {0};
+		mrsh_array_reserve(&assignments, sc->assignments.len);
+		for (size_t i = 0; i < sc->assignments.len; ++i) {
+			struct mrsh_assignment *assign = sc->assignments.data[i];
+			mrsh_array_add(&assignments, mrsh_assignment_copy(assign));
+		}
+
+		expand_assignments(task_list, &assignments);
+
+		task_list_add(task_list, task_assignment_create(&assignments));
+		return task_list;
+	}
 
 	// Copy the command from the AST, because during expansion and substitution
 	// we'll mutate the tree
 	sc = copy_simple_command(sc);
 
-	for (size_t i = 0; i < sc->assignments.len; ++i) {
-		struct mrsh_assignment *assign = sc->assignments.data[i];
-		task_list_add(task_list,
-			task_word_create(&assign->value, TILDE_EXPANSION_ASSIGNMENT));
-	}
-
-	if (sc->name == NULL) {
-		task_list_add(task_list, task_assignment_create(&sc->assignments));
-		return task_list;
-	}
-
 	task_list_add(task_list,
 		task_word_create(&sc->name, TILDE_EXPANSION_NAME));
+
+	expand_assignments(task_list, &sc->assignments);
 
 	for (size_t i = 0; i < sc->arguments.len; ++i) {
 		struct mrsh_word **arg_ptr =

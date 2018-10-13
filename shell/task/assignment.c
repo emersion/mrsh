@@ -26,6 +26,7 @@ static int task_assignment_poll(struct task *task, struct context *ctx) {
 			return TASK_STATUS_ERROR;
 		}
 		mrsh_env_set(ctx->state, assign->name, new_value, attribs);
+		free(new_value);
 	}
 
 	return 0;

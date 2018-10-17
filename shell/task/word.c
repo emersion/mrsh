@@ -123,6 +123,7 @@ static int task_word_poll(struct task *task, struct context *ctx) {
 	struct task_word *tt = (struct task_word *)task;
 	struct mrsh_word *word = *tt->word_ptr;
 
+	int ret;
 	switch (word->type) {
 	case MRSH_WORD_STRING:;
 		struct mrsh_word_string *ws = mrsh_word_get_string(word);
@@ -163,7 +164,7 @@ static int task_word_poll(struct task *task, struct context *ctx) {
 			tt->started = true;
 		}
 
-		int ret = process_poll(&tt->process);
+		ret = process_poll(&tt->process);
 		if (ret != TASK_STATUS_WAIT) {
 			off_t size = lseek(tt->fd, 0, SEEK_END);
 			if (size < 0) {
@@ -197,8 +198,29 @@ static int task_word_poll(struct task *task, struct context *ctx) {
 			task_word_swap(tt, &ws->word);
 		}
 		return ret;
-	case MRSH_WORD_ARITHMETIC:
-		assert(false); // TODO
+	case MRSH_WORD_ARITHMETIC:;
+		struct mrsh_word_arithmetic *wa = mrsh_word_get_arithmetic(word);
+		char *body_str = mrsh_word_str(wa->body);
+		struct mrsh_parser *parser =
+			mrsh_parser_create_from_buffer(body_str, strlen(body_str));
+		free(body_str);
+		struct mrsh_arithm_expr *expr = mrsh_parse_arithm_expr(parser);
+		if (expr == NULL) {
+			struct mrsh_position err_pos;
+			const char *err_msg = mrsh_parser_error(parser, &err_pos);
+			if (err_msg != NULL) {
+				fprintf(stderr, "%s %d:%d: %s\n",
+					ctx->state->argv[0], err_pos.line, err_pos.column, err_msg);
+				ret = EXIT_FAILURE;
+			} else {
+				ret = EXIT_SUCCESS;
+			}
+		} else {
+			// TODO: evaluate arithmetic expression
+			ret = 0;
+		}
+		mrsh_parser_destroy(parser);
+		return ret;
 	case MRSH_WORD_LIST:
 		assert(false);
 	}
@@ -214,6 +236,7 @@ struct task *task_word_create(struct mrsh_word **word_ptr,
 	struct mrsh_word *word = *word_ptr;
 
 	if (word->type == MRSH_WORD_LIST) {
+		// For word lists, we just need to expand each word
 		struct mrsh_word_list *wl = mrsh_word_get_list(word);
 		struct task *task_list = task_list_create();
 		for (size_t i = 0; i < wl->children.len; ++i) {
@@ -232,5 +255,18 @@ struct task *task_word_create(struct mrsh_word **word_ptr,
 	task_init(&tt->task, &task_word_impl);
 	tt->word_ptr = word_ptr;
 	tt->tilde_expansion = tilde_expansion;
-	return &tt->task;
+	struct task *task = &tt->task;
+
+	if (word->type == MRSH_WORD_ARITHMETIC) {
+		// For arithmetic words, we need to expand the arithmetic expression
+		// before parsing and evaluating it
+		struct mrsh_word_arithmetic *wa = mrsh_word_get_arithmetic(word);
+		struct task *task_list = task_list_create();
+		task_list_add(task_list,
+			task_word_create(&wa->body, TILDE_EXPANSION_NONE));
+		task_list_add(task_list, task);
+		return task_list;
+	}
+
+	return task;
 }

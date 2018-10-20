@@ -1,0 +1,17 @@
+image: alpine/edge
+packages:
+  - rsync
+secrets:
+  - 5874ac5a-905e-4596-a117-fed1401c60ce
+sources:
+  - https://git.sr.ht/~emersion/mrsh
+tasks:
+  - upload: |
+      cd mrsh
+      git checkout website
+      sshopts="-o StrictHostKeyChecking=no"
+      rsync --rsh="ssh $sshopts" -rP \
+          --exclude '.git/*' \
+          --delete \
+          --delete-excluded \
+          . deploy@emersion.fr:/srv/http/mrsh

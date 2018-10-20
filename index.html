@@ -14,11 +14,23 @@
     <p>
       A minimal POSIX shell.
     </p>
-    <ul>
-        <li>POSIX compliant, no less, no more</li>
-        <li>Simple, readable code without magic</li>
-        <li>Library to build more elaborate shells</li>
-    </ul>
+    <p>
+      mrsh provides a binary suitable as <code>/bin/sh</code> and a library
+      for building new shells.
+    </p>
+    <h2>mrsh shell</h2>
+    <p>
+      The mrsh shell is strictly POSIX compliant, encouraging users to write
+      portable shell scripts. Optional readline/libedit support is included to
+      provide a comfortable interactive shell.
+    </p>
+    <h2>libmrsh</h2>
+    <p>
+      libmrsh provides you the pieces necessary to build your own POSIX shell
+      frontends. The standalone parser can be used to obtain a shell AST, which
+      can be fed into our task runner to execute the script. The code is simple
+      &amp; portable, with no external dependencies outside of POSIX C99.
+    </p>
     <h2>Releases</h2>
     <p>Still to come...</p>
     <h2>Development</h2>

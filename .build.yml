@@ -4,11 +4,10 @@ packages:
 secrets:
   - 5874ac5a-905e-4596-a117-fed1401c60ce
 sources:
-  - https://git.sr.ht/~emersion/mrsh
+  - https://git.sr.ht/~emersion/mrsh#website
 tasks:
   - upload: |
       cd mrsh
-      git checkout website
       sshopts="-o StrictHostKeyChecking=no"
       rsync --rsh="ssh $sshopts" -rP \
           --exclude '.git/*' \

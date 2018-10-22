@@ -119,7 +119,6 @@ int main(int argc, char *argv[]) {
 	struct mrsh_buffer read_buffer = {0};
 
 	while (state.exit == -1) {
-		struct mrsh_program *prog;
 		if (state.interactive) {
 			char *prompt;
 			if (read_buffer.len > 0) {
@@ -130,7 +129,7 @@ int main(int argc, char *argv[]) {
 			char *line = NULL;
 			size_t n = interactive_next(&state, &line, prompt);
 			if (!line) {
-				state.exit = 1;
+				state.exit = EXIT_FAILURE;
 				continue;
 			}
 			mrsh_buffer_append(&read_buffer, line, n);
@@ -141,7 +140,7 @@ int main(int argc, char *argv[]) {
 			mrsh_parser_set_alias(parser, get_alias, &state);
 		}
 
-		prog = mrsh_parse_line(parser);
+		struct mrsh_program *prog = mrsh_parse_line(parser);
 
 		if (prog == NULL) {
 			struct mrsh_position err_pos;
@@ -181,6 +180,8 @@ int main(int argc, char *argv[]) {
 
 	if (state.interactive) {
 		printf("\n");
+	} else {
+		mrsh_parser_destroy(parser);
 	}
 
 	mrsh_state_finish(&state);

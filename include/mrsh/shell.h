@@ -1,6 +1,7 @@
 #ifndef _MRSH_SHELL_H
 #define _MRSH_SHELL_H
 
+#include <mrsh/arithm.h>
 #include <mrsh/ast.h>
 #include <mrsh/hashtable.h>
 #include <stdint.h>
@@ -89,5 +90,6 @@ const char *mrsh_env_get(struct mrsh_state *state,
 		const char *key, uint32_t *attribs);
 int mrsh_run_program(struct mrsh_state *state, struct mrsh_program *prog);
 int mrsh_run_word(struct mrsh_state *state, struct mrsh_word **word);
+bool mrsh_run_arithm_expr(struct mrsh_arithm_expr *expr, long *result);
 
 #endif

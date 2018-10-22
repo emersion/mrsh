@@ -211,13 +211,23 @@ static int task_word_poll(struct task *task, struct context *ctx) {
 			if (err_msg != NULL) {
 				fprintf(stderr, "%s %d:%d: %s\n",
 					ctx->state->argv[0], err_pos.line, err_pos.column, err_msg);
+			} else {
+				fprintf(stderr, "expected an arithmetic expression\n");
+			}
+			ret = EXIT_FAILURE;
+		} else {
+			long result;
+			if (!mrsh_run_arithm_expr(expr, &result)) {
 				ret = EXIT_FAILURE;
 			} else {
+				char buf[32];
+				snprintf(buf, sizeof(buf), "%ld", result);
+
+				struct mrsh_word_string *ws =
+					mrsh_word_string_create(strdup(buf), false);
+				task_word_swap(tt, &ws->word);
 				ret = EXIT_SUCCESS;
 			}
-		} else {
-			// TODO: evaluate arithmetic expression
-			ret = 0;
 		}
 		mrsh_parser_destroy(parser);
 		return ret;

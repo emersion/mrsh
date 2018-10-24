@@ -13,7 +13,7 @@ static const char read_usage[] = "usage: read [-r] var...\n";
 
 int builtin_read(struct mrsh_state *state, int argc, char *argv[]) {
 	bool raw = false;
-	
+
 	optind = 1;
 	int opt;
 	while ((opt = getopt(argc, argv, ":r")) != -1) {
@@ -31,7 +31,7 @@ int builtin_read(struct mrsh_state *state, int argc, char *argv[]) {
 		fprintf(stderr, read_usage);
 		return EXIT_FAILURE;
 	}
-	
+
 	struct mrsh_buffer buf = {0};
 	bool escaped = false;
 	int c;
@@ -53,9 +53,9 @@ int builtin_read(struct mrsh_state *state, int argc, char *argv[]) {
 		mrsh_buffer_append_char(&buf, (char)c);
 	}
 	mrsh_buffer_append_char(&buf, '\0');
-	
+
 	struct mrsh_array fields = {0};
-	
+
 	struct mrsh_word_string *ws = mrsh_word_string_create(mrsh_buffer_steal(&buf), false);
 	split_fields(&fields, &ws->word, mrsh_env_get(state, "IFS", NULL));
 	mrsh_word_destroy(&ws->word);
@@ -84,7 +84,7 @@ int builtin_read(struct mrsh_state *state, int argc, char *argv[]) {
 		mrsh_env_set(state, argv[argc - 1], buf_last.data, MRSH_VAR_ATTRIB_NONE);
 		mrsh_buffer_finish(&buf_last);
 	}
-	
+
 	for (size_t i = 0; i < fields.len; ++i) {
 		free(fields.data[i]);
 	}

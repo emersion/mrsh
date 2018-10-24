@@ -23,7 +23,7 @@ int builtin_alias(struct mrsh_state *state, int argc, char *argv[]) {
 		fprintf(stderr, alias_usage);
 		return EXIT_FAILURE;
 	}
-	
+
 	if (optind == argc) {
 		mrsh_hashtable_for_each(&state->aliases, print_alias_iterator, NULL);
 		return EXIT_SUCCESS;

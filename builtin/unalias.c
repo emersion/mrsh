@@ -6,7 +6,7 @@
 #include <string.h>
 #include "builtin.h"
 
-static const char unalias_usage[] = "usage: unalias <-a|alias-name...>\n";
+static const char unalias_usage[] = "usage: unalias -a|alias-name...\n";
 
 static void delete_alias_iterator(const char *key, void *_value, void *user_data) {
 	free(mrsh_hashtable_del((struct mrsh_hashtable*)user_data, key));
@@ -14,7 +14,7 @@ static void delete_alias_iterator(const char *key, void *_value, void *user_data
 
 int builtin_unalias(struct mrsh_state *state, int argc, char *argv[]) {
 	bool all = false;
-	
+
 	optind = 1;
 	int opt;
 	while ((opt = getopt(argc, argv, ":a")) != -1) {
@@ -28,7 +28,7 @@ int builtin_unalias(struct mrsh_state *state, int argc, char *argv[]) {
 			return EXIT_FAILURE;
 		}
 	}
-	
+
 	if (all) {
 		if (optind < argc) {
 			fprintf(stderr, unalias_usage);
@@ -37,7 +37,7 @@ int builtin_unalias(struct mrsh_state *state, int argc, char *argv[]) {
 		mrsh_hashtable_for_each(&state->aliases, delete_alias_iterator, &state->aliases);
 		return EXIT_SUCCESS;
 	}
-	
+
 	if (optind == argc) {
 		fprintf(stderr, unalias_usage);
 		return EXIT_FAILURE;

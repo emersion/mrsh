@@ -3,6 +3,5 @@
 #include "builtin.h"
 
 int builtin_colon(struct mrsh_state *state, int argc, char *argv[]) {
-	/* this builtin does not do anything */
-	return EXIT_SUCCESS;
+	return EXIT_SUCCESS; // This builtin does not do anything
 }

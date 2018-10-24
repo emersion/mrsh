@@ -23,27 +23,27 @@ int builtin_type(struct mrsh_state *state, int argc, char *argv[]) {
 	bool error = false;
 	for (int i = optind; i < argc; ++i) {
 		char *name = argv[i];
-		
+
 		char *alias = mrsh_hashtable_get(&state->aliases, name);
 		if (alias != NULL) {
 			fprintf(stdout, "%s is an alias for %s\n", name, alias);
 			continue;
 		}
-		
+
 		if (mrsh_has_builtin(name)) {
 			fprintf(stdout, "%s is a shell builtin\n", name);
 			continue;
 		}
-		
+
 		const char *path = expand_path(state, name, true);
 		if (path) {
 			fprintf(stdout, "%s is %s\n", name, path);
 			continue;
 		}
-		
+
 		fprintf(stdout, "%s: not found\n", name);
 		error = true;
 	}
-	
+
 	return error ? EXIT_FAILURE : EXIT_SUCCESS;
 }

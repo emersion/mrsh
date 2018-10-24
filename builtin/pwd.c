@@ -27,7 +27,7 @@ int builtin_pwd(struct mrsh_state *state, int argc, char *argv[]) {
 		fprintf(stderr, pwd_usage);
 		return EXIT_FAILURE;
 	}
-	
+
 	const char *pwd = mrsh_env_get(state, "PWD", NULL);
 	if (pwd == NULL) {
 		fprintf(stderr, "pwd: Cannot return current directory as PWD was unset\n");

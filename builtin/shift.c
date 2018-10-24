@@ -1,3 +1,4 @@
+#include <errno.h>
 #include <mrsh/builtin.h>
 #include <mrsh/shell.h>
 #include <stdlib.h>
@@ -13,14 +14,16 @@ int builtin_shift(struct mrsh_state *state, int argc, char *argv[]) {
 	int n = 1;
 	if (argc == 2) {
 		char *endptr;
-		n = strtol(argv[1], &endptr, 10);
-		if (*endptr != '\0') {
+		errno = 0;
+		long n_long = strtol(argv[1], &endptr, 10);
+		if (*endptr != '\0' || errno != 0) {
 			fprintf(stderr, shift_usage);
 			if (!state->interactive) {
 				state->exit = EXIT_FAILURE;
 			}
 			return EXIT_FAILURE;
 		}
+		n = (int)n_long;
 	}
 	if (n == 0) {
 		return EXIT_SUCCESS;

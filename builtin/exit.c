@@ -1,3 +1,4 @@
+#include <errno.h>
 #include <mrsh/builtin.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -14,11 +15,14 @@ int builtin_exit(struct mrsh_state *state, int argc, char *argv[]) {
 	int status = 0;
 	if (argc > 1) {
 		char *endptr;
-		status = strtol(argv[1], &endptr, 10);
-		if (endptr[0] != '\0' || status < 0 || status > 255) {
+		errno = 0;
+		long status_long = strtol(argv[1], &endptr, 10);
+		if (endptr[0] != '\0' || errno != 0 ||
+				status_long < 0 || status_long > 255) {
 			fprintf(stderr, exit_usage);
 			return EXIT_FAILURE;
 		}
+		status = (int)status_long;
 	}
 
 	state->exit = status;

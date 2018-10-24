@@ -9,7 +9,7 @@
 #include <unistd.h>
 #include "builtin.h"
 
-static const char cd_usage[] = "usage: cd [-|[-L|-P] directory]\n";
+static const char cd_usage[] = "usage: cd [-L|-P] [-|directory]\n";
 
 static int cd(struct mrsh_state *state, const char *path) {
 	const char *oldPWD = mrsh_env_get(state, "PWD", NULL);
@@ -55,7 +55,7 @@ int builtin_cd(struct mrsh_state *state, int argc, char *argv[]) {
 		fprintf(stderr, cd_usage);
 		return EXIT_FAILURE;
 	}
-	
+
 	if (optind == argc) {
 		const char *home = mrsh_env_get(state, "HOME", NULL);
 		if (home && home[0] != '\0') {
@@ -65,7 +65,7 @@ int builtin_cd(struct mrsh_state *state, int argc, char *argv[]) {
 			"is not defined.\n");
 		return EXIT_FAILURE;
 	}
-	
+
 	char *curpath = argv[optind];
 	// `cd -`
 	if (strcmp(curpath, "-") == 0) {

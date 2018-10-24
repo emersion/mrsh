@@ -34,7 +34,7 @@ int builtin_getopts(struct mrsh_state *state, int argc, char *argv[]) {
 	}
 	char *optstring = argv[optind];
 	char *name = argv[optind + 1];
-	
+
 	const char *optind_str = mrsh_env_get(state, "OPTIND", NULL);
 	if (optind_str == NULL) {
 		fprintf(stderr, "getopts: OPTIND is not defined\n");
@@ -47,14 +47,14 @@ int builtin_getopts(struct mrsh_state *state, int argc, char *argv[]) {
 		return EXIT_FAILURE;
 	}
 	optind = (int)optind_long;
-	
+
 	optopt = 0;
 	int opt = getopt(optc, optv, optstring);
-	
+
 	char optind_fmt[16];
 	snprintf(optind_fmt, sizeof(optind_fmt), "%d", optind);
 	mrsh_env_set(state, "OPTIND", optind_fmt, MRSH_VAR_ATTRIB_NONE);
-	
+
 	if (optopt != 0) {
 		if (opt == ':') {
 			char value[] = {(char)optopt, '\0'};
@@ -85,10 +85,10 @@ int builtin_getopts(struct mrsh_state *state, int argc, char *argv[]) {
 	} else {
 		mrsh_env_unset(state, "OPTARG");
 	}
-	
+
 	char value[] = {opt == -1 ? (char)'?' : (char)opt, '\0'};
 	mrsh_env_set(state, name, value, MRSH_VAR_ATTRIB_NONE);
-	
+
 	if (opt == -1) {
 		return EXIT_FAILURE;
 	}

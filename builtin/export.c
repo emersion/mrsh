@@ -5,7 +5,7 @@
 #include <string.h>
 #include "builtin.h"
 
-static const char export_usage[] = "usage: %s (-p|name[=word]...)\n";
+static const char export_usage[] = "usage: %s -p|name[=word]...\n";
 
 int builtin_export(struct mrsh_state *state, int argc, char *argv[]) {
 	uint32_t attrib = MRSH_VAR_ATTRIB_EXPORT;

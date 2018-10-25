@@ -2,6 +2,8 @@
 
 A minimal POSIX shell.
 
+[![](https://builds.sr.ht/~emersion/mrsh.svg)](https://builds.sr.ht/~emersion/mrsh)
+
 * POSIX compliant, no less, no more
 * Simple, readable code without magic
 * Library to build more elaborate shells

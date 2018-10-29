@@ -108,25 +108,73 @@ static struct mrsh_arithm_expr *paren(struct mrsh_parser *state) {
 	return expr;
 }
 
-struct mrsh_arithm_expr *mrsh_parse_arithm_expr(struct mrsh_parser *state) {
-	while (true) {
-		struct mrsh_arithm_expr *expr = paren(state);
-		if (expr == NULL) {
-			struct mrsh_arithm_literal *al = literal(state);
-			if (al != NULL) {
-				expr = &al->expr;
-			}
-		}
-		if (expr == NULL) {
-			struct mrsh_arithm_unop *au = unop(state);
-			if (au != NULL) {
-				expr = &au->expr;
-			}
-		}
-
-		// TODO: binary operators
+static struct mrsh_arithm_expr *term(struct mrsh_parser *state) {
+	struct mrsh_arithm_expr *expr = paren(state);
+	if (expr != NULL) {
 		return expr;
 	}
 
+	struct mrsh_arithm_unop *au = unop(state);
+	if (au != NULL) {
+		return &au->expr;
+	}
+
+	struct mrsh_arithm_literal *al = literal(state);
+	if (al != NULL) {
+		return &al->expr;
+	}
+
 	return NULL;
+}
+
+static struct mrsh_arithm_expr *factor(struct mrsh_parser *state) {
+	struct mrsh_arithm_expr *left = term(state);
+	if (left == NULL) {
+		return NULL;
+	}
+
+	enum mrsh_arithm_binop_type type;
+	if (parse_char(state, '*')) {
+		type = MRSH_ARITHM_BINOP_ASTERISK;
+	} else if (parse_char(state, '-')) {
+		type = MRSH_ARITHM_BINOP_SLASH;
+	} else if (parse_char(state, '%')) {
+		type = MRSH_ARITHM_BINOP_PERCENT;
+	} else {
+		return left;
+	}
+
+	struct mrsh_arithm_expr *right = term(state);
+	if (right == NULL) {
+		parser_set_error(state, "expected a term after *, / or % operator");
+		return NULL;
+	}
+
+	struct mrsh_arithm_binop *bo = mrsh_arithm_binop_create(type, left, right);
+	return &bo->expr;
+}
+
+struct mrsh_arithm_expr *mrsh_parse_arithm_expr(struct mrsh_parser *state) {
+	struct mrsh_arithm_expr *left = factor(state);
+	if (left == NULL) {
+		return NULL;
+	}
+
+	enum mrsh_arithm_binop_type type;
+	if (parse_char(state, '+')) {
+		type = MRSH_ARITHM_BINOP_PLUS;
+	} else if (parse_char(state, '-')) {
+		type = MRSH_ARITHM_BINOP_MINUS;
+	} else {
+		return left;
+	}
+
+	struct mrsh_arithm_expr *right = factor(state);
+	if (right == NULL) {
+		parser_set_error(state, "expected a factor after + or - operator");
+		return NULL;
+	}
+
+	struct mrsh_arithm_binop *bo = mrsh_arithm_binop_create(type, left, right);
+	return &bo->expr;
 }

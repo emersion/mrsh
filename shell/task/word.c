@@ -209,16 +209,17 @@ static int task_word_poll(struct task *task, struct context *ctx) {
 			struct mrsh_position err_pos;
 			const char *err_msg = mrsh_parser_error(parser, &err_pos);
 			if (err_msg != NULL) {
-				fprintf(stderr, "%s %d:%d: %s\n",
+				// TODO: improve error line/column
+				fprintf(stderr, "%s (arithmetic %d:%d): %s\n",
 					ctx->state->argv[0], err_pos.line, err_pos.column, err_msg);
 			} else {
 				fprintf(stderr, "expected an arithmetic expression\n");
 			}
-			ret = EXIT_FAILURE;
+			ret = TASK_STATUS_ERROR;
 		} else {
 			long result;
 			if (!mrsh_run_arithm_expr(expr, &result)) {
-				ret = EXIT_FAILURE;
+				ret = TASK_STATUS_ERROR;
 			} else {
 				char buf[32];
 				snprintf(buf, sizeof(buf), "%ld", result);

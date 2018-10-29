@@ -230,6 +230,7 @@ static int task_word_poll(struct task *task, struct context *ctx) {
 				ret = EXIT_SUCCESS;
 			}
 		}
+		mrsh_arithm_expr_destroy(expr);
 		mrsh_parser_destroy(parser);
 		return ret;
 	case MRSH_WORD_LIST:

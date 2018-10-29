@@ -4,6 +4,9 @@
 #include <stdlib.h>
 
 void mrsh_arithm_expr_destroy(struct mrsh_arithm_expr *expr) {
+	if (expr == NULL) {
+		return;
+	}
 	switch (expr->type) {
 	case MRSH_ARITHM_LITERAL:;
 		struct mrsh_arithm_literal *al = mrsh_arithm_expr_get_literal(expr);

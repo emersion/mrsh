@@ -74,7 +74,7 @@ struct task *task_for_clause_create(char *name, struct mrsh_array *word_list,
 		struct mrsh_array *body);
 
 struct task *task_function_definition_create(
-		char *name, struct mrsh_command *body);
+		const char *name, struct mrsh_command *body);
 
 struct task *task_pipeline_create(void);
 void task_pipeline_add(struct task *task, struct task *child);

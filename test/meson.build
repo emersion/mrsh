@@ -8,6 +8,7 @@ test_files = [
 	'subshell.sh',
 	'word.sh',
 	'for.sh',
+	'function.sh',
 ]
 
 foreach test_file : test_files

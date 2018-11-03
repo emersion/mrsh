@@ -11,6 +11,7 @@
 #include "shell/process.h"
 #include "shell/shm.h"
 #include "shell/task.h"
+#include "shell/tasks.h"
 
 struct task_command {
 	struct task task;
@@ -19,8 +20,11 @@ struct task_command {
 	bool builtin;
 	struct mrsh_array args;
 
-	// only if not a builtin
+	// if a process
 	struct process process;
+	// if a function
+	struct mrsh_function *fn_def;
+	struct task *fn_task;
 };
 
 static void task_command_destroy(struct task *task) {
@@ -108,6 +112,25 @@ static void get_args(struct mrsh_array *args, struct mrsh_simple_command *sc,
 
 	assert(args->len > 0);
 	mrsh_array_add(args, NULL);
+}
+
+static bool task_function_start(struct task_command *tc, struct context *ctx) {
+	// TODO: Push new $@/$#
+	tc->fn_task = task_for_command(tc->fn_def->body);
+	return tc->fn_task != NULL;
+}
+
+static int task_function_poll(struct task *task, struct context *ctx) {
+	struct task_command *tc = (struct task_command *)task;
+
+	if (!tc->started) {
+		if (!task_function_start(tc, ctx)) {
+			return TASK_STATUS_ERROR;
+		}
+		tc->started = true;
+	}
+
+	return task_poll(tc->fn_task, ctx);
 }
 
 static int task_builtin_poll(struct task *task, struct context *ctx) {
@@ -271,9 +294,12 @@ static int task_command_poll(struct task *task, struct context *ctx) {
 		get_args(&tc->args, sc, ctx);
 		const char *argv_0 = (char *)tc->args.data[0];
 		tc->builtin = mrsh_has_builtin(argv_0);
+		tc->fn_def = mrsh_hashtable_get(&ctx->state->functions, argv_0);
 	}
 
-	if (tc->builtin) {
+	if (tc->fn_def) {
+		return task_function_poll(task, ctx);
+	} else if (tc->builtin) {
 		return task_builtin_poll(task, ctx);
 	} else {
 		return task_process_poll(task, ctx);

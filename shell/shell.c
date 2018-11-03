@@ -33,9 +33,22 @@ static void state_var_finish_iterator(const char *key, void *value,
 	variable_destroy((struct mrsh_variable *)value);
 }
 
+static void function_destroy(struct mrsh_function *fn) {
+	if (!fn) {
+		return;
+	}
+	free(fn);
+}
+
+static void state_fn_finish_iterator(const char *key, void *value, void *_) {
+	function_destroy((struct mrsh_function *)value);
+}
+
 void mrsh_state_finish(struct mrsh_state *state) {
 	mrsh_hashtable_for_each(&state->variables, state_var_finish_iterator, NULL);
 	mrsh_hashtable_finish(&state->variables);
+	mrsh_hashtable_for_each(&state->functions, state_fn_finish_iterator, NULL);
+	mrsh_hashtable_finish(&state->functions);
 	mrsh_hashtable_for_each(&state->aliases,
 		state_string_finish_iterator, NULL);
 	mrsh_hashtable_finish(&state->aliases);

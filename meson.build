@@ -72,6 +72,7 @@ lib_mrsh = library(
 		'shell/task/list.c',
 		'shell/task/loop_clause.c',
 		'shell/task/for_clause.c',
+		'shell/task/function_definition.c',
 		'shell/task/pipeline.c',
 		'shell/task/subshell.c',
 		'shell/task/task.c',

@@ -69,6 +69,10 @@ struct mrsh_variable {
 	uint32_t attribs;
 };
 
+struct mrsh_function {
+	struct mrsh_command *body;
+};
+
 struct mrsh_state {
 	int exit;
 	uint32_t options; // enum mrsh_option
@@ -78,6 +82,7 @@ struct mrsh_state {
 	bool interactive;
 	struct mrsh_hashtable variables; // mrsh_variable *
 	struct mrsh_hashtable aliases; // char *
+	struct mrsh_hashtable functions; // mrsh_function *
 	int last_status;
 };
 

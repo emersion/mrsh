@@ -33,20 +33,20 @@ int builtin_shift(struct mrsh_state *state, int argc, char *argv[]) {
 			state->exit = EXIT_FAILURE;
 		}
 		return EXIT_FAILURE;
-	} else if (n > state->argc - 1) {
+	} else if (n > state->args->argc - 1) {
 		fprintf(stderr, "shift: [n] must be less than $#\n");
 		if (!state->interactive) {
 			state->exit = EXIT_FAILURE;
 		}
 		return EXIT_FAILURE;
 	}
-	for (int i = 1, j = n + 1; j < state->argc; ++i, ++j) {
-		if (j <= state->argc - n) {
-			state->argv[i] = state->argv[j];
+	for (int i = 1, j = n + 1; j < state->args->argc; ++i, ++j) {
+		if (j <= state->args->argc - n) {
+			state->args->argv[i] = state->args->argv[j];
 		} else {
-			free(state->argv[i]);
+			free(state->args->argv[i]);
 		}
 	}
-	state->argc -= n;
+	state->args->argc -= n;
 	return EXIT_SUCCESS;
 }

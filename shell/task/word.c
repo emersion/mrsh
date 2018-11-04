@@ -97,7 +97,7 @@ static const char *parameter_get_value(struct mrsh_state *state, char *name) {
 	} else if (strcmp(name, "*") == 0) {
 		// TODO
 	} else if (strcmp(name, "#") == 0) {
-		sprintf(value, "%d", state->argc - 1);
+		sprintf(value, "%d", state->args->argc - 1);
 		return value;
 	} else if (strcmp(name, "?") == 0) {
 		sprintf(value, "%d", state->last_status);
@@ -110,10 +110,10 @@ static const char *parameter_get_value(struct mrsh_state *state, char *name) {
 	} else if (strcmp(name, "!") == 0) {
 		// TODO
 	} else if (end[0] == '\0') {
-		if (lvalue >= state->argc) {
+		if (lvalue >= state->args->argc) {
 			return NULL;
 		}
-		return state->argv[lvalue];
+		return state->args->argv[lvalue];
 	}
 	// User-set cases
 	return mrsh_env_get(state, name, NULL);
@@ -147,7 +147,7 @@ static int task_word_poll(struct task *task, struct context *ctx) {
 		if (value == NULL) {
 			if ((ctx->state->options & MRSH_OPT_NOUNSET)) {
 				fprintf(stderr, "%s: %s: unbound variable\n",
-						ctx->state->argv[0], wp->name);
+						ctx->state->args->argv[0], wp->name);
 				return TASK_STATUS_ERROR;
 			}
 			value = "";
@@ -211,7 +211,8 @@ static int task_word_poll(struct task *task, struct context *ctx) {
 			if (err_msg != NULL) {
 				// TODO: improve error line/column
 				fprintf(stderr, "%s (arithmetic %d:%d): %s\n",
-					ctx->state->argv[0], err_pos.line, err_pos.column, err_msg);
+					ctx->state->args->argv[0], err_pos.line,
+					err_pos.column, err_msg);
 			} else {
 				fprintf(stderr, "expected an arithmetic expression\n");
 			}

@@ -13,6 +13,7 @@ void mrsh_state_init(struct mrsh_state *state) {
 	state->interactive = isatty(STDIN_FILENO);
 	state->options = state->interactive ? MRSH_OPT_INTERACTIVE : 0;
 	state->input = stdin;
+	state->args = calloc(1, sizeof(struct mrsh_args));
 }
 
 static void state_string_finish_iterator(const char *key, void *value,
@@ -52,10 +53,16 @@ void mrsh_state_finish(struct mrsh_state *state) {
 	mrsh_hashtable_for_each(&state->aliases,
 		state_string_finish_iterator, NULL);
 	mrsh_hashtable_finish(&state->aliases);
-	for (int i = 0; i < state->argc; ++i) {
-		free(state->argv[i]);
+	struct mrsh_args *args = state->args;
+	while (args) {
+		for (int i = 0; i < args->argc; ++i) {
+			free(args->argv[i]);
+		}
+		free(args->argv);
+		struct mrsh_args *prev = args->prev;
+		free(args);
+		args = prev;
 	}
-	free(state->argv);
 }
 
 void mrsh_env_set(struct mrsh_state *state,
@@ -82,6 +89,26 @@ const char *mrsh_env_get(struct mrsh_state *state,
 		*attribs = var->attribs;
 	}
 	return var ? var->value : NULL;
+}
+
+void mrsh_push_args(struct mrsh_state *state, int argc, const char *argv[]) {
+	struct mrsh_args *next = calloc(1, sizeof(struct mrsh_args));
+	next->argc = argc;
+	next->argv = malloc(sizeof(char *) * argc);
+	for (int i = 0; i < argc; ++i) {
+		next->argv[i] = strdup(argv[i]);
+	}
+	next->prev = state->args;
+	state->args = next;
+}
+
+void mrsh_pop_args(struct mrsh_state *state) {
+	struct mrsh_args *args = state->args;
+	state->args = args->prev;
+	for (int i = 0; i < args->argc; ++i) {
+		free(args->argv[i]);
+	}
+	free(args);
 }
 
 int mrsh_run_program(struct mrsh_state *state, struct mrsh_program *prog) {

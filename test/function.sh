@@ -19,10 +19,18 @@ func_c() {
 	}
 }
 
+func_d() if true; then echo func_d; fi
+
+func_e() {
+	echo $1
+}
+
 func_a
 func_b
 func_c
 func_c
+func_d
+func_e hello
 
 output=$(func_a)
 

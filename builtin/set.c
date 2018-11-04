@@ -178,15 +178,15 @@ static int set(struct mrsh_state *state, int argc, char *argv[], bool cmdline) {
 				return EXIT_FAILURE;
 			}
 		} else {
-			argv_0 = strdup(state->argv[0]);
+			argv_0 = strdup(state->args->argv[0]);
 		}
-		argv_free(state->argc, state->argv);
-		state->argc = argc - i + 1;
-		state->argv = argv_dup(argv_0, state->argc, &argv[i]);
+		argv_free(state->args->argc, state->args->argv);
+		state->args->argc = argc - i + 1;
+		state->args->argv = argv_dup(argv_0, state->args->argc, &argv[i]);
 	} else if (cmdline) {
 		// No args given, but we need to initialize state->argv
-		state->argc = 1;
-		state->argv = argv_dup(strdup(argv[0]), 1, argv);
+		state->args->argc = 1;
+		state->args->argv = argv_dup(strdup(argv[0]), 1, argv);
 	}
 
 	return EXIT_SUCCESS;

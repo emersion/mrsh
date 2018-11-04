@@ -115,7 +115,9 @@ static void get_args(struct mrsh_array *args, struct mrsh_simple_command *sc,
 }
 
 static bool task_function_start(struct task_command *tc, struct context *ctx) {
-	// TODO: Push new $@/$#
+	int argc = tc->args.len - 1;
+	const char **argv = (const char **)tc->args.data;
+	mrsh_push_args(ctx->state, argc, argv);
 	tc->fn_task = task_for_command(tc->fn_def->body);
 	return tc->fn_task != NULL;
 }
@@ -130,7 +132,11 @@ static int task_function_poll(struct task *task, struct context *ctx) {
 		tc->started = true;
 	}
 
-	return task_poll(tc->fn_task, ctx);
+	int ret = task_poll(tc->fn_task, ctx);
+	if (ret >= 0) {
+		mrsh_pop_args(ctx->state);
+	}
+	return ret;
 }
 
 static int task_builtin_poll(struct task *task, struct context *ctx) {

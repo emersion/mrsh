@@ -149,7 +149,7 @@ int main(int argc, char *argv[]) {
 				// Nothing to see here
 			} else if (err_msg != NULL) {
 				fprintf(stderr, "%s:%d:%d: syntax error: %s\n",
-					state.argv[0], err_pos.line, err_pos.column, err_msg);
+					state.args->argv[0], err_pos.line, err_pos.column, err_msg);
 				if (state.interactive) {
 					continue;
 				} else {

@@ -38,6 +38,7 @@ static void function_destroy(struct mrsh_function *fn) {
 	if (!fn) {
 		return;
 	}
+	mrsh_command_destroy(fn->body);
 	free(fn);
 }
 

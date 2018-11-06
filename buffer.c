@@ -63,5 +63,6 @@ char *mrsh_buffer_steal(struct mrsh_buffer *buf) {
 
 void mrsh_buffer_finish(struct mrsh_buffer *buf) {
 	free(buf->data);
+	buf->data = NULL;
 	buf->cap = buf->len = 0;
 }

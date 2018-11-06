@@ -128,12 +128,12 @@ int main(int argc, char *argv[]) {
 			}
 			char *line = NULL;
 			size_t n = interactive_next(&state, &line, prompt);
+			free(prompt);
 			if (!line) {
 				state.exit = EXIT_FAILURE;
 				continue;
 			}
 			mrsh_buffer_append(&read_buffer, line, n);
-			free(prompt);
 			free(line);
 			parser = mrsh_parser_create_from_buffer(
 					read_buffer.data, read_buffer.len);
@@ -171,7 +171,7 @@ int main(int argc, char *argv[]) {
 				mrsh_run_program(&state, prog);
 			}
 			mrsh_program_destroy(prog);
-			mrsh_buffer_steal(&read_buffer);
+			mrsh_buffer_finish(&read_buffer);
 		}
 		if (state.interactive) {
 			mrsh_parser_destroy(parser);
@@ -184,6 +184,7 @@ int main(int argc, char *argv[]) {
 		mrsh_parser_destroy(parser);
 	}
 
+	mrsh_buffer_finish(&read_buffer);
 	mrsh_state_finish(&state);
 	fclose(state.input);
 

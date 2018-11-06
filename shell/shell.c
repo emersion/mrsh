@@ -45,6 +45,14 @@ static void state_fn_finish_iterator(const char *key, void *value, void *_) {
 	function_destroy((struct mrsh_function *)value);
 }
 
+static void args_destroy(struct mrsh_args *args) {
+	for (int i = 0; i < args->argc; ++i) {
+		free(args->argv[i]);
+	}
+	free(args->argv);
+	free(args);
+}
+
 void mrsh_state_finish(struct mrsh_state *state) {
 	mrsh_hashtable_for_each(&state->variables, state_var_finish_iterator, NULL);
 	mrsh_hashtable_finish(&state->variables);
@@ -55,12 +63,8 @@ void mrsh_state_finish(struct mrsh_state *state) {
 	mrsh_hashtable_finish(&state->aliases);
 	struct mrsh_args *args = state->args;
 	while (args) {
-		for (int i = 0; i < args->argc; ++i) {
-			free(args->argv[i]);
-		}
-		free(args->argv);
 		struct mrsh_args *prev = args->prev;
-		free(args);
+		args_destroy(args);
 		args = prev;
 	}
 }
@@ -104,11 +108,9 @@ void mrsh_push_args(struct mrsh_state *state, int argc, const char *argv[]) {
 
 void mrsh_pop_args(struct mrsh_state *state) {
 	struct mrsh_args *args = state->args;
+	assert(args->prev != NULL);
 	state->args = args->prev;
-	for (int i = 0; i < args->argc; ++i) {
-		free(args->argv[i]);
-	}
-	free(args);
+	args_destroy(args);
 }
 
 int mrsh_run_program(struct mrsh_state *state, struct mrsh_program *prog) {

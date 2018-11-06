@@ -1,6 +1,5 @@
 #define _POSIX_C_SOURCE 200809L
 #include "shell/task.h"
-#include "shell/tasks.h"
 #include <assert.h>
 #include <stdbool.h>
 #include <stdlib.h>
@@ -9,8 +8,8 @@
 struct task_for_clause {
 	struct task task;
 	struct {
-		char *name;
-		struct mrsh_array *word_list, *body;
+		const char *name;
+		const struct mrsh_array *word_list, *body;
 	} ast;
 	struct {
 		struct task *word, *body;
@@ -21,6 +20,7 @@ struct task_for_clause {
 
 static void task_for_clause_destroy(struct task *task) {
 	struct task_for_clause *tfc = (struct task_for_clause *)task;
+	task_destroy(tfc->tasks.word);
 	task_destroy(tfc->tasks.body);
 	free(tfc);
 }
@@ -43,7 +43,7 @@ static int task_for_clause_poll(struct task *task, struct context *ctx) {
 				return word_status;
 			}
 			struct mrsh_word_string *word = (struct mrsh_word_string *)
-				tfc->ast.word_list -> data[tfc->index - 1];
+				tfc->ast.word_list->data[tfc->index - 1];
 			mrsh_env_set(ctx->state, tfc->ast.name, word->str,
 				MRSH_VAR_ATTRIB_NONE);
 			task_destroy(tfc->tasks.word);
@@ -56,8 +56,7 @@ static int task_for_clause_poll(struct task *task, struct context *ctx) {
 				return 0;
 			}
 			struct mrsh_word **word_ptr =
-				(struct mrsh_word **)&tfc->ast.word_list
-					->data[tfc->index++];
+				(struct mrsh_word **)&tfc->ast.word_list->data[tfc->index++];
 			tfc->tasks.word = task_word_create(
 				word_ptr, TILDE_EXPANSION_NAME);
 		}
@@ -69,8 +68,8 @@ static const struct task_interface task_for_clause_impl = {
 	.poll = task_for_clause_poll,
 };
 
-struct task *task_for_clause_create(char *name, struct mrsh_array *word_list,
-		struct mrsh_array *body) {
+struct task *task_for_clause_create(const char *name,
+		const struct mrsh_array *word_list, const struct mrsh_array *body) {
 	struct task_for_clause *tfc = calloc(1, sizeof(struct task_for_clause));
 	task_init(&tfc->task, &task_for_clause_impl);
 	tfc->ast.name = name;

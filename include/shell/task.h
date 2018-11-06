@@ -60,32 +60,18 @@ int task_run(struct task *task, struct context *ctx);
  * be mutated during expansion and substitution.
  */
 struct task *task_command_create(struct mrsh_simple_command *sc);
-
-struct task *task_list_create(void);
-void task_list_add(struct task *task, struct task *child);
-
 struct task *task_if_clause_create(struct task *condition, struct task *body,
 	struct task *else_part);
-
-struct task *task_loop_clause_create(struct mrsh_array *condition,
-		struct mrsh_array *body, bool until);
-
-struct task *task_for_clause_create(char *name, struct mrsh_array *word_list,
-		struct mrsh_array *body);
-
-struct task *task_function_definition_create(
-		const char *name, struct mrsh_command *body);
-
-struct task *task_pipeline_create(void);
-void task_pipeline_add(struct task *task, struct task *child);
-
+struct task *task_loop_clause_create(const struct mrsh_array *condition,
+	const struct mrsh_array *body, bool until);
+struct task *task_for_clause_create(const char *name,
+	const struct mrsh_array *word_list, const struct mrsh_array *body);
+struct task *task_function_definition_create(const char *name,
+	const struct mrsh_command *body);
 struct task *task_binop_create(enum mrsh_binop_type type,
 	struct task *left, struct task *right);
-
 struct task *task_async_create(struct task *async);
-
 struct task *task_assignment_create(struct mrsh_array *assignments);
-
 /**
  * Creates a task that mutates `word_ptr`, executing all substitutions. After
  * the task has finished, the word tree is guaranteed to only contain word
@@ -93,7 +79,15 @@ struct task *task_assignment_create(struct mrsh_array *assignments);
  */
 struct task *task_word_create(struct mrsh_word **word_ptr,
 	enum tilde_expansion tilde_expansion);
-
 struct task *task_subshell_create(struct task *subtask);
+
+struct task *task_list_create(void);
+void task_list_add(struct task *task, struct task *child);
+
+struct task *task_pipeline_create(void);
+void task_pipeline_add(struct task *task, struct task *child);
+
+struct task *task_for_command_list_array(const struct mrsh_array *array);
+struct task *task_for_command(const struct mrsh_command *cmd);
 
 #endif

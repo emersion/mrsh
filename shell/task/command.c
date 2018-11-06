@@ -11,8 +11,15 @@ static void task_command_destroy(struct task *task) {
 		free(tc->args.data[i]);
 	}
 	mrsh_array_finish(&tc->args);
-	if (!tc->builtin) {
+	switch (tc->type) {
+	case TASK_COMMAND_PROCESS:
 		process_finish(&tc->process);
+		break;
+	case TASK_COMMAND_BUILTIN:
+		break;
+	case TASK_COMMAND_FUNCTION:
+		task_destroy(tc->fn_task);
+		break;
 	}
 	free(tc);
 }
@@ -49,16 +56,26 @@ static int task_command_poll(struct task *task, struct context *ctx) {
 	if (!tc->started) {
 		get_args(&tc->args, sc, ctx);
 		const char *argv_0 = (char *)tc->args.data[0];
-		tc->builtin = mrsh_has_builtin(argv_0);
+
+		enum task_command_type type;
 		tc->fn_def = mrsh_hashtable_get(&ctx->state->functions, argv_0);
+		if (tc->fn_def != NULL) {
+			type = TASK_COMMAND_FUNCTION;
+		} else if (mrsh_has_builtin(argv_0)) {
+			type = TASK_COMMAND_BUILTIN;
+		} else {
+			type = TASK_COMMAND_PROCESS;
+		}
+		tc->type = type;
 	}
 
-	if (tc->fn_def) {
-		return task_function_poll(task, ctx);
-	} else if (tc->builtin) {
-		return task_builtin_poll(task, ctx);
-	} else {
+	switch (tc->type) {
+	case TASK_COMMAND_PROCESS:
 		return task_process_poll(task, ctx);
+	case TASK_COMMAND_BUILTIN:
+		return task_builtin_poll(task, ctx);
+	case TASK_COMMAND_FUNCTION:
+		return task_function_poll(task, ctx);
 	}
 }
 

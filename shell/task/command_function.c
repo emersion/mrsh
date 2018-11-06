@@ -1,5 +1,4 @@
 #include "shell/task_command.h"
-#include "shell/tasks.h"
 
 static bool task_function_start(struct task_command *tc, struct context *ctx) {
 	int argc = tc->args.len - 1;

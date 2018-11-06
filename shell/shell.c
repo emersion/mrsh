@@ -6,7 +6,6 @@
 #include <unistd.h>
 #include "shell/shell.h"
 #include "shell/task.h"
-#include "shell/tasks.h"
 
 void mrsh_state_init(struct mrsh_state *state) {
 	state->exit = -1;
@@ -34,7 +33,7 @@ static void state_var_finish_iterator(const char *key, void *value,
 	variable_destroy((struct mrsh_variable *)value);
 }
 
-static void function_destroy(struct mrsh_function *fn) {
+void function_destroy(struct mrsh_function *fn) {
 	if (!fn) {
 		return;
 	}

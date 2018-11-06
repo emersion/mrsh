@@ -3,7 +3,6 @@
 #include <unistd.h>
 #include "shell/shell.h"
 #include "shell/task.h"
-#include "shell/tasks.h"
 
 static struct mrsh_simple_command *copy_simple_command(
 		const struct mrsh_simple_command *sc) {
@@ -20,7 +19,7 @@ static void expand_assignments(struct task *task_list,
 	}
 }
 
-struct task *task_for_simple_command(struct mrsh_simple_command *sc) {
+static struct task *task_for_simple_command(struct mrsh_simple_command *sc) {
 	struct task *task_list = task_list_create();
 
 	if (sc->name == NULL) {
@@ -72,7 +71,9 @@ struct task *task_for_simple_command(struct mrsh_simple_command *sc) {
 	return task_list;
 }
 
-struct task *task_for_command_list_array(struct mrsh_array *array) {
+static struct task *task_for_node(const struct mrsh_node *node);
+
+struct task *task_for_command_list_array(const struct mrsh_array *array) {
 	struct task *task_list = task_list_create();
 
 	for (size_t i = 0; i < array->len; ++i) {
@@ -87,7 +88,7 @@ struct task *task_for_command_list_array(struct mrsh_array *array) {
 	return task_list;
 }
 
-struct task *task_for_if_clause(struct mrsh_if_clause *ic) {
+static struct task *task_for_if_clause(const struct mrsh_if_clause *ic) {
 	struct task *condition = task_for_command_list_array(&ic->condition);
 	struct task *body = task_for_command_list_array(&ic->body);
 	struct task *else_part = NULL;
@@ -97,20 +98,21 @@ struct task *task_for_if_clause(struct mrsh_if_clause *ic) {
 	return task_if_clause_create(condition, body, else_part);
 }
 
-struct task *task_for_loop_clause(struct mrsh_loop_clause *lc) {
+static struct task *task_for_loop_clause(const struct mrsh_loop_clause *lc) {
 	return task_loop_clause_create(&lc->condition, &lc->body,
-			lc->type == MRSH_LOOP_UNTIL);
+		lc->type == MRSH_LOOP_UNTIL);
 }
 
-struct task *task_for_for_clause(struct mrsh_for_clause *fc) {
+static struct task *task_for_for_clause(const struct mrsh_for_clause *fc) {
 	return task_for_clause_create(fc->name, &fc->word_list, &fc->body);
 }
 
-struct task *task_for_function_definition(struct mrsh_function_definition *fn) {
+static struct task *task_for_function_definition(
+		const struct mrsh_function_definition *fn) {
 	return task_function_definition_create(fn->name, fn->body);
 }
 
-struct task *task_for_command(struct mrsh_command *cmd) {
+struct task *task_for_command(const struct mrsh_command *cmd) {
 	switch (cmd->type) {
 	case MRSH_SIMPLE_COMMAND:;
 		struct mrsh_simple_command *sc = mrsh_command_get_simple_command(cmd);
@@ -140,7 +142,7 @@ struct task *task_for_command(struct mrsh_command *cmd) {
 	assert(false);
 }
 
-struct task *task_for_pipeline(struct mrsh_pipeline *pl) {
+static struct task *task_for_pipeline(const struct mrsh_pipeline *pl) {
 	struct task *task_pipeline = task_pipeline_create();
 
 	for (size_t i = 0; i < pl->commands.len; ++i) {
@@ -151,13 +153,13 @@ struct task *task_for_pipeline(struct mrsh_pipeline *pl) {
 	return task_pipeline;
 }
 
-struct task *task_for_binop(struct mrsh_binop *binop) {
+static struct task *task_for_binop(const struct mrsh_binop *binop) {
 	struct task *left = task_for_node(binop->left);
 	struct task *right = task_for_node(binop->right);
 	return task_binop_create(binop->type, left, right);
 }
 
-struct task *task_for_node(struct mrsh_node *node) {
+static struct task *task_for_node(const struct mrsh_node *node) {
 	switch (node->type) {
 	case MRSH_NODE_PIPELINE:;
 		struct mrsh_pipeline *pl = mrsh_node_get_pipeline(node);

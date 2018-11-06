@@ -4,15 +4,22 @@
 #include "shell/process.h"
 #include "shell/task.h"
 
+enum task_command_type {
+	TASK_COMMAND_PROCESS,
+	TASK_COMMAND_BUILTIN,
+	TASK_COMMAND_FUNCTION,
+};
+
 struct task_command {
 	struct task task;
 	struct mrsh_simple_command *sc;
 	bool started;
-	bool builtin;
+	enum task_command_type type;
 	struct mrsh_array args;
 
 	// if a process
 	struct process process;
+
 	// if a function
 	const struct mrsh_function *fn_def;
 	struct task *fn_task;

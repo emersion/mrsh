@@ -77,6 +77,7 @@ static int task_command_poll(struct task *task, struct context *ctx) {
 	case TASK_COMMAND_FUNCTION:
 		return task_function_poll(task, ctx);
 	}
+	assert(false);
 }
 
 static const struct task_interface task_command_impl = {

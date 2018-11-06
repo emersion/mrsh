@@ -127,6 +127,7 @@ static int task_function_poll(struct task *task, struct context *ctx) {
 
 	if (!tc->started) {
 		if (!task_function_start(tc, ctx)) {
+			mrsh_pop_args(ctx->state);
 			return TASK_STATUS_ERROR;
 		}
 		tc->started = true;

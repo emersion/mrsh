@@ -13,7 +13,7 @@
 
 static const char source_usage[] = "usage: . <path>\n";
 
-int builtin_source(struct mrsh_state *state, int argc, char *argv[]) {
+int builtin_dot(struct mrsh_state *state, int argc, char *argv[]) {
 	if (argc != 2) {
 		fprintf(stderr, source_usage);
 		return EXIT_FAILURE;

@@ -2,7 +2,7 @@
 
 two=2
 
-for i in 1 $two 3; do
+for i in 1 $two $(echo 3); do
 	echo $i
 done
 echo $i

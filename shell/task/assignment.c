@@ -39,7 +39,7 @@ static int task_assignment_poll(struct task *task, struct context *ctx) {
 		free(new_value);
 	}
 
-	return 0;
+	return EXIT_SUCCESS;
 }
 
 static const struct task_interface task_assignment_impl = {

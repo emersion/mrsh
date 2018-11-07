@@ -30,7 +30,7 @@ struct task_word {
 
 static bool read_full(int fd, char *buf, size_t size) {
 	size_t n_read = 0;
-	do {
+	while (n_read < size) {
 		ssize_t n = read(fd, buf, size - n_read);
 		if (n < 0 && errno == EINTR) {
 			continue;
@@ -39,7 +39,7 @@ static bool read_full(int fd, char *buf, size_t size) {
 			return false;
 		}
 		n_read += n;
-	} while (n_read < size);
+	}
 	return true;
 }
 
@@ -66,7 +66,13 @@ static bool task_word_command_start(struct task_word *tt,
 		fprintf(stderr, "failed to fork(): %s\n", strerror(errno));
 		return false;
 	} else if (pid == 0) {
+		// On exit, libc cleans up FILE structs, and can seek the backing FD if
+		// some data has been buffered. This messes up the parent's FD too. To
+		// prevent this from hapening, close all FILE structs.
+		fclose(ctx->state->input);
+
 		dup2(fd, STDOUT_FILENO);
+		close(fd);
 
 		if (ctx->stdin_fileno >= 0) {
 			close(ctx->stdin_fileno);

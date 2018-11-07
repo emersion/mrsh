@@ -79,6 +79,11 @@ static bool task_process_start(struct task_command *tc, struct context *ctx) {
 		fprintf(stderr, "failed to fork(): %s\n", strerror(errno));
 		return false;
 	} else if (pid == 0) {
+		// On exit, libc cleans up FILE structs, and can seek the backing FD if
+		// some data has been buffered. This messes up the parent's FD too. To
+		// prevent this from hapening, close all FILE structs.
+		fclose(ctx->state->input);
+
 		for (size_t i = 0; i < sc->assignments.len; ++i) {
 			struct mrsh_assignment *assign = sc->assignments.data[i];
 			uint32_t prev_attribs;

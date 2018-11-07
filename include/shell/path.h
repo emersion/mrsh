@@ -1,5 +1,5 @@
-#ifndef _SHELL_PATH_H
-#define _SHELL_PATH_H
+#ifndef SHELL_PATH_H
+#define SHELL_PATH_H
 
 #include <mrsh/shell.h>
 #include <stdbool.h>

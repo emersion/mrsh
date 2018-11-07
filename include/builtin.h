@@ -1,5 +1,5 @@
-#ifndef _BUILTIN_H
-#define _BUILTIN_H
+#ifndef BUILTIN_H
+#define BUILTIN_H
 
 struct mrsh_state;
 

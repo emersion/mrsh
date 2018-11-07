@@ -1,5 +1,5 @@
-#ifndef _MRSH_ARRAY_H
-#define _MRSH_ARRAY_H
+#ifndef MRSH_ARRAY_H
+#define MRSH_ARRAY_H
 
 #include <stdbool.h>
 #include <stddef.h>

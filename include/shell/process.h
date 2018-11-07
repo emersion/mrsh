@@ -1,5 +1,5 @@
-#ifndef _SHELL_PROCESS_H
-#define _SHELL_PROCESS_H
+#ifndef SHELL_PROCESS_H
+#define SHELL_PROCESS_H
 
 #include <stdbool.h>
 #include <sys/types.h>

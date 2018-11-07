@@ -1,5 +1,5 @@
-#ifndef _AST_H
-#define _AST_H
+#ifndef AST_H
+#define AST_H
 
 #include <mrsh/ast.h>
 

@@ -1,5 +1,6 @@
-#ifndef _FRONTEND_H
-#define _FRONTEND_H
+#ifndef FRONTEND_H
+#define FRONTEND_H
+
 #include <stddef.h>
 #include <stdio.h>
 

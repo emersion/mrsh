@@ -1,5 +1,5 @@
-#ifndef _SHELL_SHELL_H
-#define _SHELL_SHELL_H
+#ifndef SHELL_SHELL_H
+#define SHELL_SHELL_H
 
 #include <mrsh/shell.h>
 

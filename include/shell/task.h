@@ -1,5 +1,5 @@
-#ifndef _SHELL_TASK_H
-#define _SHELL_TASK_H
+#ifndef SHELL_TASK_H
+#define SHELL_TASK_H
 
 #include "shell/shell.h"
 #include "shell/word.h"

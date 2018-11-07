@@ -1,5 +1,5 @@
-#ifndef _MRSH_PARSER_H
-#define _MRSH_PARSER_H
+#ifndef MRSH_PARSER_H
+#define MRSH_PARSER_H
 
 #include <mrsh/ast.h>
 #include <stdio.h>

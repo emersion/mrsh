@@ -1,5 +1,5 @@
-#ifndef _SHELL_TASK_COMMAND_H
-#define _SHELL_TASK_COMMAND_H
+#ifndef SHELL_TASK_COMMAND_H
+#define SHELL_TASK_COMMAND_H
 
 #include "shell/process.h"
 #include "shell/task.h"

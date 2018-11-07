@@ -1,5 +1,5 @@
-#ifndef _SHELL_SHM_H
-#define _SHELL_SHM_H
+#ifndef SHELL_SHM_H
+#define SHELL_SHM_H
 
 #include <stdbool.h>
 

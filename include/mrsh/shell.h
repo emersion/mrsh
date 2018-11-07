@@ -1,5 +1,5 @@
-#ifndef _MRSH_SHELL_H
-#define _MRSH_SHELL_H
+#ifndef MRSH_SHELL_H
+#define MRSH_SHELL_H
 
 #include <mrsh/arithm.h>
 #include <mrsh/ast.h>

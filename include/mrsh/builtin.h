@@ -1,5 +1,5 @@
-#ifndef _MRSH_BUILTIN_H
-#define _MRSH_BUILTIN_H
+#ifndef MRSH_BUILTIN_H
+#define MRSH_BUILTIN_H
 
 #include <mrsh/shell.h>
 

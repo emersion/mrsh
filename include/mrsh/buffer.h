@@ -1,5 +1,5 @@
-#ifndef _BUFFER_H
-#define _BUFFER_H
+#ifndef MRSH_BUFFER_H
+#define MRSH_BUFFER_H
 
 #include <stdbool.h>
 #include <stddef.h>

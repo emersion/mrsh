@@ -167,6 +167,10 @@ static bool task_process_start(struct task_command *tc, struct context *ctx) {
 					strerror(errno));
 				exit(EXIT_FAILURE);
 			}
+
+			if (fd != redir_fd) {
+				close(fd);
+			}
 		}
 
 		errno = 0;

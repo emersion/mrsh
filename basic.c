@@ -17,7 +17,7 @@ size_t interactive_next(struct mrsh_state *state,
 	fprintf(stderr, "%s", prompt);
 	size_t n = 0;
 	char *_line;
-	ssize_t l = getline(&_line, &n, state->input);
+	ssize_t l = getline(&_line, &n, stdin);
 	if (l == -1 && errno) {
 		fprintf(stderr, "%s\n", strerror(errno));
 		return 0;

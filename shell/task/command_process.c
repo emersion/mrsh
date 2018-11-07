@@ -1,4 +1,4 @@
-#define _POSIX_C_SOURCE 200112L
+#define _POSIX_C_SOURCE 200809L
 #include <errno.h>
 #include <fcntl.h>
 #include <stdlib.h>
@@ -113,16 +113,18 @@ static bool task_process_start(struct task_command *tc, struct context *ctx) {
 			errno = 0;
 			switch (redir->op) {
 			case MRSH_IO_LESS: // <
-				fd = open(filename, O_RDONLY);
+				fd = open(filename, O_CLOEXEC | O_RDONLY);
 				default_redir_fd = STDIN_FILENO;
 				break;
 			case MRSH_IO_GREAT: // >
 			case MRSH_IO_CLOBBER: // >|
-				fd = open(filename, O_WRONLY | O_CREAT | O_TRUNC, 0644);
+				fd = open(filename,
+					O_CLOEXEC | O_WRONLY | O_CREAT | O_TRUNC, 0644);
 				default_redir_fd = STDOUT_FILENO;
 				break;
 			case MRSH_IO_DGREAT: // >>
-				fd = open(filename, O_WRONLY | O_CREAT | O_APPEND, 0644);
+				fd = open(filename,
+					O_CLOEXEC | O_WRONLY | O_CREAT | O_APPEND, 0644);
 				default_redir_fd = STDOUT_FILENO;
 				break;
 			case MRSH_IO_LESSAND: // <&
@@ -136,7 +138,7 @@ static bool task_process_start(struct task_command *tc, struct context *ctx) {
 				default_redir_fd = STDOUT_FILENO;
 				break;
 			case MRSH_IO_LESSGREAT: // <>
-				fd = open(filename, O_RDWR | O_CREAT, 0644);
+				fd = open(filename, O_CLOEXEC | O_RDWR | O_CREAT, 0644);
 				default_redir_fd = STDIN_FILENO;
 				break;
 			case MRSH_IO_DLESS: // <<

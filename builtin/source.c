@@ -9,6 +9,7 @@
 #include <stdio.h>
 #include "builtin.h"
 #include "shell/path.h"
+#include "shell/shm.h"
 
 static const char source_usage[] = "usage: . <path>\n";
 
@@ -31,10 +32,14 @@ int builtin_source(struct mrsh_state *state, int argc, char *argv[]) {
 	if (!f) {
 		fprintf(stderr, "unable to open %s for reading: %s\n",
 				argv[1], strerror(errno));
-		if (!state->interactive) {
-			state->exit = EXIT_FAILURE;
-		}
-		return EXIT_FAILURE;
+		goto error;
+	}
+
+	if (!set_cloexec(fileno(f))) {
+		fprintf(stderr, "cannot set CLOEXEC on %s: %s\n",
+				argv[1], strerror(errno));
+		fclose(f);
+		goto error;
 	}
 
 	struct mrsh_parser *parser = mrsh_parser_create(f);
@@ -56,5 +61,12 @@ int builtin_source(struct mrsh_state *state, int argc, char *argv[]) {
 	}
 
 	mrsh_parser_destroy(parser);
+	fclose(f);
 	return ret;
+
+error:
+	if (!state->interactive) {
+		state->exit = EXIT_FAILURE;
+	}
+	return EXIT_FAILURE;
 }

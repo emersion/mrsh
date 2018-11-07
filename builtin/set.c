@@ -7,6 +7,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "builtin.h"
+#include "shell/shm.h"
 
 static const char set_usage[] =
 	"usage: set [(-|+)abCefhmnuvx] [-o option] [args...]\n";
@@ -168,12 +169,23 @@ static int set(struct mrsh_state *state, int argc, char *argv[], bool cmdline) {
 		char *argv_0;
 		if (cmdline) {
 			argv_0 = strdup(argv[i++]);
-			state->input = fopen(argv_0, "r");
+
 			// TODO: Turn off -m if the user didn't explicitly set it
 			state->interactive = false;
+
+			state->input = fopen(argv_0, "r");
 			if (!state->input) {
 				fprintf(stderr, "could not open %s for reading: %s\n",
 					argv_0, strerror(errno));
+				free(argv_0);
+				return EXIT_FAILURE;
+			}
+
+			if (!set_cloexec(fileno(state->input))) {
+				fprintf(stderr, "failed to set CLOEXEC on %s: %s\n",
+					argv_0, strerror(errno));
+				fclose(state->input);
+				state->input = NULL;
 				free(argv_0);
 				return EXIT_FAILURE;
 			}

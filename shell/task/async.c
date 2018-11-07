@@ -1,3 +1,4 @@
+#define _POSIX_C_SOURCE 200809L
 #include <errno.h>
 #include <fcntl.h>
 #include <stdio.h>
@@ -57,13 +58,14 @@ static bool task_async_start(struct task *task, struct context *ctx) {
 			dup2(ctx->stdin_fileno, STDIN_FILENO);
 		} else if (!(ctx->state->options & MRSH_OPT_MONITOR)) {
 			// If job control is disabled, stdin is /dev/null
-			int fd = open("/dev/null", O_RDONLY);
+			int fd = open("/dev/null", O_CLOEXEC | O_RDONLY);
 			if (fd < 0) {
 				fprintf(stderr, "failed to open /dev/null: %s\n",
 					strerror(errno));
 				exit(EXIT_FAILURE);
 			}
 			dup2(fd, STDIN_FILENO);
+			close(fd);
 		}
 		if (ctx->stdout_fileno >= 0) {
 			dup2(ctx->stdout_fileno, STDOUT_FILENO);

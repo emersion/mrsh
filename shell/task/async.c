@@ -21,17 +21,12 @@ static void task_async_destroy(struct task *task) {
 	free(ta);
 }
 
-static int fork_detached(struct context *ctx) {
+static int fork_detached(void) {
 	pid_t pid = fork();
 	if (pid < 0) {
 		fprintf(stderr, "failed to fork(): %s\n", strerror(errno));
 		return -1;
 	} else if (pid == 0) {
-		// On exit, libc cleans up FILE structs, and can seek the backing FD if
-		// some data has been buffered. This messes up the parent's FD too. To
-		// prevent this from hapening, close all FILE structs.
-		fclose(ctx->state->input);
-
 		pid_t child_pid = fork();
 		if (child_pid < 0) {
 			fprintf(stderr, "failed to fork(): %s\n", strerror(errno));
@@ -55,7 +50,7 @@ static bool task_async_start(struct task *task, struct context *ctx) {
 	struct task_async *ta = (struct task_async *)task;
 
 	// Start a subshell
-	int ret = fork_detached(ctx);
+	int ret = fork_detached();
 	if (ret < 0) {
 		return false;
 	} else if (ret == 0) {

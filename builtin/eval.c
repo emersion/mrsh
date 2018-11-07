@@ -28,8 +28,7 @@ int builtin_eval(struct mrsh_state *state, int argc, char *argv[]) {
 	}
 	mrsh_buffer_append_char(&buf, '\n');
 
-	struct mrsh_parser *parser =
-		mrsh_parser_create_from_buffer(buf.data, buf.len);
+	struct mrsh_parser *parser = mrsh_parser_with_data(buf.data, buf.len);
 	struct mrsh_program *program = mrsh_parse_program(parser);
 
 	int ret;

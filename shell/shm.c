@@ -1,9 +1,9 @@
 #define _POSIX_C_SOURCE 200112L
 #include <errno.h>
+#include <fcntl.h>
+#include <string.h>
 #include <sys/mman.h>
 #include <time.h>
-#include <string.h>
-#include <fcntl.h>
 #include "shell/shm.h"
 
 static void randname(char *buf) {
@@ -32,17 +32,4 @@ int create_anonymous_file(void) {
 	} while (retries > 0 && errno == EEXIST);
 
 	return -1;
-}
-
-bool set_cloexec(int fd) {
-	long flags = fcntl(fd, F_GETFD);
-	if (flags == -1) {
-		return false;
-	}
-
-	if (fcntl(fd, F_SETFD, flags | FD_CLOEXEC) == -1) {
-		return false;
-	}
-
-	return true;
 }

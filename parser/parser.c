@@ -1,15 +1,17 @@
 #define _POSIX_C_SOURCE 200809L
 #include <assert.h>
 #include <ctype.h>
+#include <errno.h>
 #include <mrsh/buffer.h>
 #include <stdbool.h>
 #include <stddef.h>
-#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
+#include <unistd.h>
 #include "ast.h"
 #include "parser.h"
+
+#define READ_SIZE 4096
 
 // Keep sorted from the longest to the shortest
 const struct symbol operators[] = {
@@ -53,17 +55,18 @@ const size_t keywords_len = sizeof(keywords) / sizeof(keywords[0]);
 
 static struct mrsh_parser *parser_create(void) {
 	struct mrsh_parser *state = calloc(1, sizeof(struct mrsh_parser));
+	state->fd = -1;
 	state->pos.line = state->pos.column = 1;
 	return state;
 }
 
-struct mrsh_parser *mrsh_parser_create(FILE *f) {
+struct mrsh_parser *mrsh_parser_with_fd(int fd) {
 	struct mrsh_parser *state = parser_create();
-	state->f = f;
+	state->fd = fd;
 	return state;
 }
 
-struct mrsh_parser *mrsh_parser_create_from_buffer(const char *buf, size_t len) {
+struct mrsh_parser *mrsh_parser_with_data(const char *buf, size_t len) {
 	struct mrsh_parser *state = parser_create();
 	mrsh_buffer_append(&state->buf, buf, len);
 	mrsh_buffer_append_char(&state->buf, '\0');
@@ -80,22 +83,30 @@ void mrsh_parser_destroy(struct mrsh_parser *state) {
 }
 
 size_t parser_peek(struct mrsh_parser *state, char *buf, size_t size) {
-	if (state->f != NULL && size > state->buf.len) {
+	if (state->fd >= 0 && size > state->buf.len) {
 		size_t n_more = size - state->buf.len;
-		char *dst = mrsh_buffer_reserve(&state->buf, n_more);
-		size_t n_read = fread(dst, 1, n_more, state->f);
-		state->buf.len += n_read;
-		if (n_read < n_more) {
-			if (feof(state->f)) {
+
+		size_t n_read = 0;
+		while (n_read < n_more) {
+			char *dst = mrsh_buffer_reserve(&state->buf, READ_SIZE);
+
+			errno = 0;
+			ssize_t n = read(state->fd, dst, READ_SIZE);
+			if (n < 0 && errno == EINTR) {
+				continue;
+			} else if (n < 0) {
+				return 0; // TODO: better error handling
+			} else if (n == 0) {
 				mrsh_buffer_append_char(&state->buf, '\0');
 				size = state->buf.len;
-			} else {
-				// TODO: better error handling
-				return 0;
+				break;
 			}
+
+			state->buf.len += n;
+			n_read += n;
 		}
 	}
-	if (state->f == NULL && size > state->buf.len) {
+	if (state->fd < 0 && size > state->buf.len) {
 		size = state->buf.len;
 	}
 

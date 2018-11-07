@@ -25,11 +25,6 @@ static bool task_subshell_start(struct task_subshell *ts, struct context *ctx) {
 		fprintf(stderr, "failed to fork(): %s\n", strerror(errno));
 		return false;
 	} else if (pid == 0) {
-		// On exit, libc cleans up FILE structs, and can seek the backing FD if
-		// some data has been buffered. This messes up the parent's FD too. To
-		// prevent this from hapening, close all FILE structs.
-		fclose(ctx->state->input);
-
 		errno = 0;
 		int ret = task_run(ts->subtask, ctx);
 		if (ret < 0) {

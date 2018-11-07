@@ -41,9 +41,9 @@ extern const char *keywords[];
 extern const size_t keywords_len;
 
 struct mrsh_parser {
-	FILE *f; // can be NULL
+	int fd; // can be -1
 
-	struct mrsh_buffer buf;
+	struct mrsh_buffer buf; // internal read buffer
 	struct mrsh_position pos;
 
 	struct {

@@ -11,8 +11,7 @@ void mrsh_state_init(struct mrsh_state *state) {
 	state->exit = -1;
 	state->interactive = isatty(STDIN_FILENO);
 	state->options = state->interactive ? MRSH_OPT_INTERACTIVE : 0;
-	state->input = stdin;
-	state->args = calloc(1, sizeof(struct mrsh_args));
+	state->args = calloc(1, sizeof(struct mrsh_call_frame));
 }
 
 static void state_string_finish_iterator(const char *key, void *value,
@@ -45,7 +44,7 @@ static void state_fn_finish_iterator(const char *key, void *value, void *_) {
 	function_destroy((struct mrsh_function *)value);
 }
 
-static void args_destroy(struct mrsh_args *args) {
+static void call_frame_destroy(struct mrsh_call_frame *args) {
 	for (int i = 0; i < args->argc; ++i) {
 		free(args->argv[i]);
 	}
@@ -61,10 +60,10 @@ void mrsh_state_finish(struct mrsh_state *state) {
 	mrsh_hashtable_for_each(&state->aliases,
 		state_string_finish_iterator, NULL);
 	mrsh_hashtable_finish(&state->aliases);
-	struct mrsh_args *args = state->args;
+	struct mrsh_call_frame *args = state->args;
 	while (args) {
-		struct mrsh_args *prev = args->prev;
-		args_destroy(args);
+		struct mrsh_call_frame *prev = args->prev;
+		call_frame_destroy(args);
 		args = prev;
 	}
 }
@@ -96,7 +95,7 @@ const char *mrsh_env_get(struct mrsh_state *state,
 }
 
 void mrsh_push_args(struct mrsh_state *state, int argc, const char *argv[]) {
-	struct mrsh_args *next = calloc(1, sizeof(struct mrsh_args));
+	struct mrsh_call_frame *next = calloc(1, sizeof(struct mrsh_call_frame));
 	next->argc = argc;
 	next->argv = malloc(sizeof(char *) * argc);
 	for (int i = 0; i < argc; ++i) {
@@ -107,10 +106,10 @@ void mrsh_push_args(struct mrsh_state *state, int argc, const char *argv[]) {
 }
 
 void mrsh_pop_args(struct mrsh_state *state) {
-	struct mrsh_args *args = state->args;
+	struct mrsh_call_frame *args = state->args;
 	assert(args->prev != NULL);
 	state->args = args->prev;
-	args_destroy(args);
+	call_frame_destroy(args);
 }
 
 int mrsh_run_program(struct mrsh_state *state, struct mrsh_program *prog) {

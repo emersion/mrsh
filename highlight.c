@@ -7,7 +7,7 @@
 #include <string.h>
 #include <unistd.h>
 
-#define READ_SIZE 1024
+#define READ_SIZE 4096
 #define FORMAT_STACK_SIZE 64
 
 enum format {
@@ -307,8 +307,7 @@ int main(int argc, char *argv[]) {
 		buf.len += n_read;
 	}
 
-	struct mrsh_parser *parser =
-		mrsh_parser_create_from_buffer(buf.data, buf.len);
+	struct mrsh_parser *parser = mrsh_parser_with_data(buf.data, buf.len);
 	struct mrsh_program *prog = mrsh_parse_program(parser);
 	if (prog == NULL) {
 		const char *err_msg = mrsh_parser_error(parser, NULL);

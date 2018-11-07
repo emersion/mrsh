@@ -1,21 +1,20 @@
 #define _POSIX_C_SOURCE 200809L
 #include <errno.h>
+#include <fcntl.h>
 #include <limits.h>
 #include <mrsh/ast.h>
-#include <mrsh/builtin.h>
 #include <mrsh/buffer.h>
+#include <mrsh/builtin.h>
 #include <mrsh/parser.h>
 #include <mrsh/shell.h>
 #include <stdlib.h>
-#include <stdio.h>
 #include <string.h>
 #include <unistd.h>
 #include "builtin.h"
 #include "frontend.h"
 
-static char *expand_ps1(struct mrsh_state *state, const char *ps1) {
-	struct mrsh_parser *parser =
-		mrsh_parser_create_from_buffer(ps1, strlen(ps1));
+static char *expand_ps(struct mrsh_state *state, const char *ps1) {
+	struct mrsh_parser *parser = mrsh_parser_with_data(ps1, strlen(ps1));
 	struct mrsh_word *word = mrsh_parse_word(parser);
 	mrsh_parser_destroy(parser);
 	if (word == NULL) {
@@ -31,7 +30,7 @@ static char *get_ps1(struct mrsh_state *state) {
 	const char *ps1 = mrsh_env_get(state, "PS1", NULL);
 	if (ps1 != NULL) {
 		// TODO: Replace ! with next history ID
-		return expand_ps1(state, ps1);
+		return expand_ps(state, ps1);
 	}
 	char *p = malloc(3);
 	sprintf(p, "%s", getuid() ? "$ " : "# ");
@@ -41,7 +40,7 @@ static char *get_ps1(struct mrsh_state *state) {
 static char *get_ps2(struct mrsh_state *state) {
 	const char *ps2 = mrsh_env_get(state, "PS2", NULL);
 	if (ps2 != NULL) {
-		return expand_ps1(state, ps2);
+		return expand_ps(state, ps2);
 	}
 	return strdup("> ");
 }
@@ -71,7 +70,8 @@ int main(int argc, char *argv[]) {
 	struct mrsh_state state = {0};
 	mrsh_state_init(&state);
 
-	if (mrsh_process_args(&state, argc, argv) != EXIT_SUCCESS) {
+	struct mrsh_init_args init_args = {0};
+	if (mrsh_process_args(&state, &init_args, argc, argv) != EXIT_SUCCESS) {
 		mrsh_state_finish(&state);
 		return EXIT_FAILURE;
 	}
@@ -108,11 +108,28 @@ int main(int argc, char *argv[]) {
 
 	struct mrsh_parser *parser;
 
-	FILE *input = state.input;
+	int fd = -1;
 	if (state.interactive) {
 		interactive_init(&state);
 	} else {
-		parser = mrsh_parser_create(state.input);
+		if (init_args.command_str) {
+			parser = mrsh_parser_with_data(init_args.command_str,
+				strlen(init_args.command_str));
+		} else {
+			if (init_args.command_file) {
+				errno = 0;
+				fd = open(init_args.command_file, O_RDONLY | O_CLOEXEC);
+				if (fd < 0) {
+					fprintf(stderr, "failed to open %s for reading: %s",
+						init_args.command_file, strerror(errno));
+					return EXIT_FAILURE;
+				}
+			} else {
+				fd = STDIN_FILENO;
+			}
+
+			parser = mrsh_parser_with_fd(fd);
+		}
 		mrsh_parser_set_alias(parser, get_alias, &state);
 	}
 
@@ -135,8 +152,7 @@ int main(int argc, char *argv[]) {
 			}
 			mrsh_buffer_append(&read_buffer, line, n);
 			free(line);
-			parser = mrsh_parser_create_from_buffer(
-					read_buffer.data, read_buffer.len);
+			parser = mrsh_parser_with_data(read_buffer.data, read_buffer.len);
 			mrsh_parser_set_alias(parser, get_alias, &state);
 		}
 
@@ -156,7 +172,7 @@ int main(int argc, char *argv[]) {
 					state.exit = EXIT_FAILURE;
 					break;
 				}
-			} else if (feof(input)) {
+			} else if (mrsh_parser_eof(parser)) {
 				state.exit = state.last_status;
 				break;
 			} else {
@@ -186,7 +202,9 @@ int main(int argc, char *argv[]) {
 
 	mrsh_buffer_finish(&read_buffer);
 	mrsh_state_finish(&state);
-	fclose(state.input);
+	if (fd >= 0) {
+		close(fd);
+	}
 
 	return state.exit;
 }

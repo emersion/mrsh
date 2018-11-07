@@ -1,15 +1,15 @@
 #define _POSIX_C_SOURCE 200809L
 #include <assert.h>
 #include <errno.h>
+#include <fcntl.h>
 #include <mrsh/builtin.h>
 #include <mrsh/parser.h>
 #include <mrsh/shell.h>
 #include <stdlib.h>
 #include <string.h>
-#include <stdio.h>
+#include <unistd.h>
 #include "builtin.h"
 #include "shell/path.h"
-#include "shell/shm.h"
 
 static const char source_usage[] = "usage: . <path>\n";
 
@@ -28,21 +28,14 @@ int builtin_dot(struct mrsh_state *state, int argc, char *argv[]) {
 		return EXIT_FAILURE;
 	}
 
-	FILE *f = fopen(path, "r");
-	if (!f) {
+	int fd = open(path, O_RDONLY | O_CLOEXEC);
+	if (fd < 0) {
 		fprintf(stderr, "unable to open %s for reading: %s\n",
 				argv[1], strerror(errno));
 		goto error;
 	}
 
-	if (!set_cloexec(fileno(f))) {
-		fprintf(stderr, "cannot set CLOEXEC on %s: %s\n",
-				argv[1], strerror(errno));
-		fclose(f);
-		goto error;
-	}
-
-	struct mrsh_parser *parser = mrsh_parser_create(f);
+	struct mrsh_parser *parser = mrsh_parser_with_fd(fd);
 	struct mrsh_program *program = mrsh_parse_program(parser);
 
 	int ret;
@@ -61,7 +54,7 @@ int builtin_dot(struct mrsh_state *state, int argc, char *argv[]) {
 	}
 
 	mrsh_parser_destroy(parser);
-	fclose(f);
+	close(fd);
 	return ret;
 
 error:

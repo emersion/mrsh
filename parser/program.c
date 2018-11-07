@@ -1138,7 +1138,7 @@ static bool expect_here_document(struct mrsh_parser *state,
 		struct mrsh_word *word;
 		if (expand_lines) {
 			struct mrsh_parser *subparser =
-				mrsh_parser_create_from_buffer(line, strlen(line));
+				mrsh_parser_with_data(line, strlen(line));
 			word = here_document_line(subparser);
 			mrsh_parser_destroy(subparser);
 		} else {

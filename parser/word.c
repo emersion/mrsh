@@ -467,8 +467,7 @@ struct mrsh_word *back_quotes(struct mrsh_parser *state) {
 		mrsh_buffer_append_char(&buf, c);
 	}
 
-	struct mrsh_parser *subparser =
-		mrsh_parser_create_from_buffer(buf.data, buf.len);
+	struct mrsh_parser *subparser = mrsh_parser_with_data(buf.data, buf.len);
 	if (subparser == NULL) {
 		goto error;
 	}

@@ -7,7 +7,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include "builtin.h"
-#include "shell/shm.h"
 
 static const char set_usage[] =
 	"usage: set [(-|+)abCefhmnuvx] [-o option] [args...]\n";
@@ -84,8 +83,9 @@ static void argv_free(int argc, char **argv) {
 	free(argv);
 }
 
-static int set(struct mrsh_state *state, int argc, char *argv[], bool cmdline) {
-	if (argc == 1 && !cmdline) {
+static int set(struct mrsh_state *state, struct mrsh_init_args *init_args,
+		int argc, char *argv[]) {
+	if (argc == 1 && init_args == NULL) {
 		size_t count;
 		struct mrsh_collect_var *vars = mrsh_collect_vars(
 				state, MRSH_VAR_ATTRIB_NONE, &count);
@@ -133,20 +133,21 @@ static int set(struct mrsh_state *state, int argc, char *argv[], bool cmdline) {
 			++i;
 			continue;
 		case 'c':
-			if (!cmdline) {
+			if (init_args == NULL) {
 				fprintf(stderr, set_usage);
 				return EXIT_FAILURE;
 			}
 			state->interactive = false;
-			state->input = fmemopen(argv[i + 1], strlen(argv[i + 1]), "r");
+			init_args->command_str = argv[i + 1];
 			++i;
-			if (!state->input) {
-				fprintf(stderr, "fmemopen failed: %s", strerror(errno));
-				return EXIT_FAILURE;
-			}
 			break;
 		case 's':
-			state->input = stdin;
+			if (init_args == NULL) {
+				fprintf(stderr, set_usage);
+				return EXIT_FAILURE;
+			}
+			init_args->command_str = NULL;
+			init_args->command_file = NULL;
 			break;
 		default:
 			for (int j = 1; argv[i][j]; ++j) {
@@ -167,35 +168,20 @@ static int set(struct mrsh_state *state, int argc, char *argv[], bool cmdline) {
 
 	if (i != argc || force_positional) {
 		char *argv_0;
-		if (cmdline) {
+		if (init_args != NULL) {
 			argv_0 = strdup(argv[i++]);
 
 			// TODO: Turn off -m if the user didn't explicitly set it
 			state->interactive = false;
 
-			state->input = fopen(argv_0, "r");
-			if (!state->input) {
-				fprintf(stderr, "could not open %s for reading: %s\n",
-					argv_0, strerror(errno));
-				free(argv_0);
-				return EXIT_FAILURE;
-			}
-
-			if (!set_cloexec(fileno(state->input))) {
-				fprintf(stderr, "failed to set CLOEXEC on %s: %s\n",
-					argv_0, strerror(errno));
-				fclose(state->input);
-				state->input = NULL;
-				free(argv_0);
-				return EXIT_FAILURE;
-			}
+			init_args->command_file = argv_0;
 		} else {
 			argv_0 = strdup(state->args->argv[0]);
 		}
 		argv_free(state->args->argc, state->args->argv);
 		state->args->argc = argc - i + 1;
 		state->args->argv = argv_dup(argv_0, state->args->argc, &argv[i]);
-	} else if (cmdline) {
+	} else if (init_args == NULL) {
 		// No args given, but we need to initialize state->argv
 		state->args->argc = 1;
 		state->args->argv = argv_dup(strdup(argv[0]), 1, argv);
@@ -205,9 +191,10 @@ static int set(struct mrsh_state *state, int argc, char *argv[], bool cmdline) {
 }
 
 int builtin_set(struct mrsh_state *state, int argc, char *argv[]) {
-	return set(state, argc, argv, false);
+	return set(state, NULL, argc, argv);
 }
 
-int mrsh_process_args(struct mrsh_state *state, int argc, char *argv[]) {
-	return set(state, argc, argv, true);
+int mrsh_process_args(struct mrsh_state *state, struct mrsh_init_args *args,
+		int argc, char *argv[]) {
+	return set(state, args, argc, argv);
 }

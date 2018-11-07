@@ -13,8 +13,14 @@ struct mrsh_parser;
 typedef const char *(*mrsh_parser_alias_func_t)(const char *name,
 	void *user_data);
 
-struct mrsh_parser *mrsh_parser_create(FILE *f);
-struct mrsh_parser *mrsh_parser_create_from_buffer(const char *buf, size_t len);
+/**
+ * Create a parser from a file descriptor.
+ */
+struct mrsh_parser *mrsh_parser_with_fd(int fd);
+/**
+ * Create a parser from a static buffer.
+ */
+struct mrsh_parser *mrsh_parser_with_data(const char *buf, size_t len);
 void mrsh_parser_destroy(struct mrsh_parser *state);
 /**
  * Parse a complete multi-line program.

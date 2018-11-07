@@ -38,6 +38,7 @@ static bool read_full(int fd, char *buf, size_t size) {
 			fprintf(stderr, "failed to read(): %s\n", strerror(errno));
 			return false;
 		}
+		assert(n != 0);
 		n_read += n;
 	}
 	return true;
@@ -66,11 +67,6 @@ static bool task_word_command_start(struct task_word *tt,
 		fprintf(stderr, "failed to fork(): %s\n", strerror(errno));
 		return false;
 	} else if (pid == 0) {
-		// On exit, libc cleans up FILE structs, and can seek the backing FD if
-		// some data has been buffered. This messes up the parent's FD too. To
-		// prevent this from hapening, close all FILE structs.
-		fclose(ctx->state->input);
-
 		dup2(fd, STDOUT_FILENO);
 		close(fd);
 
@@ -208,7 +204,7 @@ static int task_word_poll(struct task *task, struct context *ctx) {
 		struct mrsh_word_arithmetic *wa = mrsh_word_get_arithmetic(word);
 		char *body_str = mrsh_word_str(wa->body);
 		struct mrsh_parser *parser =
-			mrsh_parser_create_from_buffer(body_str, strlen(body_str));
+			mrsh_parser_with_data(body_str, strlen(body_str));
 		free(body_str);
 		struct mrsh_arithm_expr *expr = mrsh_parse_arithm_expr(parser);
 		if (expr == NULL) {

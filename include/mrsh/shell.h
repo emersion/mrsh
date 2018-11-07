@@ -73,17 +73,16 @@ struct mrsh_function {
 	struct mrsh_command *body;
 };
 
-struct mrsh_args {
+struct mrsh_call_frame {
 	char **argv;
 	int argc;
-	struct mrsh_args *prev;
+	struct mrsh_call_frame *prev;
 };
 
 struct mrsh_state {
 	int exit;
 	uint32_t options; // enum mrsh_option
-	FILE *input;
-	struct mrsh_args *args;
+	struct mrsh_call_frame *args;
 	bool interactive;
 	struct mrsh_hashtable variables; // mrsh_variable *
 	struct mrsh_hashtable aliases; // char *

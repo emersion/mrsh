@@ -97,9 +97,9 @@ shell_files = [
 ]
 if readline.found()
 	shell_deps += [readline]
-	shell_files += ['readline.c']
+	shell_files += ['frontend_readline.c']
 else
-	shell_files += ['basic.c']
+	shell_files += ['frontend_basic.c']
 endif
 
 mrsh_exe = executable(

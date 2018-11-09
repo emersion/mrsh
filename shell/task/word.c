@@ -7,15 +7,12 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/mman.h>
 #include <unistd.h>
-
 #include "builtin.h"
 #include "shell/process.h"
-#include "shell/shm.h"
 #include "shell/task.h"
 
-#define TOKEN_COMMAND_READ_SIZE 128
+#define READ_SIZE 1024
 
 struct task_word {
 	struct task task;
@@ -28,47 +25,62 @@ struct task_word {
 	int fd;
 };
 
-static bool read_full(int fd, char *buf, size_t size) {
-	size_t n_read = 0;
-	while (n_read < size) {
-		ssize_t n = read(fd, buf, size - n_read);
+static bool buffer_read_from(struct mrsh_buffer *buf, int fd) {
+	while (true) {
+		char *dst = mrsh_buffer_reserve(buf, READ_SIZE);
+
+		ssize_t n = read(fd, dst, READ_SIZE);
 		if (n < 0 && errno == EINTR) {
 			continue;
 		} else if (n < 0) {
-			fprintf(stderr, "failed to read(): %s\n", strerror(errno));
+			fprintf(stderr, "read() failed: %s\n", strerror(errno));
 			return false;
+		} else if (n == 0) {
+			break;
 		}
-		assert(n != 0);
-		n_read += n;
+
+		buf->len += n;
 	}
+
 	return true;
 }
 
-static void task_word_swap(struct task_word *tt,
+static void task_word_swap(struct task_word *tw,
 		struct mrsh_word *new_word) {
-	mrsh_word_destroy(*tt->word_ptr);
-	*tt->word_ptr = new_word;
+	mrsh_word_destroy(*tw->word_ptr);
+	*tw->word_ptr = new_word;
 }
 
-static bool task_word_command_start(struct task_word *tt,
+static void task_word_destroy(struct task *task) {
+	struct task_word *tw = (struct task_word *)task;
+	if (tw->started) {
+		process_finish(&tw->process);
+	}
+	free(tw);
+}
+
+static bool task_word_command_start(struct task_word *tw,
 		struct context *ctx) {
-	struct mrsh_word *word = *tt->word_ptr;
+	struct mrsh_word *word = *tw->word_ptr;
 	struct mrsh_word_command *wc = mrsh_word_get_command(word);
 
-	int fd = create_anonymous_file();
-	if (fd < 0) {
-		fprintf(stderr, "failed to create anonymous file: %s\n",
-			strerror(errno));
+	int fds[2];
+	if (pipe(fds) != 0) {
+		fprintf(stderr, "pipe() failed: %s\n", strerror(errno));
 		return false;
 	}
 
 	pid_t pid = fork();
 	if (pid < 0) {
+		close(fds[0]);
+		close(fds[1]);
 		fprintf(stderr, "failed to fork(): %s\n", strerror(errno));
 		return false;
 	} else if (pid == 0) {
-		dup2(fd, STDOUT_FILENO);
-		close(fd);
+		close(fds[0]);
+
+		dup2(fds[1], STDOUT_FILENO);
+		close(fds[1]);
 
 		if (ctx->stdin_fileno >= 0) {
 			close(ctx->stdin_fileno);
@@ -82,11 +94,12 @@ static bool task_word_command_start(struct task_word *tt,
 		}
 
 		exit(ctx->state->exit >= 0 ? ctx->state->exit : EXIT_SUCCESS);
-	} else {
-		process_init(&tt->process, pid);
-		tt->fd = fd;
-		return true;
 	}
+
+	close(fds[1]);
+	process_init(&tw->process, pid);
+	tw->fd = fds[0];
+	return true;
 }
 
 static const char *parameter_get_value(struct mrsh_state *state, char *name) {
@@ -122,14 +135,14 @@ static const char *parameter_get_value(struct mrsh_state *state, char *name) {
 }
 
 static int task_word_poll(struct task *task, struct context *ctx) {
-	struct task_word *tt = (struct task_word *)task;
-	struct mrsh_word *word = *tt->word_ptr;
+	struct task_word *tw = (struct task_word *)task;
+	struct mrsh_word *word = *tw->word_ptr;
 
 	int ret;
 	switch (word->type) {
 	case MRSH_WORD_STRING:;
 		struct mrsh_word_string *ws = mrsh_word_get_string(word);
-		if (!ws->single_quoted && tt->tilde_expansion != TILDE_EXPANSION_NONE) {
+		if (!ws->single_quoted && tw->tilde_expansion != TILDE_EXPANSION_NONE) {
 			// TODO: TILDE_EXPANSION_ASSIGNMENT
 			expand_tilde(ctx->state, &ws->str);
 		}
@@ -156,50 +169,41 @@ static int task_word_poll(struct task *task, struct context *ctx) {
 		}
 		struct mrsh_word_string *replacement =
 			mrsh_word_string_create(strdup(value), false);
-		task_word_swap(tt, &replacement->word);
+		task_word_swap(tw, &replacement->word);
 		return 0;
 	case MRSH_WORD_COMMAND:
-		if (!tt->started) {
-			if (!task_word_command_start(tt, ctx)) {
+		if (!tw->started) {
+			if (!task_word_command_start(tw, ctx)) {
 				return TASK_STATUS_ERROR;
 			}
-			tt->started = true;
-		}
+			tw->started = true;
 
-		ret = process_poll(&tt->process);
-		if (ret != TASK_STATUS_WAIT) {
-			off_t size = lseek(tt->fd, 0, SEEK_END);
-			if (size < 0) {
-				fprintf(stderr, "failed to lseek(): %s\n", strerror(errno));
+			// TODO: reading from the pipe blocks the whole shell
+
+			struct mrsh_buffer buf = {0};
+			if (!buffer_read_from(&buf, tw->fd)) {
+				mrsh_buffer_finish(&buf);
+				close(tw->fd);
 				return TASK_STATUS_ERROR;
 			}
-			lseek(tt->fd, 0, SEEK_SET);
+			mrsh_buffer_append_char(&buf, '\0');
 
-			char *buf = malloc(size + 1);
-			if (buf == NULL) {
-				fprintf(stderr, "failed to malloc(): %s\n", strerror(errno));
-				return TASK_STATUS_ERROR;
-			}
-
-			if (!read_full(tt->fd, buf, size)) {
-				return TASK_STATUS_ERROR;
-			}
-			buf[size] = '\0';
-
-			close(tt->fd);
-			tt->fd = -1;
+			close(tw->fd);
+			tw->fd = -1;
 
 			// Trim newlines at the end
-			ssize_t i = size - 1;
-			while (i >= 0 && buf[i] == '\n') {
-				buf[i] = '\0';
+			ssize_t i = buf.len - 1;
+			while (i >= 0 && buf.data[i] == '\n') {
+				buf.data[i] = '\0';
 				--i;
 			}
 
-			struct mrsh_word_string *ws = mrsh_word_string_create(buf, false);
-			task_word_swap(tt, &ws->word);
+			struct mrsh_word_string *ws =
+				mrsh_word_string_create(mrsh_buffer_steal(&buf), false);
+			task_word_swap(tw, &ws->word);
 		}
-		return ret;
+
+		return process_poll(&tw->process);
 	case MRSH_WORD_ARITHMETIC:;
 		struct mrsh_word_arithmetic *wa = mrsh_word_get_arithmetic(word);
 		char *body_str = mrsh_word_str(wa->body);
@@ -229,7 +233,7 @@ static int task_word_poll(struct task *task, struct context *ctx) {
 
 				struct mrsh_word_string *ws =
 					mrsh_word_string_create(strdup(buf), false);
-				task_word_swap(tt, &ws->word);
+				task_word_swap(tw, &ws->word);
 				ret = EXIT_SUCCESS;
 			}
 		}
@@ -243,6 +247,7 @@ static int task_word_poll(struct task *task, struct context *ctx) {
 }
 
 static const struct task_interface task_word_impl = {
+	.destroy = task_word_destroy,
 	.poll = task_word_poll,
 };
 
@@ -266,11 +271,11 @@ struct task *task_word_create(struct mrsh_word **word_ptr,
 		return task_list;
 	}
 
-	struct task_word *tt = calloc(1, sizeof(struct task_word));
-	task_init(&tt->task, &task_word_impl);
-	tt->word_ptr = word_ptr;
-	tt->tilde_expansion = tilde_expansion;
-	struct task *task = &tt->task;
+	struct task_word *tw = calloc(1, sizeof(struct task_word));
+	task_init(&tw->task, &task_word_impl);
+	tw->word_ptr = word_ptr;
+	tw->tilde_expansion = tilde_expansion;
+	struct task *task = &tw->task;
 
 	if (word->type == MRSH_WORD_ARITHMETIC) {
 		// For arithmetic words, we need to expand the arithmetic expression

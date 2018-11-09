@@ -18,7 +18,6 @@ add_project_arguments('-Wno-missing-field-initializers', language: 'c')
 cc = meson.get_compiler('c')
 
 readline = cc.find_library('readline', required: false)
-rt = cc.find_library('rt')
 
 mrsh_inc = include_directories('include')
 
@@ -62,7 +61,6 @@ lib_mrsh = library(
 		'shell/path.c',
 		'shell/process.c',
 		'shell/shell.c',
-		'shell/shm.c',
 		'shell/task/assignment.c',
 		'shell/task/ast.c',
 		'shell/task/async.c',
@@ -82,7 +80,6 @@ lib_mrsh = library(
 		'shell/task/word.c',
 		'shell/word.c',
 	),
-	dependencies: [rt],
 	include_directories: mrsh_inc,
 	version: meson.project_version(),
 	link_args: ['-Wl,--version-script=' + libmrsh_sym_path],

@@ -41,7 +41,7 @@ err_write:
 static int create_here_document_fd(struct mrsh_array *lines) {
 	int fds[2];
 	if (pipe(fds) != 0) {
-		fprintf(stderr, "pipe() failed: %s", strerror(errno));
+		fprintf(stderr, "pipe() failed: %s\n", strerror(errno));
 		return -1;
 	}
 
@@ -71,9 +71,13 @@ static int create_here_document_fd(struct mrsh_array *lines) {
 
 	pid_t pid = fork();
 	if (pid < 0) {
-		fprintf(stderr, "fork() failed: %s", strerror(errno));
+		close(fds[0]);
+		close(fds[1]);
+		fprintf(stderr, "fork() failed: %s\n", strerror(errno));
 		return -1;
 	} else if (pid == 0) {
+		close(fds[0]);
+
 		for (; i < lines->len; ++i) {
 			struct mrsh_word *line = lines->data[i];
 			ssize_t n = write_here_document_line(fds[1], line, -1);
@@ -86,6 +90,7 @@ static int create_here_document_fd(struct mrsh_array *lines) {
 		exit(EXIT_SUCCESS);
 	}
 
+	close(fds[1]);
 	return fds[0];
 }
 

@@ -22,3 +22,7 @@ tasks:
   - test-clang: |
       cd mrsh
       ninja -C build-clang test
+triggers:
+  - action: email
+    condition: failure
+    to: "<contact@emersion.fr>"

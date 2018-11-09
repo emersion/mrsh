@@ -14,3 +14,7 @@ tasks:
   - test: |
       cd mrsh
       ninja -C build test
+triggers:
+  - action: email
+    condition: failure
+    to: "<contact@emersion.fr>"

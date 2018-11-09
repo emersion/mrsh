@@ -3,44 +3,90 @@
 #include <fcntl.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/param.h>
 #include <sys/stat.h>
 #include <unistd.h>
 #include "shell/path.h"
-#include "shell/shm.h"
 #include "shell/task_command.h"
 
-static int create_here_document_file(struct mrsh_array *lines) {
-	int fd = create_anonymous_file();
-	if (fd < 0) {
-		return fd;
-	}
-
-	for (size_t i = 0; i < lines->len; ++i) {
-		struct mrsh_word *line = lines->data[i];
-
-		char *line_str = mrsh_word_str(line);
-		ssize_t n_written = write(fd, line_str, strlen(line_str));
+static ssize_t write_here_document_line(int fd, struct mrsh_word *line,
+		ssize_t max_size) {
+	char *line_str = mrsh_word_str(line);
+	size_t line_len = strlen(line_str);
+	size_t write_len = line_len + 1; // line + terminating \n
+	if (max_size >= 0 && write_len > (size_t)max_size) {
 		free(line_str);
-		if (n_written < 0) {
-			fprintf(stderr, "write() failed: %s\n", strerror(errno));
-			close(fd);
-			return -1;
-		}
-
-		if (write(fd, "\n", sizeof(char)) < 0) {
-			fprintf(stderr, "write() failed: %s\n", strerror(errno));
-			close(fd);
-			return -1;
-		}
+		return 0;
 	}
 
-	if (lseek(fd, 0, SEEK_SET) < 0) {
-		fprintf(stderr, "lseek() failed: %s\n", strerror(errno));
-		close(fd);
+	errno = 0;
+	ssize_t n = write(fd, line_str, line_len);
+	free(line_str);
+	if (n < 0 || (size_t)n != line_len) {
+		goto err_write;
+	}
+
+	if (write(fd, "\n", sizeof(char)) != 1) {
+		goto err_write;
+	}
+
+	return write_len;
+
+err_write:
+	fprintf(stderr, "write() failed: %s\n",
+		errno ? strerror(errno) : "short write");
+	return -1;
+}
+
+static int create_here_document_fd(struct mrsh_array *lines) {
+	int fds[2];
+	if (pipe(fds) != 0) {
+		fprintf(stderr, "pipe() failed: %s", strerror(errno));
 		return -1;
 	}
 
-	return fd;
+	// We can write at most PIPE_BUF bytes without blocking. If we want to write
+	// more, we need to fork and continue writing in another process.
+	size_t remaining = PIPE_BUF;
+	bool more = false;
+	size_t i;
+	for (i = 0; i < lines->len; ++i) {
+		struct mrsh_word *line = lines->data[i];
+		ssize_t n = write_here_document_line(fds[1], line, remaining);
+		if (n < 0) {
+			close(fds[0]);
+			close(fds[1]);
+			return -1;
+		} else if (n == 0) {
+			more = true;
+			break;
+		}
+	}
+
+	if (!more) {
+		// We could write everything into the pipe buffer
+		close(fds[1]);
+		return fds[0];
+	}
+
+	pid_t pid = fork();
+	if (pid < 0) {
+		fprintf(stderr, "fork() failed: %s", strerror(errno));
+		return -1;
+	} else if (pid == 0) {
+		for (; i < lines->len; ++i) {
+			struct mrsh_word *line = lines->data[i];
+			ssize_t n = write_here_document_line(fds[1], line, -1);
+			if (n < 0) {
+				close(fds[1]);
+				exit(EXIT_FAILURE);
+			}
+		}
+		close(fds[1]);
+		exit(EXIT_SUCCESS);
+	}
+
+	return fds[0];
 }
 
 static int parse_fd(const char *str) {
@@ -143,7 +189,7 @@ static bool task_process_start(struct task_command *tc, struct context *ctx) {
 				break;
 			case MRSH_IO_DLESS: // <<
 			case MRSH_IO_DLESSDASH: // <<-
-				fd = create_here_document_file(&redir->here_document);
+				fd = create_here_document_fd(&redir->here_document);
 				default_redir_fd = STDIN_FILENO;
 				break;
 			}

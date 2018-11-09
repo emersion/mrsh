@@ -10,9 +10,15 @@ tasks:
       cd mrsh
       CC=gcc meson build-gcc
       CC=clang meson build-clang
-  - gcc: |
+  - build-gcc: |
+      cd mrsh
+      ninja -C build-gcc
+  - build-clang: |
+      cd mrsh
+      ninja -C build-clang
+  - test-gcc: |
       cd mrsh
       ninja -C build-gcc test
-  - clang: |
+  - test-clang: |
       cd mrsh
       ninja -C build-clang test

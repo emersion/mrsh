@@ -10,4 +10,7 @@ tasks:
       meson build -Db_sanitize=address,undefined
   - build: |
       cd mrsh
+      ninja -C build
+  - test: |
+      cd mrsh
       ninja -C build test

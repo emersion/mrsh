@@ -7,7 +7,7 @@ sources:
 tasks:
   - setup: |
       cd mrsh
-      meson build -Db_sanitize=address
+      meson build -Db_sanitize=address,undefined
   - build: |
       cd mrsh
       ninja -C build test

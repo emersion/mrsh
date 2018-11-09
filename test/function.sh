@@ -33,5 +33,4 @@ func_d
 func_e hello
 
 output=$(func_a)
-
-[ "$output" = "func_a" ]
+echo "output is $output"

@@ -5,6 +5,7 @@
 #include <stdio.h>
 
 struct mrsh_parser;
+struct mrsh_buffer;
 
 /**
  * An alias callback. The alias named is given as a parameter and the alias
@@ -21,6 +22,11 @@ struct mrsh_parser *mrsh_parser_with_fd(int fd);
  * Create a parser from a static buffer.
  */
 struct mrsh_parser *mrsh_parser_with_data(const char *buf, size_t len);
+/**
+ * Create a parser with a shared buffer. Data will be read from `buf` each time
+ * the parser needs input data.
+ */
+struct mrsh_parser *mrsh_parser_with_buffer(struct mrsh_buffer *buf);
 void mrsh_parser_destroy(struct mrsh_parser *state);
 /**
  * Parse a complete multi-line program.

@@ -12,7 +12,14 @@ struct mrsh_buffer {
 /**
  * Makes sure at least `size` bytes can be written to the buffer, without
  * increasing its length. Returns a pointer to the end of the buffer, or NULL if
- * resizing fails.
+ * resizing fails. Callers are responsible for manually increasing `buf->len`.
+ *
+ * This function is useful when e.g. reading from a file. Example with error
+ * handling left out:
+ *
+ *   char *dst = mrsh_buffer_reserve(buf, READ_SIZE);
+ *   ssize_t n = read(fd, dst, READ_SIZE);
+ *   buf->len += n;
  */
 char *mrsh_buffer_reserve(struct mrsh_buffer *buf, size_t size);
 /**

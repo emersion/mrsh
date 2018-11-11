@@ -106,18 +106,18 @@ int main(int argc, char *argv[]) {
 
 	mrsh_env_set(&state, "OPTIND", "1", MRSH_VAR_ATTRIB_NONE);
 
-	struct mrsh_parser *parser;
-
 	int fd = -1;
+	struct mrsh_buffer parser_buffer = {0};
+	struct mrsh_parser *parser;
 	if (state.interactive) {
 		interactive_init(&state);
+		parser = mrsh_parser_with_buffer(&parser_buffer);
 	} else {
 		if (init_args.command_str) {
 			parser = mrsh_parser_with_data(init_args.command_str,
 				strlen(init_args.command_str));
 		} else {
 			if (init_args.command_file) {
-				errno = 0;
 				fd = open(init_args.command_file, O_RDONLY | O_CLOEXEC);
 				if (fd < 0) {
 					fprintf(stderr, "failed to open %s for reading: %s",
@@ -130,11 +130,10 @@ int main(int argc, char *argv[]) {
 
 			parser = mrsh_parser_with_fd(fd);
 		}
-		mrsh_parser_set_alias(parser, get_alias, &state);
 	}
+	mrsh_parser_set_alias(parser, get_alias, &state);
 
 	struct mrsh_buffer read_buffer = {0};
-
 	while (state.exit == -1) {
 		if (state.interactive) {
 			char *prompt;
@@ -152,12 +151,13 @@ int main(int argc, char *argv[]) {
 			}
 			mrsh_buffer_append(&read_buffer, line, n);
 			free(line);
-			parser = mrsh_parser_with_data(read_buffer.data, read_buffer.len);
-			mrsh_parser_set_alias(parser, get_alias, &state);
+
+			parser_buffer.len = 0;
+			mrsh_buffer_append(&parser_buffer,
+				read_buffer.data, read_buffer.len);
 		}
 
 		struct mrsh_program *prog = mrsh_parse_line(parser);
-
 		if (prog == NULL) {
 			struct mrsh_position err_pos;
 			const char *err_msg = mrsh_parser_error(parser, &err_pos);
@@ -189,18 +189,15 @@ int main(int argc, char *argv[]) {
 			mrsh_program_destroy(prog);
 			mrsh_buffer_finish(&read_buffer);
 		}
-		if (state.interactive) {
-			mrsh_parser_destroy(parser);
-		}
 	}
 
 	if (state.interactive) {
 		printf("\n");
-	} else {
-		mrsh_parser_destroy(parser);
 	}
 
 	mrsh_buffer_finish(&read_buffer);
+	mrsh_parser_destroy(parser);
+	mrsh_buffer_finish(&parser_buffer);
 	mrsh_state_finish(&state);
 	if (fd >= 0) {
 		close(fd);

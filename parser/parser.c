@@ -73,6 +73,12 @@ struct mrsh_parser *mrsh_parser_with_data(const char *buf, size_t len) {
 	return state;
 }
 
+struct mrsh_parser *mrsh_parser_with_buffer(struct mrsh_buffer *buf) {
+	struct mrsh_parser *state = parser_create();
+	state->in_buf = buf;
+	return state;
+}
+
 void mrsh_parser_destroy(struct mrsh_parser *state) {
 	if (state == NULL) {
 		return;
@@ -82,32 +88,76 @@ void mrsh_parser_destroy(struct mrsh_parser *state) {
 	free(state);
 }
 
+static ssize_t parser_peek_fd(struct mrsh_parser *state, size_t size) {
+	assert(state->fd >= 0);
+
+	size_t n_read = 0;
+	while (n_read < size) {
+		char *dst = mrsh_buffer_reserve(&state->buf, READ_SIZE);
+
+		errno = 0;
+		ssize_t n = read(state->fd, dst, READ_SIZE);
+		if (n < 0 && errno == EINTR) {
+			continue;
+		} else if (n < 0) {
+			return -1;
+		} else if (n == 0) {
+			break;
+		}
+
+		state->buf.len += n;
+		n_read += n;
+	}
+
+	return n_read;
+}
+
+static ssize_t parser_peek_buffer(struct mrsh_parser *state, size_t size) {
+	assert(state->in_buf != NULL);
+
+	size_t n_read = state->in_buf->len;
+	if (n_read == 0) {
+		return 0;
+	}
+
+	if (state->buf.len == 0) {
+		// Move data from one buffer to the other
+		mrsh_buffer_finish(&state->buf);
+		memcpy(&state->buf, state->in_buf, sizeof(struct mrsh_buffer));
+		memset(state->in_buf, 0, sizeof(struct mrsh_buffer));
+	} else {
+		mrsh_buffer_append(&state->buf, state->in_buf->data, n_read);
+		state->in_buf->len = 0;
+	}
+
+	return n_read;
+}
+
 size_t parser_peek(struct mrsh_parser *state, char *buf, size_t size) {
-	if (state->fd >= 0 && size > state->buf.len) {
+	if (size > state->buf.len) {
 		size_t n_more = size - state->buf.len;
 
-		size_t n_read = 0;
-		while (n_read < n_more) {
-			char *dst = mrsh_buffer_reserve(&state->buf, READ_SIZE);
-
-			errno = 0;
-			ssize_t n = read(state->fd, dst, READ_SIZE);
-			if (n < 0 && errno == EINTR) {
-				continue;
-			} else if (n < 0) {
-				return 0; // TODO: better error handling
-			} else if (n == 0) {
-				mrsh_buffer_append_char(&state->buf, '\0');
-				size = state->buf.len;
-				break;
-			}
-
-			state->buf.len += n;
-			n_read += n;
+		ssize_t n_read;
+		if (state->fd >= 0) {
+			n_read = parser_peek_fd(state, n_more);
+		} else if (state->in_buf != NULL) {
+			n_read = parser_peek_buffer(state, n_more);
+		} else {
+			n_read = 0;
 		}
-	}
-	if (state->fd < 0 && size > state->buf.len) {
-		size = state->buf.len;
+
+		if (n_read < 0) {
+			parser_set_error(state, "failed to read");
+			return 0; // TODO: better error handling
+		}
+
+		if ((size_t)n_read < n_more) {
+			if (!state->eof) {
+				mrsh_buffer_append_char(&state->buf, '\0');
+				state->eof = true;
+			}
+			size = state->buf.len;
+		}
 	}
 
 	if (buf != NULL) {

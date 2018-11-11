@@ -11,8 +11,8 @@ enum symbol_name {
 
 	NEWLINE,
 
-	/* The following are the operators (see XBD Operator)
-	   containing more than one character. */
+	// The following are the operators (see XBD Operator) containing more than
+	// one character.
 
 	AND_IF,
 	OR_IF,
@@ -42,6 +42,8 @@ extern const size_t keywords_len;
 
 struct mrsh_parser {
 	int fd; // can be -1
+	struct mrsh_buffer *in_buf; // can be NULL
+	bool eof;
 
 	struct mrsh_buffer buf; // internal read buffer
 	struct mrsh_position pos;

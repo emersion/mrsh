@@ -361,3 +361,9 @@ void mrsh_parser_set_alias(struct mrsh_parser *state,
 bool mrsh_parser_continuation_line(struct mrsh_parser *state) {
 	return state->continuation_line;
 }
+
+void mrsh_parser_reset(struct mrsh_parser *state) {
+	state->buf.len = 0;
+	state->has_sym = false;
+	state->pos = (struct mrsh_position){0};
+}

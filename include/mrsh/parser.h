@@ -64,5 +64,9 @@ const char *mrsh_parser_error(struct mrsh_parser *state,
  * Check if the input ends on a continuation line.
  */
 bool mrsh_parser_continuation_line(struct mrsh_parser *state);
+/**
+ * Reset the parser state.
+ */
+void mrsh_parser_reset(struct mrsh_parser *state);
 
 #endif

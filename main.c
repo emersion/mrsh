@@ -155,15 +155,18 @@ int main(int argc, char *argv[]) {
 			parser_buffer.len = 0;
 			mrsh_buffer_append(&parser_buffer,
 				read_buffer.data, read_buffer.len);
+
+			mrsh_parser_reset(parser);
 		}
 
 		struct mrsh_program *prog = mrsh_parse_line(parser);
-		if (prog == NULL) {
+		if (mrsh_parser_continuation_line(parser)) {
+			// Nothing to see here
+		} else if (prog == NULL) {
 			struct mrsh_position err_pos;
 			const char *err_msg = mrsh_parser_error(parser, &err_pos);
-			if (mrsh_parser_continuation_line(parser)) {
-				// Nothing to see here
-			} else if (err_msg != NULL) {
+			if (err_msg != NULL) {
+				mrsh_buffer_finish(&read_buffer);
 				fprintf(stderr, "%s:%d:%d: syntax error: %s\n",
 					state.args->argv[0], err_pos.line, err_pos.column, err_msg);
 				if (state.interactive) {
@@ -186,9 +189,9 @@ int main(int argc, char *argv[]) {
 			} else {
 				mrsh_run_program(&state, prog);
 			}
-			mrsh_program_destroy(prog);
 			mrsh_buffer_finish(&read_buffer);
 		}
+		mrsh_program_destroy(prog);
 	}
 
 	if (state.interactive) {

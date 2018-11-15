@@ -1,6 +1,6 @@
-#include "shell/task.h"
 #include <mrsh/hashtable.h>
 #include <stdlib.h>
+#include "shell/task.h"
 
 struct task_function_definition {
 	struct task task;
@@ -22,7 +22,7 @@ static int task_function_definition_poll(
 	fn->body = mrsh_command_copy(tfn->body);
 	struct mrsh_function *oldfn =
 		mrsh_hashtable_set(&ctx->state->functions, tfn->name, fn);
-	function_destroy(oldfn);
+	mrsh_function_destroy(oldfn);
 	return 0;
 }
 

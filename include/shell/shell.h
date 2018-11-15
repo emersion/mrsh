@@ -9,6 +9,4 @@ struct context {
 	int stdout_fileno;
 };
 
-void function_destroy(struct mrsh_function *fn);
-
 #endif

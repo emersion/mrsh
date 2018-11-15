@@ -90,13 +90,15 @@ struct mrsh_state {
 	int last_status;
 };
 
+void mrsh_function_destroy(struct mrsh_function *fn);
+
 void mrsh_state_init(struct mrsh_state *state);
 void mrsh_state_finish(struct mrsh_state *state);
 void mrsh_env_set(struct mrsh_state *state,
-		const char *key, const char *value, uint32_t attribs);
+	const char *key, const char *value, uint32_t attribs);
 void mrsh_env_unset(struct mrsh_state *state, const char *key);
 const char *mrsh_env_get(struct mrsh_state *state,
-		const char *key, uint32_t *attribs);
+	const char *key, uint32_t *attribs);
 void mrsh_push_args(struct mrsh_state *state, int argc, const char *argv[]);
 void mrsh_pop_args(struct mrsh_state *state);
 int mrsh_run_program(struct mrsh_state *state, struct mrsh_program *prog);

@@ -7,6 +7,14 @@
 #include "shell/shell.h"
 #include "shell/task.h"
 
+void mrsh_function_destroy(struct mrsh_function *fn) {
+	if (!fn) {
+		return;
+	}
+	mrsh_command_destroy(fn->body);
+	free(fn);
+}
+
 void mrsh_state_init(struct mrsh_state *state) {
 	state->exit = -1;
 	state->interactive = isatty(STDIN_FILENO);
@@ -32,16 +40,8 @@ static void state_var_finish_iterator(const char *key, void *value,
 	variable_destroy((struct mrsh_variable *)value);
 }
 
-void function_destroy(struct mrsh_function *fn) {
-	if (!fn) {
-		return;
-	}
-	mrsh_command_destroy(fn->body);
-	free(fn);
-}
-
 static void state_fn_finish_iterator(const char *key, void *value, void *_) {
-	function_destroy((struct mrsh_function *)value);
+	mrsh_function_destroy((struct mrsh_function *)value);
 }
 
 static void call_frame_destroy(struct mrsh_call_frame *args) {

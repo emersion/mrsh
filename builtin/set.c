@@ -181,7 +181,7 @@ static int set(struct mrsh_state *state, struct mrsh_init_args *init_args,
 		argv_free(state->args->argc, state->args->argv);
 		state->args->argc = argc - i + 1;
 		state->args->argv = argv_dup(argv_0, state->args->argc, &argv[i]);
-	} else if (init_args == NULL) {
+	} else if (init_args != NULL) {
 		// No args given, but we need to initialize state->argv
 		state->args->argc = 1;
 		state->args->argv = argv_dup(strdup(argv[0]), 1, argv);

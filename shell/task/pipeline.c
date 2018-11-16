@@ -1,5 +1,8 @@
-#include <unistd.h>
+#include <errno.h>
+#include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
 #include "shell/task.h"
 
 struct task_pipeline {
@@ -18,36 +21,69 @@ static void task_pipeline_destroy(struct task *task) {
 	free(tp);
 }
 
-static bool task_pipeline_start(struct task *task, struct context *parent_ctx) {
+static bool task_pipeline_start(struct task *task, struct context *ctx) {
 	struct task_pipeline *tp = (struct task_pipeline *)task;
 
-	struct context ctx = { .state = parent_ctx->state };
+	// Save stdin/stdout so we can restore them after the pipeline
+	// We don't need to do this if there's only one command in the pipeline
+	int dup_stdin = -1, dup_stdout = -1;
+	if (tp->children.len > 1) {
+		dup_stdin = dup(STDIN_FILENO);
+		dup_stdout = dup(STDOUT_FILENO);
+		if (dup_stdin < 0 || dup_stdout < 0) {
+			fprintf(stderr, "failed to duplicate stdin or stdout: %s\n",
+				strerror(errno));
+			return false;
+		}
+	}
 
 	int last_stdout = -1;
 	for (size_t i = 0; i < tp->children.len; ++i) {
-		ctx.stdin_fileno = -1;
-		ctx.stdout_fileno = -1;
-
 		if (i > 0) {
-			ctx.stdin_fileno = last_stdout;
-		} else {
-			ctx.stdin_fileno = parent_ctx->stdin_fileno;
+			if (dup2(last_stdout, STDIN_FILENO) < 0) {
+				fprintf(stderr, "failed to duplicate stdin: %s\n",
+					strerror(errno));
+				return false;
+			}
+			close(last_stdout);
 		}
 
+		int new_stdout = dup_stdout; // Restore stdout if it's the last command
 		if (i < tp->children.len - 1) {
 			int fds[2];
-			pipe(fds);
-			ctx.stdout_fileno = fds[1];
+			if (pipe(fds) != 0) {
+				fprintf(stderr, "failed to pipe(): %s\n", strerror(errno));
+				return false;
+			}
+
+			// We'll use the write end of the pipe as stdout, the read end will
+			// be used as stdin by the next command
 			last_stdout = fds[0];
-		} else {
-			ctx.stdout_fileno = parent_ctx->stdout_fileno;
+			new_stdout = fds[1];
+		}
+		if (new_stdout >= 0) {
+			if (dup2(new_stdout, STDOUT_FILENO) < 0) {
+				fprintf(stderr, "failed to duplicate stdout: %s\n",
+					strerror(errno));
+				return false;
+			}
+			close(new_stdout);
 		}
 
 		struct task *child = tp->children.data[i];
-		int ret = task_poll(child, &ctx);
+		int ret = task_poll(child, ctx);
 		if (ret == TASK_STATUS_ERROR) {
 			return false;
 		}
+	}
+
+	// Restore stdin
+	if (dup_stdin >= 0) {
+		if (dup2(dup_stdin, STDIN_FILENO) < 0) {
+			fprintf(stderr, "failed to restore stdin: %s\n", strerror(errno));
+			return false;
+		}
+		close(dup_stdin);
 	}
 
 	return true;

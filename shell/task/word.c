@@ -82,13 +82,6 @@ static bool task_word_command_start(struct task_word *tw,
 		dup2(fds[1], STDOUT_FILENO);
 		close(fds[1]);
 
-		if (ctx->stdin_fileno >= 0) {
-			close(ctx->stdin_fileno);
-		}
-		if (ctx->stdout_fileno >= 0) {
-			close(ctx->stdout_fileno);
-		}
-
 		if (wc->program != NULL) {
 			mrsh_run_program(ctx->state, wc->program);
 		}

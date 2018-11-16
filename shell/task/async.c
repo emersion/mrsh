@@ -54,9 +54,7 @@ static bool task_async_start(struct task *task, struct context *ctx) {
 	if (ret < 0) {
 		return false;
 	} else if (ret == 0) {
-		if (ctx->stdin_fileno >= 0) {
-			dup2(ctx->stdin_fileno, STDIN_FILENO);
-		} else if (!(ctx->state->options & MRSH_OPT_MONITOR)) {
+		if (!(ctx->state->options & MRSH_OPT_MONITOR)) {
 			// If job control is disabled, stdin is /dev/null
 			int fd = open("/dev/null", O_CLOEXEC | O_RDONLY);
 			if (fd < 0) {
@@ -67,9 +65,6 @@ static bool task_async_start(struct task *task, struct context *ctx) {
 			dup2(fd, STDIN_FILENO);
 			close(fd);
 		}
-		if (ctx->stdout_fileno >= 0) {
-			dup2(ctx->stdout_fileno, STDOUT_FILENO);
-		}
 
 		int ret = task_run(ta->async, ctx);
 		if (ret < 0) {
@@ -77,16 +72,9 @@ static bool task_async_start(struct task *task, struct context *ctx) {
 		}
 
 		exit(ret);
-	} else {
-		if (ctx->stdin_fileno >= 0) {
-			close(ctx->stdin_fileno);
-		}
-		if (ctx->stdout_fileno >= 0) {
-			close(ctx->stdout_fileno);
-		}
-
-		return true;
 	}
+
+	return true;
 }
 
 static int task_async_poll(struct task *task, struct context *ctx) {

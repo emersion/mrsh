@@ -5,8 +5,6 @@
 
 struct context {
 	struct mrsh_state *state;
-	int stdin_fileno;
-	int stdout_fileno;
 };
 
 #endif

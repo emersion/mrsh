@@ -44,20 +44,10 @@ int task_builtin_poll(struct task *task, struct context *ctx) {
 	tc->started = true;
 
 	// Duplicate old FDs to be able to restore them later
-	struct saved_fd fds[2 + sc->io_redirects.len];
+	// Zero-length VLAs are undefined behaviour
+	struct saved_fd fds[sc->io_redirects.len + 1];
 	for (size_t i = 0; i < sizeof(fds) / sizeof(fds[0]); ++i) {
 		fds[i].dup_fd = fds[i].redir_fd = -1;
-	}
-
-	if (ctx->stdin_fileno >= 0) {
-		if (!dup_and_save_fd(ctx->stdin_fileno, STDIN_FILENO, &fds[0])) {
-			return TASK_STATUS_ERROR;
-		}
-	}
-	if (ctx->stdout_fileno >= 0) {
-		if (!dup_and_save_fd(ctx->stdout_fileno, STDOUT_FILENO, &fds[1])) {
-			return TASK_STATUS_ERROR;
-		}
 	}
 
 	for (size_t i = 0; i < sc->io_redirects.len; ++i) {

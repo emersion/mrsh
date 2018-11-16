@@ -117,8 +117,6 @@ int mrsh_run_program(struct mrsh_state *state, struct mrsh_program *prog) {
 
 	struct context ctx = {
 		.state = state,
-		.stdin_fileno = -1,
-		.stdout_fileno = -1,
 	};
 	int ret = task_run(task, &ctx);
 	task_destroy(task);
@@ -131,8 +129,6 @@ int mrsh_run_word(struct mrsh_state *state, struct mrsh_word **word) {
 	int last_status = state->last_status;
 	struct context ctx = {
 		.state = state,
-		.stdin_fileno = -1,
-		.stdout_fileno = -1,
 	};
 	int ret = task_run(task, &ctx);
 	task_destroy(task);

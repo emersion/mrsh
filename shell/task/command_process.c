@@ -45,15 +45,6 @@ static bool task_process_start(struct task_command *tc, struct context *ctx) {
 		mrsh_hashtable_for_each(&ctx->state->variables,
 				populate_env_iterator, NULL);
 
-		if (ctx->stdin_fileno >= 0) {
-			dup2(ctx->stdin_fileno, STDIN_FILENO);
-			close(ctx->stdin_fileno);
-		}
-		if (ctx->stdout_fileno >= 0) {
-			dup2(ctx->stdout_fileno, STDOUT_FILENO);
-			close(ctx->stdout_fileno);
-		}
-
 		for (size_t i = 0; i < sc->io_redirects.len; ++i) {
 			struct mrsh_io_redirect *redir = sc->io_redirects.data[i];
 
@@ -67,7 +58,6 @@ static bool task_process_start(struct task_command *tc, struct context *ctx) {
 				continue;
 			}
 
-			errno = 0;
 			int ret = dup2(fd, redir_fd);
 			if (ret < 0) {
 				fprintf(stderr, "cannot duplicate file descriptor: %s\n",
@@ -77,23 +67,15 @@ static bool task_process_start(struct task_command *tc, struct context *ctx) {
 			close(fd);
 		}
 
-		errno = 0;
 		execv(path, argv);
 
 		// Something went wrong
 		fprintf(stderr, "%s: %s\n", argv[0], strerror(errno));
 		exit(127);
-	} else {
-		if (ctx->stdin_fileno >= 0) {
-			close(ctx->stdin_fileno);
-		}
-		if (ctx->stdout_fileno >= 0) {
-			close(ctx->stdout_fileno);
-		}
-
-		process_init(&tc->process, pid);
-		return true;
 	}
+
+	process_init(&tc->process, pid);
+	return true;
 }
 
 int task_process_poll(struct task *task, struct context *ctx) {

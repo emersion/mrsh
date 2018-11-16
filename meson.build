@@ -60,6 +60,7 @@ lib_mrsh = library(
 		'shell/arithm.c',
 		'shell/path.c',
 		'shell/process.c',
+		'shell/redir.c',
 		'shell/shell.c',
 		'shell/task/assignment.c',
 		'shell/task/ast.c',

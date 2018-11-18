@@ -5,3 +5,11 @@ option(
 	value: 'auto',
 	description: 'Enable improved interactive interface via readline',
 )
+
+option(
+	'readline-provider',
+	type: 'combo',
+	choices: ['readline', 'editline'],
+	value: 'readline',
+	description: 'Provider of the readline library',
+)

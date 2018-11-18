@@ -17,10 +17,21 @@ add_project_arguments('-Wno-missing-field-initializers', language: 'c')
 
 cc = meson.get_compiler('c')
 
-readline = cc.find_library(
-	'readline',
-	required: get_option('readline') == 'enabled',
-)
+if get_option('readline') != 'disabled'
+	if get_option('readline-provider') == 'readline'
+		readline = cc.find_library(
+			'readline',
+			required: get_option('readline') == 'enabled',
+		)
+		add_project_arguments('-DHAVE_READLINE', language: 'c')
+	else # editline
+		readline = dependency(
+			'libedit',
+			required: get_option('readline') == 'enabled',
+		)
+		add_project_arguments('-DHAVE_EDITLINE', language: 'c')
+	endif
+endif
 
 mrsh_inc = include_directories('include')
 
@@ -99,7 +110,7 @@ shell_deps = [mrsh]
 shell_files = [
 	'main.c'
 ]
-if readline.found() and get_option('readline') != 'disabled'
+if get_option('readline') != 'disabled' and readline.found()
 	shell_deps += [readline]
 	shell_files += ['frontend/readline.c']
 else

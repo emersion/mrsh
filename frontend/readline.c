@@ -1,12 +1,18 @@
-/* readline/libedit interactive line interface */
+// readline/editline interactive line interface
 #define _POSIX_C_SOURCE 200809L
 #include <limits.h>
+#include <mrsh/parser.h>
+#include <mrsh/shell.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
+#if defined(HAVE_READLINE)
 #include <readline/history.h>
 #include <readline/readline.h>
-#include <mrsh/shell.h>
-#include <mrsh/parser.h>
+#elif defined(HAVE_EDITLINE)
+#include <editline/readline.h>
+#include <histedit.h>
+#endif
 #include "frontend.h"
 
 static const char *get_history_path() {
@@ -24,11 +30,10 @@ void interactive_init(struct mrsh_state *state) {
 size_t interactive_next(struct mrsh_state *state,
 		char **line, const char *prompt) {
 	char *rline = readline(prompt);
-	size_t len = 0;
 	if (!rline) {
 		return 0;
 	}
-	len = strlen(rline);
+	size_t len = strlen(rline);
 	if (!(state->options & MRSH_OPT_NOLOG)) {
 		add_history(rline);
 		write_history(get_history_path());

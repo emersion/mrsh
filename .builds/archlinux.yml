@@ -2,12 +2,13 @@ image: archlinux
 packages:
   - gcc
   - meson
+  - readline
 sources:
   - https://github.com/emersion/mrsh
 tasks:
   - setup: |
       cd mrsh
-      meson build -Db_sanitize=address,undefined
+      meson build -Db_sanitize=address,undefined -Dreadline=enabled
   - build: |
       cd mrsh
       ninja -C build

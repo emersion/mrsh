@@ -1,12 +1,13 @@
 image: freebsd
 packages:
   - meson
+  - libedit
 sources:
   - https://github.com/emersion/mrsh
 tasks:
   - setup: |
       cd mrsh
-      meson build
+      meson build -Dreadline=enabled -Dreadline-provider=editline
   - build: |
       cd mrsh
       ninja -C build

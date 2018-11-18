@@ -14,6 +14,10 @@ tasks:
   - test: |
       cd mrsh
       ninja -C build test
+  - build-no-readline: |
+      cd mrsh
+      meson configure build -Dreadline=disabled
+      ninja -C build
 triggers:
   - action: email
     condition: failure

@@ -2,6 +2,7 @@ image: freebsd
 packages:
   - meson
   - libedit
+  - pkgconf
 sources:
   - https://github.com/emersion/mrsh
 tasks:

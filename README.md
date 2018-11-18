@@ -1,6 +1,6 @@
-# mrsh
+# [mrsh]
 
-A minimal [POSIX][1] shell.
+A minimal [POSIX] shell.
 
 [![](https://builds.sr.ht/~emersion/mrsh.svg)](https://builds.sr.ht/~emersion/mrsh)
 
@@ -8,24 +8,25 @@ A minimal [POSIX][1] shell.
 * Simple, readable code without magic
 * Library to build more elaborate shells
 
-This project is a [work in progress](https://github.com/emersion/mrsh/issues/8).
+This project is a [work in progress].
 
 ## Build
 
-```shell
-meson build
-ninja -C build
-build/mrsh
-```
+    meson build
+    ninja -C build
+    build/mrsh
 
 ## Contributing
 
-Either [send GitHub pull requests][2] or [send patches on the mailing list][3].
+Either [send GitHub pull requests][GitHub] or [send patches on the mailing
+list][ML].
 
 ## License
 
 MIT
 
-[1]: http://pubs.opengroup.org/onlinepubs/9699919799/utilities/V3_chap02.html
-[2]: https://github.com/emersion/mrsh
-[3]: https://lists.sr.ht/%7Eemersion/mrsh-dev
+[mrsh]: https://mrsh.sh
+[POSIX]: http://pubs.opengroup.org/onlinepubs/9699919799/utilities/V3_chap02.html
+[work in progress]: https://github.com/emersion/mrsh/issues/8
+[GitHub]: https://github.com/emersion/mrsh
+[ML]: https://lists.sr.ht/%7Eemersion/mrsh-dev

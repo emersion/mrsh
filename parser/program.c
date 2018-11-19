@@ -181,6 +181,10 @@ static bool io_file(struct mrsh_parser *state,
 }
 
 static int io_number(struct mrsh_parser *state) {
+	if (!symbol(state, TOKEN)) {
+		return -1;
+	}
+
 	char c = parser_peek_char(state);
 	if (!isdigit(c)) {
 		return -1;

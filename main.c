@@ -59,6 +59,19 @@ static void source_profile(struct mrsh_state *state) {
 	mrsh_run_builtin(state, 2, profile_argv);
 }
 
+static void source_env(struct mrsh_state *state) {
+	char *path = getenv("ENV");
+	if (path == NULL) {
+		return;
+	}
+	// TODO: parameter expansion
+	if (access(path, F_OK) == -1) {
+		return;
+	}
+	char *env_argv[] = { ".", path };
+	mrsh_run_builtin(state, sizeof(env_argv) / sizeof(env_argv[0]), env_argv);
+}
+
 static const char *get_alias(const char *name, void *data) {
 	struct mrsh_state *state = data;
 	return mrsh_hashtable_get(&state->aliases, name);
@@ -92,10 +105,6 @@ int main(int argc, char *argv[]) {
 	snprintf(ppid_str, sizeof(ppid_str), "%d", ppid);
 	mrsh_env_set(&state, "PPID", ppid_str, MRSH_VAR_ATTRIB_NONE);
 
-	if (state.interactive && !(state.options & MRSH_OPT_NOEXEC)) {
-		source_profile(&state);
-	}
-
 	// TODO check if path is well-formed, has . or .., and handle symbolic links
 	const char *pwd = mrsh_env_get(&state, "PWD", NULL);
 	if (pwd == NULL || strlen(pwd) >= PATH_MAX) {
@@ -105,6 +114,14 @@ int main(int argc, char *argv[]) {
 	}
 
 	mrsh_env_set(&state, "OPTIND", "1", MRSH_VAR_ATTRIB_NONE);
+
+	if (state.interactive && !(state.options & MRSH_OPT_NOEXEC)) {
+		// If argv[0] begins with `-`, it's a login shell
+		if (state.args->argv[0][0] == '-') {
+			source_profile(&state);
+		}
+		source_env(&state);
+	}
 
 	int fd = -1;
 	struct mrsh_buffer parser_buffer = {0};

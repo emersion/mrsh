@@ -46,6 +46,7 @@ int builtin_eval(struct mrsh_state *state, int argc, char *argv[]) {
 		ret = mrsh_run_program(state, program);
 	}
 
+	mrsh_program_destroy(program);
 	mrsh_parser_destroy(parser);
 	mrsh_buffer_finish(&buf);
 	return ret;

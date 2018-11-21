@@ -45,18 +45,24 @@ static char *get_ps2(struct mrsh_state *state) {
 	return strdup("> ");
 }
 
+static void source_file(struct mrsh_state *state, char *path) {
+	if (access(path, F_OK) == -1) {
+		return;
+	}
+	char *env_argv[] = { ".", path };
+	mrsh_run_builtin(state, sizeof(env_argv) / sizeof(env_argv[0]), env_argv);
+}
+
 static void source_profile(struct mrsh_state *state) {
-	char path[PATH_MAX + 1];
+	source_file(state, "/etc/profile");
+
+	char path[PATH_MAX];
 	int n = snprintf(path, sizeof(path), "%s/.profile", getenv("HOME"));
 	if (n == sizeof(path)) {
 		fprintf(stderr, "Warning: $HOME/.profile is longer than PATH_MAX\n");
 		return;
 	}
-	if (access(path, F_OK) == -1) {
-		return;
-	}
-	char *profile_argv[2] = { ".", path };
-	mrsh_run_builtin(state, 2, profile_argv);
+	source_file(state, path);
 }
 
 static void source_env(struct mrsh_state *state) {
@@ -65,11 +71,7 @@ static void source_env(struct mrsh_state *state) {
 		return;
 	}
 	// TODO: parameter expansion
-	if (access(path, F_OK) == -1) {
-		return;
-	}
-	char *env_argv[] = { ".", path };
-	mrsh_run_builtin(state, sizeof(env_argv) / sizeof(env_argv[0]), env_argv);
+	source_file(state, path);
 }
 
 static const char *get_alias(const char *name, void *data) {
@@ -115,12 +117,14 @@ int main(int argc, char *argv[]) {
 
 	mrsh_env_set(&state, "OPTIND", "1", MRSH_VAR_ATTRIB_NONE);
 
-	if (state.interactive && !(state.options & MRSH_OPT_NOEXEC)) {
+	if (!(state.options & MRSH_OPT_NOEXEC)) {
 		// If argv[0] begins with `-`, it's a login shell
 		if (state.args->argv[0][0] == '-') {
 			source_profile(&state);
 		}
-		source_env(&state);
+		if (state.interactive) {
+			source_env(&state);
+		}
 	}
 
 	int fd = -1;

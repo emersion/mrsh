@@ -31,6 +31,7 @@ static const struct builtin builtins[] = {
 	{ "times", builtin_times, true },
 	{ "true", builtin_true, false },
 	{ "type", builtin_type, false },
+	{ "umask", builtin_umask, false },
 	{ "unalias", builtin_unalias, false },
 	{ "unset", builtin_unset, true },
 };

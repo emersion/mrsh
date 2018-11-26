@@ -167,7 +167,7 @@ int main(int argc, char *argv[]) {
 			size_t n = interactive_next(&state, &line, prompt);
 			free(prompt);
 			if (!line) {
-				state.exit = EXIT_FAILURE;
+				state.exit = state.last_status;
 				continue;
 			}
 			mrsh_buffer_append(&read_buffer, line, n);

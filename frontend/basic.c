@@ -15,13 +15,17 @@ void interactive_init(struct mrsh_state *state) {
 size_t interactive_next(struct mrsh_state *state,
 		char **line, const char *prompt) {
 	fprintf(stderr, "%s", prompt);
-	size_t n = 0;
-	char *_line;
-	ssize_t l = getline(&_line, &n, stdin);
-	if (l == -1 && errno) {
-		fprintf(stderr, "%s\n", strerror(errno));
+	size_t len = 0;
+	char *_line = NULL;
+	errno = 0;
+	ssize_t n_read = getline(&_line, &len, stdin);
+	if (n_read < 0) {
+		free(_line);
+		if (errno != 0) {
+			fprintf(stderr, "getline() failed: %s\n", strerror(errno));
+		}
 		return 0;
 	}
 	*line = _line;
-	return l;
+	return n_read;
 }

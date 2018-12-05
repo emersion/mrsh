@@ -12,7 +12,7 @@
 static const char getopts_usage[] = "usage: getopts optstring name [arg...]\n";
 
 int builtin_getopts(struct mrsh_state *state, int argc, char *argv[]) {
-	optind = 1;
+	optind = 0;
 	if (getopt(argc, argv, ":") != -1) {
 		fprintf(stderr, "getopts: unknown option -- %c\n", optopt);
 		fprintf(stderr, getopts_usage);

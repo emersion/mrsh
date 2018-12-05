@@ -15,7 +15,7 @@ static void delete_alias_iterator(const char *key, void *_value, void *user_data
 int builtin_unalias(struct mrsh_state *state, int argc, char *argv[]) {
 	bool all = false;
 
-	optind = 1;
+	optind = 0;
 	int opt;
 	while ((opt = getopt(argc, argv, ":a")) != -1) {
 		switch (opt) {

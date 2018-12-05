@@ -17,7 +17,7 @@ static void print_alias_iterator(const char *key, void *_value,
 }
 
 int builtin_alias(struct mrsh_state *state, int argc, char *argv[]) {
-	optind = 1;
+	optind = 0;
 	if (getopt(argc, argv, ":") != -1) {
 		fprintf(stderr, "alias: unknown option -- %c\n", optopt);
 		fprintf(stderr, alias_usage);

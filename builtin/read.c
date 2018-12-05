@@ -14,7 +14,7 @@ static const char read_usage[] = "usage: read [-r] var...\n";
 int builtin_read(struct mrsh_state *state, int argc, char *argv[]) {
 	bool raw = false;
 
-	optind = 1;
+	optind = 0;
 	int opt;
 	while ((opt = getopt(argc, argv, ":r")) != -1) {
 		switch (opt) {

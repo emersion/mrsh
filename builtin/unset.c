@@ -1,9 +1,9 @@
 #define _POSIX_C_SOURCE 200809L
 #include <mrsh/builtin.h>
+#include <mrsh/getopt.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <unistd.h>
 #include "builtin.h"
 
 static const char unset_usage[] = "usage: unset [-fv] name...\n";
@@ -11,9 +11,9 @@ static const char unset_usage[] = "usage: unset [-fv] name...\n";
 int builtin_unset(struct mrsh_state *state, int argc, char *argv[]) {
 	bool funcs = false;
 
-	optind = 0;
+	mrsh_optind = 1;
 	int opt;
-	while ((opt = getopt(argc, argv, ":fv")) != -1) {
+	while ((opt = mrsh_getopt(argc, argv, ":fv")) != -1) {
 		switch (opt) {
 		case 'f':
 			funcs = true;
@@ -22,16 +22,16 @@ int builtin_unset(struct mrsh_state *state, int argc, char *argv[]) {
 			funcs = false;
 			break;
 		default:
-			fprintf(stderr, "unset: unknown option -- %c\n", optopt);
+			fprintf(stderr, "unset: unknown option -- %c\n", mrsh_optopt);
 			fprintf(stderr, unset_usage);
 			return EXIT_FAILURE;
 		}
 	}
-	if (optind >= argc) {
+	if (mrsh_optind >= argc) {
 		fprintf(stderr, unset_usage);
 		return EXIT_FAILURE;
 	}
-	for (int i = optind; i < argc; ++i) {
+	for (int i = mrsh_optind; i < argc; ++i) {
 		if (!funcs) {
 			uint32_t prev_attribs = 0;
 			if (mrsh_env_get(state, argv[i], &prev_attribs)) {

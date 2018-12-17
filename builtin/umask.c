@@ -1,6 +1,6 @@
 #define _POSIX_C_SOURCE 200809L
-#include <getopt.h>
 #include <mrsh/builtin.h>
+#include <mrsh/getopt.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/types.h>
@@ -162,23 +162,23 @@ int builtin_umask(struct mrsh_state *state, int argc, char *argv[]) {
 	mode_t mode;
 	bool umask_symbolic = false;
 
-	optind = 0;
+	mrsh_optind = 1;
 	int opt;
 
-	while ((opt = getopt(argc, argv, ":S")) != -1) {
+	while ((opt = mrsh_getopt(argc, argv, ":S")) != -1) {
 		switch (opt) {
 		case 'S':
 			umask_symbolic = true;
 			break;
 
 		default:
-			fprintf(stderr, "Unknown option -- '%c'\n", optopt);
+			fprintf(stderr, "Unknown option -- '%c'\n", mrsh_optopt);
 			fprintf(stderr, umask_usage);
 			return EXIT_FAILURE;
 		}
 	}
 
-	if (optind == argc) {
+	if (mrsh_optind == argc) {
 		mode = umask_current_mask();
 
 		if (umask_symbolic) {
@@ -191,10 +191,10 @@ int builtin_umask(struct mrsh_state *state, int argc, char *argv[]) {
 	}
 
 	char *endptr;
-	mode = strtol(argv[optind], &endptr, 8);
+	mode = strtol(argv[mrsh_optind], &endptr, 8);
 
 	if (*endptr != '\0') {
-		if (!umask_mode(&mode, argv[optind])) {
+		if (!umask_mode(&mode, argv[mrsh_optind])) {
 			fprintf(stderr, umask_usage);
 			return EXIT_FAILURE;
 		}

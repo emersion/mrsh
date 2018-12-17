@@ -1,6 +1,6 @@
 #define _POSIX_C_SOURCE 200809L
-#include <getopt.h>
 #include <mrsh/builtin.h>
+#include <mrsh/getopt.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -15,22 +15,22 @@ static void delete_alias_iterator(const char *key, void *_value, void *user_data
 int builtin_unalias(struct mrsh_state *state, int argc, char *argv[]) {
 	bool all = false;
 
-	optind = 0;
+	mrsh_optind = 1;
 	int opt;
-	while ((opt = getopt(argc, argv, ":a")) != -1) {
+	while ((opt = mrsh_getopt(argc, argv, ":a")) != -1) {
 		switch (opt) {
 		case 'a':
 			all = true;
 			break;
 		default:
-			fprintf(stderr, "unalias: unknown option -- %c\n", optopt);
+			fprintf(stderr, "unalias: unknown option -- %c\n", mrsh_optopt);
 			fprintf(stderr, unalias_usage);
 			return EXIT_FAILURE;
 		}
 	}
 
 	if (all) {
-		if (optind < argc) {
+		if (mrsh_optind < argc) {
 			fprintf(stderr, unalias_usage);
 			return EXIT_FAILURE;
 		}
@@ -38,12 +38,12 @@ int builtin_unalias(struct mrsh_state *state, int argc, char *argv[]) {
 		return EXIT_SUCCESS;
 	}
 
-	if (optind == argc) {
+	if (mrsh_optind == argc) {
 		fprintf(stderr, unalias_usage);
 		return EXIT_FAILURE;
 	}
 
-	for (int i = optind; i < argc; ++i) {
+	for (int i = mrsh_optind; i < argc; ++i) {
 		free(mrsh_hashtable_del(&state->aliases, argv[i]));
 	}
 	return EXIT_SUCCESS;

@@ -1,6 +1,7 @@
 #define _POSIX_C_SOURCE 200809L
 #include <errno.h>
 #include <limits.h>
+#include <mrsh/getopt.h>
 #include <mrsh/shell.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -36,9 +37,9 @@ static int isdir(char *path) {
 }
 
 int builtin_cd(struct mrsh_state *state, int argc, char *argv[]) {
-	optind = 0;
+	mrsh_optind = 1;
 	int opt;
-	while ((opt = getopt(argc, argv, ":LP")) != -1) {
+	while ((opt = mrsh_getopt(argc, argv, ":LP")) != -1) {
 		switch (opt) {
 		case 'L':
 		case 'P':
@@ -46,17 +47,17 @@ int builtin_cd(struct mrsh_state *state, int argc, char *argv[]) {
 			fprintf(stderr, "cd: `-L` and `-P` not yet implemented\n");
 			return EXIT_FAILURE;
 		default:
-			fprintf(stderr, "cd: unknown option -- %c\n", optopt);
+			fprintf(stderr, "cd: unknown option -- %c\n", mrsh_optopt);
 			fprintf(stderr, cd_usage);
 			return EXIT_FAILURE;
 		}
 	}
-	if (optind + 1 > argc) {
+	if (mrsh_optind + 1 > argc) {
 		fprintf(stderr, cd_usage);
 		return EXIT_FAILURE;
 	}
 
-	if (optind == argc) {
+	if (mrsh_optind == argc) {
 		const char *home = mrsh_env_get(state, "HOME", NULL);
 		if (home && home[0] != '\0') {
 			return cd(state, home);
@@ -66,7 +67,7 @@ int builtin_cd(struct mrsh_state *state, int argc, char *argv[]) {
 		return EXIT_FAILURE;
 	}
 
-	char *curpath = argv[optind];
+	char *curpath = argv[mrsh_optind];
 	// `cd -`
 	if (strcmp(curpath, "-") == 0) {
 		// This case is special as we print `pwd` at the end

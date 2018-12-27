@@ -36,12 +36,40 @@ static const struct builtin builtins[] = {
 	{ "unset", builtin_unset, true },
 };
 
+// The following commands are explicitly unspecified by POSIX
+static const char *unspecified_names[] = {
+	"alloc", "autoload", "bind", "bindkey", "builtin", "bye", "caller", "cap",
+	"chdir", "clone", "comparguments", "compcall", "compctl", "compdescribe",
+	"compfiles", "compgen", "compgroups", "complete", "compquote", "comptags",
+	"comptry", "compvalues", "declare", "dirs", "disable", "disown", "dosh",
+	"echotc", "echoti", "help", "history", "hist", "let", "local", "login",
+	"logout", "map", "mapfile", "popd", "print", "pushd", "readarray", "repeat",
+	"savehistory", "source", "shopt", "stop", "suspend", "typeset", "whence"
+};
+
+static const struct builtin unspecified = {
+	.name = "unspecified",
+	.func = builtin_unspecified,
+	.special = false,
+};
+
 static int builtin_compare(const void *_a, const void *_b) {
 	const struct builtin *a = _a, *b = _b;
 	return strcmp(a->name, b->name);
 }
 
+static int unspecified_compare(const void *_a, const void *_b) {
+	const char *a = _a;
+	const char * const *b = _b;
+	return strcmp(a, *b);
+}
+
 static const struct builtin *get_builtin(const char *name) {
+	if (bsearch(name, unspecified_names,
+			sizeof(unspecified_names) / sizeof(unspecified_names[0]),
+			sizeof(unspecified_names[0]), unspecified_compare)) {
+		return &unspecified;
+	}
 	struct builtin key = { .name = name };
 	return bsearch(&key, builtins, sizeof(builtins) / sizeof(builtins[0]),
 		sizeof(builtins[0]), builtin_compare);

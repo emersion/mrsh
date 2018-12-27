@@ -28,6 +28,8 @@ int builtin_umask(struct mrsh_state *state, int argc, char *argv[]);
 int builtin_unalias(struct mrsh_state *state, int argc, char *argv[]);
 int builtin_unset(struct mrsh_state *state, int argc, char *argv[]);
 
+int builtin_unspecified(struct mrsh_state *state, int argc, char *argv[]);
+
 const char *print_options(struct mrsh_state *state);
 
 #endif

@@ -22,7 +22,7 @@ int builtin_times(struct mrsh_state *state, int argc, char *argv[]) {
 		return EXIT_FAILURE;
 	}
 
-	if (times(&buf) == -1) {
+	if (times(&buf) == (clock_t)-1) {
 		fprintf(stderr, "times error: %s", strerror(errno));
 		return EXIT_FAILURE;
 	}

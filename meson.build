@@ -40,6 +40,13 @@ mrsh_inc = include_directories('include')
 install_subdir('include/mrsh', install_dir: get_option('includedir'))
 
 libmrsh_sym_path = meson.current_source_dir() + '/libmrsh.sym'
+if cc.has_link_argument('-Wl,--version-script=' + libmrsh_sym_path) # GNU ld
+	link_args = ['-Wl,--version-script=' + libmrsh_sym_path]
+elif cc.has_link_argument('-Wl,-exported_symbol') # macOS
+	link_args = ['-Wl,-exported_symbol', 'mrsh_*']
+else
+	error('Linker doesn\'t support --version-script or -exported_symbol')
+endif
 
 lib_mrsh = library(
 	meson.project_name(),
@@ -104,7 +111,7 @@ lib_mrsh = library(
 	),
 	include_directories: mrsh_inc,
 	version: meson.project_version(),
-	link_args: ['-Wl,--version-script=' + libmrsh_sym_path],
+	link_args: link_args,
 	install: true,
 )
 

@@ -52,10 +52,6 @@ int builtin_cd(struct mrsh_state *state, int argc, char *argv[]) {
 			return EXIT_FAILURE;
 		}
 	}
-	if (mrsh_optind + 1 > argc) {
-		fprintf(stderr, cd_usage);
-		return EXIT_FAILURE;
-	}
 
 	if (mrsh_optind == argc) {
 		const char *home = mrsh_env_get(state, "HOME", NULL);

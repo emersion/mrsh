@@ -39,6 +39,16 @@ install_subdir('include/mrsh', install_dir: get_option('includedir'))
 
 libmrsh_sym_path = meson.current_source_dir() + '/libmrsh.sym'
 
+have_version_script = cc.links(
+	'int main(){}',
+	args: '-Wl,--version-script=' + libmrsh_sym_path,
+	name: 'version script',
+)
+libmrsh_link_args = []
+if have_version_script
+	libmrsh_link_args += '-Wl,--version-script=' + libmrsh_sym_path
+endif
+
 lib_mrsh = library(
 	meson.project_name(),
 	files(
@@ -100,7 +110,7 @@ lib_mrsh = library(
 	),
 	include_directories: mrsh_inc,
 	version: meson.project_version(),
-	link_args: ['-Wl,--version-script=' + libmrsh_sym_path],
+	link_args: libmrsh_link_args,
 	install: true,
 )
 

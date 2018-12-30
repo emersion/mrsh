@@ -212,7 +212,7 @@ static struct mrsh_arithm_expr *shift(struct mrsh_parser *state) {
 	}
 
 	struct mrsh_arithm_expr *right = shift(state);
-	if (left == NULL) {
+	if (right == NULL) {
 		mrsh_arithm_expr_destroy(left);
 		parser_set_error(state, "expected a term");
 		return NULL;

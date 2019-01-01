@@ -66,6 +66,8 @@ struct task *task_loop_clause_create(const struct mrsh_array *condition,
 	const struct mrsh_array *body, bool until);
 struct task *task_for_clause_create(const char *name,
 	const struct mrsh_array *word_list, const struct mrsh_array *body);
+struct task *task_case_clause_create(
+		const struct mrsh_word *word, const struct mrsh_array *cases);
 struct task *task_function_definition_create(const char *name,
 	const struct mrsh_command *body);
 struct task *task_binop_create(enum mrsh_binop_type type,

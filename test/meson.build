@@ -4,6 +4,7 @@ ref_sh = find_program('sh', required: false)
 test_files = [
 	'conformance/if.sh',
 
+	'case.sh',
 	'loop.sh',
 	'subshell.sh',
 	'word.sh',

@@ -83,6 +83,7 @@ lib_mrsh = library(
 		'shell/task/ast.c',
 		'shell/task/async.c',
 		'shell/task/binop.c',
+		'shell/task/case_clause.c',
 		'shell/task/command_builtin.c',
 		'shell/task/command_function.c',
 		'shell/task/command_process.c',

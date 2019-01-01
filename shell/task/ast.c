@@ -107,6 +107,10 @@ static struct task *task_for_for_clause(const struct mrsh_for_clause *fc) {
 	return task_for_clause_create(fc->name, &fc->word_list, &fc->body);
 }
 
+static struct task *task_for_case_clause(const struct mrsh_case_clause *cc) {
+	return task_case_clause_create(cc->word, &cc->items);
+}
+
 static struct task *task_for_function_definition(
 		const struct mrsh_function_definition *fn) {
 	return task_function_definition_create(fn->name, fn->body);
@@ -132,12 +136,14 @@ struct task *task_for_command(const struct mrsh_command *cmd) {
 	case MRSH_FOR_CLAUSE:;
 		struct mrsh_for_clause *fc = mrsh_command_get_for_clause(cmd);
 		return task_for_for_clause(fc);
+	case MRSH_CASE_CLAUSE:;
+		struct mrsh_case_clause *cc =
+			mrsh_command_get_case_clause(cmd);
+		return task_for_case_clause(cc);
 	case MRSH_FUNCTION_DEFINITION:;
 		struct mrsh_function_definition *fn =
 			mrsh_command_get_function_definition(cmd);
 		return task_for_function_definition(fn);
-	case MRSH_CASE_CLAUSE:
-		assert(false); // TODO: implement this
 	}
 	assert(false);
 }

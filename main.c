@@ -130,17 +130,19 @@ int main(int argc, char *argv[]) {
 		}
 	}
 
-	int fd = -1;
+	state.fd = -1;
 	struct mrsh_buffer parser_buffer = {0};
 	struct mrsh_parser *parser;
 	if (state.interactive) {
 		interactive_init(&state);
 		parser = mrsh_parser_with_buffer(&parser_buffer);
+		state.fd = STDIN_FILENO;
 	} else {
 		if (init_args.command_str) {
 			parser = mrsh_parser_with_data(init_args.command_str,
 				strlen(init_args.command_str));
 		} else {
+			int fd;
 			if (init_args.command_file) {
 				fd = open(init_args.command_file, O_RDONLY | O_CLOEXEC);
 				if (fd < 0) {
@@ -153,9 +155,15 @@ int main(int argc, char *argv[]) {
 			}
 
 			parser = mrsh_parser_with_fd(fd);
+			state.fd = fd;
 		}
 	}
+
 	mrsh_parser_set_alias(parser, get_alias, &state);
+
+	if (state.interactive) {
+		mrsh_set_job_control(&state, true);
+	}
 
 	struct mrsh_buffer read_buffer = {0};
 	while (state.exit == -1) {
@@ -226,8 +234,8 @@ int main(int argc, char *argv[]) {
 	mrsh_parser_destroy(parser);
 	mrsh_buffer_finish(&parser_buffer);
 	mrsh_state_finish(&state);
-	if (fd >= 0) {
-		close(fd);
+	if (state.fd >= 0) {
+		close(state.fd);
 	}
 
 	return state.exit;

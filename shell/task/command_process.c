@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include "shell/job.h"
 #include "shell/path.h"
 #include "shell/redir.h"
 #include "shell/task_command.h"
@@ -28,6 +29,8 @@ static bool task_process_start(struct task_command *tc, struct context *ctx) {
 		fprintf(stderr, "failed to fork(): %s\n", strerror(errno));
 		return false;
 	} else if (pid == 0) {
+		job_child_init(ctx->state, true); // TODO: foreground=false
+
 		for (size_t i = 0; i < sc->assignments.len; ++i) {
 			struct mrsh_assignment *assign = sc->assignments.data[i];
 			uint32_t prev_attribs;
@@ -75,6 +78,13 @@ static bool task_process_start(struct task_command *tc, struct context *ctx) {
 	}
 
 	process_init(&tc->process, pid);
+
+	// TODO: don't always create a new job
+	struct job *job = job_create(ctx->state);
+	job_add_process(job, pid);
+	// TODO: don't always put in foreground
+	job_set_foreground(job, true);
+
 	return true;
 }
 

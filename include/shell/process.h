@@ -5,10 +5,11 @@
 #include <sys/types.h>
 
 /**
- * This struct is used to track child processes.
+ * A child process.
  */
 struct process {
 	pid_t pid;
+	bool stopped;
 	bool finished;
 	int stat;
 };

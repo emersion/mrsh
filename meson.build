@@ -40,10 +40,11 @@ mrsh_inc = include_directories('include')
 install_subdir('include/mrsh', install_dir: get_option('includedir'))
 
 libmrsh_sym_path = meson.current_source_dir() + '/libmrsh.sym'
+libmrsh_clang_sym_path = meson.current_source_dir() + '/libmrsh.clang.sym'
 if cc.has_link_argument('-Wl,--version-script=' + libmrsh_sym_path) # GNU ld
 	link_args = ['-Wl,--version-script=' + libmrsh_sym_path]
-elif cc.has_link_argument('-Wl,-exported_symbol') # macOS
-	link_args = ['-Wl,-exported_symbol', 'mrsh_*']
+elif cc.has_multi_link_arguments('-Wl,-exported_symbols_list', libmrsh_clang_sym_path) # clang
+	link_args = ['-Wl,-exported_symbols_list', libmrsh_clang_sym_path]
 else
 	error('Linker doesn\'t support --version-script or -exported_symbol')
 endif

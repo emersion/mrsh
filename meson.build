@@ -64,6 +64,7 @@ lib_mrsh = library(
 		'builtin/times.c',
 		'builtin/true.c',
 		'builtin/type.c',
+		'builtin/ulimit.c',
 		'builtin/umask.c',
 		'builtin/unalias.c',
 		'builtin/unset.c',

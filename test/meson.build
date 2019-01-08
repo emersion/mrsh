@@ -5,11 +5,12 @@ test_files = [
 	'conformance/if.sh',
 
 	'case.sh',
-	'loop.sh',
-	'subshell.sh',
-	'word.sh',
 	'for.sh',
 	'function.sh',
+	'loop.sh',
+	'subshell.sh',
+	'ulimit.sh',
+	'word.sh',
 ]
 
 foreach test_file : test_files

@@ -1,13 +1,14 @@
 #define _POSIX_C_SOURCE 200809L
+#include <errno.h>
+#include <inttypes.h>
+#include <limits.h>
 #include <mrsh/getopt.h>
 #include <mrsh/shell.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <errno.h>
 #include <string.h>
-#include <limits.h>
-#include <sys/time.h>
 #include <sys/resource.h>
+#include <sys/time.h>
 #include "builtin.h"
 
 static const char ulimit_usage[] = "usage: ulimit [-f] [blocks]\n";
@@ -55,7 +56,7 @@ int builtin_ulimit(struct mrsh_state *state, int argc, char *argv[]) {
 		if (old.rlim_max == RLIM_INFINITY) {
 			printf("unlimited\n");
 		} else {
-			printf("%lu\n", old.rlim_max / 512);
+			printf("%" PRIuMAX "\n", (uintmax_t)(old.rlim_max / 512));
 		}
 	} else {
 		fprintf(stderr, "%s", ulimit_usage);

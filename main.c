@@ -111,7 +111,10 @@ int main(int argc, char *argv[]) {
 	const char *pwd = mrsh_env_get(&state, "PWD", NULL);
 	if (pwd == NULL || strlen(pwd) >= PATH_MAX) {
 		char cwd[PATH_MAX];
-		getcwd(cwd, PATH_MAX);
+		if (getcwd(cwd, PATH_MAX) == NULL) {
+			fprintf(stderr, "getcwd failed: %s\n", strerror(errno));
+			return EXIT_FAILURE;
+		}
 		mrsh_env_set(&state, "PWD", cwd, MRSH_VAR_ATTRIB_EXPORT);
 	}
 
@@ -141,7 +144,7 @@ int main(int argc, char *argv[]) {
 			if (init_args.command_file) {
 				fd = open(init_args.command_file, O_RDONLY | O_CLOEXEC);
 				if (fd < 0) {
-					fprintf(stderr, "failed to open %s for reading: %s",
+					fprintf(stderr, "failed to open %s for reading: %s\n",
 						init_args.command_file, strerror(errno));
 					return EXIT_FAILURE;
 				}

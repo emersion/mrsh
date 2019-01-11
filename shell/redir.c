@@ -112,7 +112,7 @@ int process_redir(const struct mrsh_io_redirect *redir, int *redir_fd) {
 	// TODO: filename expansions
 	char *filename = mrsh_word_str(redir->name);
 
-	int fd, default_redir_fd;
+	int fd = -1, default_redir_fd = -1;
 	errno = 0;
 	switch (redir->op) {
 	case MRSH_IO_LESS: // <

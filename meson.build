@@ -11,9 +11,11 @@ project(
 	],
 )
 
-add_project_arguments('-Wno-unused-parameter', language: 'c')
-add_project_arguments('-Wno-missing-braces', language: 'c')
-add_project_arguments('-Wno-missing-field-initializers', language: 'c')
+add_project_arguments([
+	'-Wno-missing-braces',
+	'-Wno-missing-field-initializers',
+	'-Wno-unused-parameter',
+], language: 'c')
 
 cc = meson.get_compiler('c')
 

@@ -51,7 +51,7 @@ static void highlight(struct highlight_state *state, struct mrsh_position *pos,
 		++state->fmt_stack_len;
 	}
 
-	fprintf(stdout, "\e[%dm", fmt);
+	fprintf(stdout, "%c[%dm", 0x1B, fmt);
 }
 
 static void highlight_str(struct highlight_state *state,

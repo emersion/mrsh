@@ -15,6 +15,10 @@ tasks:
   - test: |
       cd mrsh
       ninja -C build test
+  - build-release: |
+      cd mrsh
+      meson configure build --buildtype release
+      ninja -C build
   - build-no-readline: |
       cd mrsh
       meson configure build -Dreadline=disabled

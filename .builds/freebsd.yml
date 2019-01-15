@@ -4,7 +4,7 @@ packages:
   - libedit
   - pkgconf
 sources:
-  - https://github.com/emersion/mrsh
+  - https://git.sr.ht/~emersion/mrsh
 tasks:
   - setup: |
       cd mrsh

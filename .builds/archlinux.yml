@@ -4,7 +4,7 @@ packages:
   - meson
   - readline
 sources:
-  - https://github.com/emersion/mrsh
+  - https://git.sr.ht/~emersion/mrsh
 tasks:
   - setup: |
       cd mrsh

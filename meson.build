@@ -39,14 +39,19 @@ mrsh_inc = include_directories('include')
 
 install_subdir('include/mrsh', install_dir: get_option('includedir'))
 
-libmrsh_sym_path = meson.current_source_dir() + '/libmrsh.sym'
-libmrsh_clang_sym_path = meson.current_source_dir() + '/libmrsh.clang.sym'
-if cc.has_link_argument('-Wl,--version-script=' + libmrsh_sym_path) # GNU ld
-	link_args = ['-Wl,--version-script=' + libmrsh_sym_path]
-elif cc.has_multi_link_arguments('-Wl,-exported_symbols_list', libmrsh_clang_sym_path) # clang
-	link_args = ['-Wl,-exported_symbols_list', libmrsh_clang_sym_path]
+libmrsh_gnu_sym_path = join_paths(meson.current_source_dir(), 'libmrsh.gnu.sym')
+libmrsh_gnu_sym_ldflag = '-Wl,--version-script=' + libmrsh_gnu_sym_path
+libmrsh_darwin_sym_path = join_paths(meson.current_source_dir(), 'libmrsh.darwin.sym')
+# On FreeBSD, -Wl,--version-script only works with -shared
+if cc.links('', name: '-Wl,--version-script', args: ['-shared', libmrsh_gnu_sym_ldflag])
+	# GNU ld
+	link_args = [libmrsh_gnu_sym_ldflag]
+elif host_machine.system() == 'darwin' and
+		cc.has_multi_link_arguments('-Wl,-exported_symbols_list', libmrsh_darwin_sym_path)
+	# Clang on Darwin
+	link_args = ['-Wl,-exported_symbols_list', libmrsh_darwin_sym_path]
 else
-	error('Linker doesn\'t support --version-script or -exported_symbol')
+	error('Linker doesn\'t support --version-script or -exported_symbols_list')
 endif
 
 lib_mrsh = library(

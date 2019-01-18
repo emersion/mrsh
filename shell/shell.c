@@ -1,6 +1,7 @@
 #define _POSIX_C_SOURCE 200809L
 #include <assert.h>
 #include <mrsh/hashtable.h>
+#include <mrsh/parser.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
@@ -20,6 +21,16 @@ void mrsh_state_init(struct mrsh_state *state) {
 	state->interactive = isatty(STDIN_FILENO);
 	state->options = state->interactive ? MRSH_OPT_INTERACTIVE : 0;
 	state->args = calloc(1, sizeof(struct mrsh_call_frame));
+}
+
+static const char *get_alias(const char *name, void *data) {
+	struct mrsh_state *state = data;
+	return mrsh_hashtable_get(&state->aliases, name);
+}
+
+void mrsh_state_set_parser_alias_func(
+		struct mrsh_state *state, struct mrsh_parser *parser) {
+	mrsh_parser_set_alias_func(parser, get_alias, state);
 }
 
 static void state_string_finish_iterator(const char *key, void *value,

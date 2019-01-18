@@ -14,11 +14,6 @@
 #include <unistd.h>
 #include "frontend.h"
 
-static const char *get_alias(const char *name, void *data) {
-	struct mrsh_state *state = data;
-	return mrsh_hashtable_get(&state->aliases, name);
-}
-
 int main(int argc, char *argv[]) {
 	struct mrsh_state state = {0};
 	mrsh_state_init(&state);
@@ -68,7 +63,7 @@ int main(int argc, char *argv[]) {
 			parser = mrsh_parser_with_fd(fd);
 		}
 	}
-	mrsh_parser_set_alias(parser, get_alias, &state);
+	mrsh_state_set_parser_alias_func(&state, parser);
 
 	struct mrsh_buffer read_buffer = {0};
 	while (state.exit == -1) {

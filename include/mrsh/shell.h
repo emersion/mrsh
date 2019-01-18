@@ -92,7 +92,11 @@ struct mrsh_state {
 
 void mrsh_function_destroy(struct mrsh_function *fn);
 
+struct mrsh_parser;
+
 void mrsh_state_init(struct mrsh_state *state);
+void mrsh_state_set_parser_alias_func(
+		struct mrsh_state *state, struct mrsh_parser *parser);
 void mrsh_state_finish(struct mrsh_state *state);
 void mrsh_env_set(struct mrsh_state *state,
 	const char *key, const char *value, uint32_t attribs);

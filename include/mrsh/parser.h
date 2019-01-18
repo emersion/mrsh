@@ -52,7 +52,7 @@ bool mrsh_parser_eof(struct mrsh_parser *state);
 /**
  * Set the alias callback.
  */
-void mrsh_parser_set_alias(struct mrsh_parser *state,
+void mrsh_parser_set_alias_func(struct mrsh_parser *state,
 	mrsh_parser_alias_func_t alias, void *user_data);
 /**
  * Check if the parser ended with a syntax error. The error message is returned.

@@ -5,81 +5,19 @@
 #include <mrsh/ast.h>
 #include <mrsh/buffer.h>
 #include <mrsh/builtin.h>
+#include <mrsh/entry.h>
 #include <mrsh/parser.h>
 #include <mrsh/shell.h>
+#include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include "builtin.h"
 #include "frontend.h"
-
-static char *expand_ps(struct mrsh_state *state, const char *ps1) {
-	struct mrsh_parser *parser = mrsh_parser_with_data(ps1, strlen(ps1));
-	struct mrsh_word *word = mrsh_parse_word(parser);
-	mrsh_parser_destroy(parser);
-	if (word == NULL) {
-		return NULL;
-	}
-
-	mrsh_run_word(state, &word);
-
-	return mrsh_word_str(word);
-}
-
-static char *get_ps1(struct mrsh_state *state) {
-	const char *ps1 = mrsh_env_get(state, "PS1", NULL);
-	if (ps1 != NULL) {
-		// TODO: Replace ! with next history ID
-		return expand_ps(state, ps1);
-	}
-	char *p = malloc(3);
-	sprintf(p, "%s", getuid() ? "$ " : "# ");
-	return p;
-}
-
-static char *get_ps2(struct mrsh_state *state) {
-	const char *ps2 = mrsh_env_get(state, "PS2", NULL);
-	if (ps2 != NULL) {
-		return expand_ps(state, ps2);
-	}
-	return strdup("> ");
-}
-
-static void source_file(struct mrsh_state *state, char *path) {
-	if (access(path, F_OK) == -1) {
-		return;
-	}
-	char *env_argv[] = { ".", path };
-	mrsh_run_builtin(state, sizeof(env_argv) / sizeof(env_argv[0]), env_argv);
-}
-
-static void source_profile(struct mrsh_state *state) {
-	source_file(state, "/etc/profile");
-
-	char path[PATH_MAX];
-	int n = snprintf(path, sizeof(path), "%s/.profile", getenv("HOME"));
-	if (n == sizeof(path)) {
-		fprintf(stderr, "Warning: $HOME/.profile is longer than PATH_MAX\n");
-		return;
-	}
-	source_file(state, path);
-}
-
-static void source_env(struct mrsh_state *state) {
-	char *path = getenv("ENV");
-	if (path == NULL) {
-		return;
-	}
-	// TODO: parameter expansion
-	source_file(state, path);
-}
 
 static const char *get_alias(const char *name, void *data) {
 	struct mrsh_state *state = data;
 	return mrsh_hashtable_get(&state->aliases, name);
 }
-
-extern char **environ;
 
 int main(int argc, char *argv[]) {
 	struct mrsh_state state = {0};
@@ -91,42 +29,17 @@ int main(int argc, char *argv[]) {
 		return EXIT_FAILURE;
 	}
 
-	for (size_t i = 0; environ[i] != NULL; ++i) {
-		char *eql = strchr(environ[i], '=');
-		size_t klen = eql - environ[i];
-		char *key = strndup(environ[i], klen);
-		char *val = &eql[1];
-		mrsh_env_set(&state, key, val, MRSH_VAR_ATTRIB_EXPORT);
-		free(key);
+	if (!mrsh_populate_env(&state)) {
+		return EXIT_FAILURE;
 	}
-
-	mrsh_env_set(&state, "IFS", " \t\n", MRSH_VAR_ATTRIB_NONE);
-
-	pid_t ppid = getppid();
-	char ppid_str[24];
-	snprintf(ppid_str, sizeof(ppid_str), "%d", ppid);
-	mrsh_env_set(&state, "PPID", ppid_str, MRSH_VAR_ATTRIB_NONE);
-
-	// TODO check if path is well-formed, has . or .., and handle symbolic links
-	const char *pwd = mrsh_env_get(&state, "PWD", NULL);
-	if (pwd == NULL || strlen(pwd) >= PATH_MAX) {
-		char cwd[PATH_MAX];
-		if (getcwd(cwd, PATH_MAX) == NULL) {
-			fprintf(stderr, "getcwd failed: %s\n", strerror(errno));
-			return EXIT_FAILURE;
-		}
-		mrsh_env_set(&state, "PWD", cwd, MRSH_VAR_ATTRIB_EXPORT);
-	}
-
-	mrsh_env_set(&state, "OPTIND", "1", MRSH_VAR_ATTRIB_NONE);
 
 	if (!(state.options & MRSH_OPT_NOEXEC)) {
 		// If argv[0] begins with `-`, it's a login shell
 		if (state.args->argv[0][0] == '-') {
-			source_profile(&state);
+			mrsh_source_profile(&state);
 		}
 		if (state.interactive) {
-			source_env(&state);
+			mrsh_source_env(&state);
 		}
 	}
 
@@ -162,9 +75,10 @@ int main(int argc, char *argv[]) {
 		if (state.interactive) {
 			char *prompt;
 			if (read_buffer.len > 0) {
-				prompt = get_ps2(&state);
+				prompt = mrsh_get_ps2(&state);
 			} else {
-				prompt = get_ps1(&state);
+				// TODO: next_history_id
+				prompt = mrsh_get_ps1(&state, 0);
 			}
 			char *line = NULL;
 			size_t n = interactive_next(&state, &line, prompt);

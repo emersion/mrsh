@@ -91,6 +91,7 @@ lib_mrsh = library(
 		'parser/program.c',
 		'parser/word.c',
 		'shell/arithm.c',
+		'shell/entry.c',
 		'shell/path.c',
 		'shell/process.c',
 		'shell/redir.c',

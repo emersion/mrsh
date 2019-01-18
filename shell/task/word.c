@@ -185,7 +185,7 @@ static int task_word_poll(struct task *task, struct context *ctx) {
 			tw->fd = -1;
 
 			// Trim newlines at the end
-			ssize_t i = buf.len - 1;
+			ssize_t i = buf.len - 2;
 			while (i >= 0 && buf.data[i] == '\n') {
 				buf.data[i] = '\0';
 				--i;

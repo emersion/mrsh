@@ -14,6 +14,8 @@
 #include <unistd.h>
 #include "frontend.h"
 
+extern char **environ;
+
 int main(int argc, char *argv[]) {
 	struct mrsh_state state = {0};
 	mrsh_state_init(&state);
@@ -24,7 +26,7 @@ int main(int argc, char *argv[]) {
 		return EXIT_FAILURE;
 	}
 
-	if (!mrsh_populate_env(&state)) {
+	if (!mrsh_populate_env(&state, environ)) {
 		return EXIT_FAILURE;
 	}
 

@@ -20,7 +20,7 @@ char *mrsh_get_ps2(struct mrsh_state *state);
  * Copies variables from the environment and sets up internal variables like
  * IFS, PPID, PWD, etc.
  */
-bool mrsh_populate_env(struct mrsh_state *state);
+bool mrsh_populate_env(struct mrsh_state *state, char **environ);
 
 /**
  * Sources /etc/profile and $HOME/.profile. Note that this behavior is not

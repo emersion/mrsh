@@ -10,8 +10,6 @@
 #include <unistd.h>
 #include "builtin.h"
 
-extern char **environ;
-
 static char *expand_ps(struct mrsh_state *state, const char *ps1) {
 	struct mrsh_parser *parser = mrsh_parser_with_data(ps1, strlen(ps1));
 	struct mrsh_word *word = mrsh_parse_word(parser);
@@ -43,7 +41,7 @@ char *mrsh_get_ps2(struct mrsh_state *state) {
 	return strdup("> ");
 }
 
-bool mrsh_populate_env(struct mrsh_state *state) {
+bool mrsh_populate_env(struct mrsh_state *state, char **environ) {
 	for (size_t i = 0; environ[i] != NULL; ++i) {
 		char *eql = strchr(environ[i], '=');
 		size_t klen = eql - environ[i];

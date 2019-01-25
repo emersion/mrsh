@@ -63,6 +63,8 @@ struct mrsh_parser {
 	void *alias_user_data;
 };
 
+typedef struct mrsh_word *(*word_func_t)(struct mrsh_parser *state, char end);
+
 size_t parser_peek(struct mrsh_parser *state, char *buf, size_t size);
 char parser_peek_char(struct mrsh_parser *state);
 size_t parser_read(struct mrsh_parser *state, char *buf, size_t size);
@@ -90,5 +92,6 @@ size_t peek_word(struct mrsh_parser *state, char end);
 struct mrsh_word *expect_dollar(struct mrsh_parser *state);
 struct mrsh_word *back_quotes(struct mrsh_parser *state);
 struct mrsh_word *word(struct mrsh_parser *state, char end);
+struct mrsh_word *arithmetic_word(struct mrsh_parser *state, char end);
 
 #endif

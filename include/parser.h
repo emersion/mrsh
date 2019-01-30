@@ -59,11 +59,11 @@ struct mrsh_parser {
 	struct mrsh_array here_documents;
 	bool continuation_line;
 
-	mrsh_parser_alias_func_t alias;
+	mrsh_parser_alias_func alias;
 	void *alias_user_data;
 };
 
-typedef struct mrsh_word *(*word_func_t)(struct mrsh_parser *state, char end);
+typedef struct mrsh_word *(*word_func)(struct mrsh_parser *state, char end);
 
 size_t parser_peek(struct mrsh_parser *state, char *buf, size_t size);
 char parser_peek_char(struct mrsh_parser *state);

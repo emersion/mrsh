@@ -106,7 +106,7 @@ void mrsh_hashtable_finish(struct mrsh_hashtable *table) {
 }
 
 void mrsh_hashtable_for_each(struct mrsh_hashtable *table,
-		mrsh_hashtable_iterator_func_t iterator, void *user_data) {
+		mrsh_hashtable_iterator_func iterator, void *user_data) {
 	for (size_t i = 0; i < MRSH_HASHTABLE_BUCKETS; ++i) {
 		struct mrsh_hashtable_entry *entry = table->buckets[i];
 		while (entry != NULL) {

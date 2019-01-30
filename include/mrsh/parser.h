@@ -11,7 +11,7 @@ struct mrsh_buffer;
  * An alias callback. The alias named is given as a parameter and the alias
  * value should be returned. NULL should be returned if the alias doesn't exist.
  */
-typedef const char *(*mrsh_parser_alias_func_t)(const char *name,
+typedef const char *(*mrsh_parser_alias_func)(const char *name,
 	void *user_data);
 
 /**
@@ -53,7 +53,7 @@ bool mrsh_parser_eof(struct mrsh_parser *state);
  * Set the alias callback.
  */
 void mrsh_parser_set_alias_func(struct mrsh_parser *state,
-	mrsh_parser_alias_func_t alias, void *user_data);
+	mrsh_parser_alias_func alias, void *user_data);
 /**
  * Check if the parser ended with a syntax error. The error message is returned.
  * The error position can optionally be obtained.

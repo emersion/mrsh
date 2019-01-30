@@ -8,7 +8,7 @@
 
 struct builtin {
 	const char *name;
-	mrsh_builtin_func_t func;
+	mrsh_builtin_func func;
 	bool special;
 };
 

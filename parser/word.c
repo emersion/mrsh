@@ -174,7 +174,7 @@ char *read_token(struct mrsh_parser *state, size_t len,
 }
 
 static struct mrsh_word *word_list(struct mrsh_parser *state, char end,
-		word_func_t f) {
+		word_func f) {
 	struct mrsh_array children = {0};
 
 	while (true) {

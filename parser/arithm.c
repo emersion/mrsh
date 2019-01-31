@@ -14,6 +14,20 @@ static bool parse_char(struct mrsh_parser *state, char c) {
 	return true;
 }
 
+static bool parse_whitespace(struct mrsh_parser *state) {
+	if (!isspace(parser_peek_char(state))) {
+		return false;
+	}
+	parser_read_char(state);
+	return true;
+}
+
+static inline void consume_whitespace(struct mrsh_parser *state) {
+	while (parse_whitespace(state)) {
+		// This space is intentionally left blank
+	}
+}
+
 static bool expect_char(struct mrsh_parser *state, char c) {
 	if (parse_char(state, c)) {
 		return true;
@@ -115,7 +129,10 @@ static struct mrsh_arithm_expr *paren(struct mrsh_parser *state) {
 		return NULL;
 	}
 
+	consume_whitespace(state);
 	struct mrsh_arithm_expr *expr = arithm_expr(state);
+	// consume_whitespace() is not needed here, since the call to arithm_expr()
+	// consumes the trailing whitespace.
 
 	if (!expect_char(state, ')')) {
 		mrsh_arithm_expr_destroy(expr);
@@ -150,6 +167,7 @@ static struct mrsh_arithm_expr *factor(struct mrsh_parser *state) {
 		return NULL;
 	}
 
+	consume_whitespace(state);
 	enum mrsh_arithm_binop_type type;
 	if (parse_char(state, '*')) {
 		type = MRSH_ARITHM_BINOP_ASTERISK;
@@ -160,6 +178,7 @@ static struct mrsh_arithm_expr *factor(struct mrsh_parser *state) {
 	} else {
 		return left;
 	}
+	consume_whitespace(state);
 
 	struct mrsh_arithm_expr *right = factor(state);
 	if (right == NULL) {
@@ -177,6 +196,8 @@ static struct mrsh_arithm_expr *addend(struct mrsh_parser *state) {
 		return NULL;
 	}
 
+	// consume_whitespace() is not needed here, since the call to factor()
+	// consumes trailing whitespace.
 	enum mrsh_arithm_binop_type type;
 	if (parse_char(state, '+')) {
 		type = MRSH_ARITHM_BINOP_PLUS;
@@ -185,6 +206,7 @@ static struct mrsh_arithm_expr *addend(struct mrsh_parser *state) {
 	} else {
 		return left;
 	}
+	consume_whitespace(state);
 
 	struct mrsh_arithm_expr *right = addend(state);
 	if (right == NULL) {
@@ -202,6 +224,8 @@ static struct mrsh_arithm_expr *shift(struct mrsh_parser *state) {
 		return NULL;
 	}
 
+	// consume_whitespace() is not needed here, since the call to addend()
+	// consumes the trailing whitespace.
 	enum mrsh_arithm_binop_type type;
 	if (parse_str(state, "<<")) {
 		type = MRSH_ARITHM_BINOP_DLESS;
@@ -210,6 +234,7 @@ static struct mrsh_arithm_expr *shift(struct mrsh_parser *state) {
 	} else {
 		return left;
 	}
+	consume_whitespace(state);
 
 	struct mrsh_arithm_expr *right = shift(state);
 	if (right == NULL) {
@@ -240,6 +265,7 @@ static struct mrsh_arithm_expr *comp(struct mrsh_parser *state) {
 	} else {
 		return left;
 	}
+	consume_whitespace(state);
 
 	struct mrsh_arithm_expr *right = comp(state);
 	if (left == NULL) {
@@ -288,6 +314,7 @@ static struct mrsh_arithm_expr *binop(struct mrsh_parser *state,
 	if (!parse_str(state, str)) {
 		return left;
 	}
+	consume_whitespace(state);
 
 	struct mrsh_arithm_expr *right = binop(state, type, str, term);
 	if (left == NULL) {
@@ -419,6 +446,8 @@ static struct mrsh_arithm_expr *arithm_expr(struct mrsh_parser *state) {
 }
 
 struct mrsh_arithm_expr *mrsh_parse_arithm_expr(struct mrsh_parser *state) {
+	consume_whitespace(state);
+
 	struct mrsh_arithm_expr *expr = arithm_expr(state);
 	if (expr == NULL) {
 		return NULL;

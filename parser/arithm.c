@@ -153,7 +153,7 @@ static struct mrsh_arithm_expr *factor(struct mrsh_parser *state) {
 	enum mrsh_arithm_binop_type type;
 	if (parse_char(state, '*')) {
 		type = MRSH_ARITHM_BINOP_ASTERISK;
-	} else if (parse_char(state, '-')) {
+	} else if (parse_char(state, '/')) {
 		type = MRSH_ARITHM_BINOP_SLASH;
 	} else if (parse_char(state, '%')) {
 		type = MRSH_ARITHM_BINOP_PERCENT;

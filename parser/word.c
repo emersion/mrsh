@@ -356,7 +356,7 @@ static struct mrsh_word_arithmetic *expect_word_arithmetic(
 	c = parser_read_char(state);
 	assert(c == '(');
 
-	struct mrsh_word *body = word_list(state, ')', arithmetic_word);
+	struct mrsh_word *body = word_list(state, 0, arithmetic_word);
 	if (body == NULL) {
 		if (!mrsh_parser_error(state, NULL)) {
 			parser_set_error(state, "expected an arithmetic expression");
@@ -698,16 +698,8 @@ struct mrsh_word *word(struct mrsh_parser *state, char end) {
 
 /* TODO remove end parameter when no *_word function takes it */
 struct mrsh_word *arithmetic_word(struct mrsh_parser *state, char end) {
-	if (!symbol(state, TOKEN)) {
-		return NULL;
-	}
-
-	char c = parser_peek_char(state);
-	if (is_operator_start(c)) {
-		return NULL;
-	}
-
 	char next[3] = {0};
+	char c = parser_peek_char(state);
 	if (c == ')') {
 		parser_peek(state, next, sizeof(*next) * 2);
 		if (!strcmp(next, "))")) {
@@ -726,7 +718,9 @@ struct mrsh_word *arithmetic_word(struct mrsh_parser *state, char end) {
 
 		parser_peek(state, next, sizeof(*next) * 2);
 		c = next[0];
-		if (c == '\0' || c == '\n' || !strcmp(next, "))")) {
+		if (c == '\0' || c == '\n' || c == ';'
+				|| isblank(c)
+				|| !strcmp(next, "))")) {
 			break;
 		}
 
@@ -779,10 +773,9 @@ struct mrsh_word *arithmetic_word(struct mrsh_parser *state, char end) {
 				read_continuation_line(state);
 				continue;
 			}
-		} else if (is_operator_start(c) || isblank(c)) {
-			if (strcmp(next, "<<") && strcmp(next, ">>")) {
-				break;
-			}
+
+		}
+		if (!strcmp(next, "<<") || !strcmp(next, ">>")) {
 			parser_read_char(state);
 			mrsh_buffer_append_char(&buf, c);
 		}

@@ -46,9 +46,7 @@ libmrsh_darwin_sym_path = join_paths(meson.current_source_dir(), 'libmrsh.darwin
 if cc.links('', name: '-Wl,--version-script', args: ['-shared', libmrsh_gnu_sym_ldflag])
 	# GNU ld
 	link_args = [libmrsh_gnu_sym_ldflag]
-elif host_machine.system() == 'darwin' and (
-	cc.has_multi_link_arguments('-Wl,-exported_symbols_list', libmrsh_darwin_sym_path)
-)
+elif host_machine.system() == 'darwin' and cc.has_multi_link_arguments('-Wl,-exported_symbols_list', libmrsh_darwin_sym_path)
 	# Clang on Darwin
 	link_args = ['-Wl,-exported_symbols_list', libmrsh_darwin_sym_path]
 else

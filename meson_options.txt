@@ -1,7 +1,6 @@
 option(
 	'readline',
-	type: 'combo',
-	choices: ['auto', 'enabled', 'disabled'],
+	type: 'feature',
 	value: 'auto',
 	description: 'Enable improved interactive interface via readline',
 )

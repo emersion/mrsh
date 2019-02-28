@@ -3,7 +3,7 @@ project(
 	'c',
 	version: '0.0.0',
 	license: 'MIT',
-	meson_version: '>=0.46.0',
+	meson_version: '>=0.47.0',
 	default_options: [
 		'c_std=c99',
 		'warning_level=3',
@@ -34,18 +34,14 @@ add_project_arguments(cc.get_supported_arguments([
 	'-Wno-unused-parameter',
 ]), language: 'c')
 
-if get_option('readline') != 'disabled'
-	if get_option('readline-provider') == 'readline'
-		readline = cc.find_library(
-			'readline',
-			required: get_option('readline') == 'enabled',
-		)
+if get_option('readline-provider') == 'readline'
+	readline = cc.find_library('readline', required: get_option('readline'))
+	if readline.found()
 		add_project_arguments('-DHAVE_READLINE', language: 'c')
-	else # editline
-		readline = dependency(
-			'libedit',
-			required: get_option('readline') == 'enabled',
-		)
+	endif
+else # editline
+	readline = dependency('libedit', required: get_option('readline'))
+	if readline.found()
 		add_project_arguments('-DHAVE_EDITLINE', language: 'c')
 	endif
 endif
@@ -145,7 +141,7 @@ shell_deps = [mrsh]
 shell_files = [
 	'main.c'
 ]
-if get_option('readline') != 'disabled' and readline.found()
+if readline.found()
 	shell_deps += [readline]
 	shell_files += ['frontend/readline.c']
 else
@@ -177,3 +173,10 @@ pkgconfig.generate(
 	name: meson.project_name(),
 	description: 'POSIX shell library',
 )
+
+status = [
+	'',
+	'Features:',
+	'  readline: @0@'.format(readline.found()),
+]
+message('\n'.join(status))

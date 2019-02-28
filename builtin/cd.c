@@ -113,11 +113,9 @@ int builtin_cd(struct mrsh_state *state, int argc, char *argv[]) {
 			char path[PATH_MAX];
 			if (slash == NULL || slash[1] != '\0') {
 				// the last character is not a slash
-				len = snprintf(path, PATH_MAX, "%s/%s", c,
-					curpath);
+				len = snprintf(path, PATH_MAX, "%s/%s", c, curpath);
 			} else {
-				len = snprintf(path, PATH_MAX, "%s%s", c,
-					curpath);
+				len = snprintf(path, PATH_MAX, "%s%s", c, curpath);
 			}
 			if (len >= PATH_MAX) {
 				fprintf(stderr, "cd: Cannot search $CDPATH "

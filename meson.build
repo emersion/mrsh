@@ -6,18 +6,33 @@ project(
 	meson_version: '>=0.46.0',
 	default_options: [
 		'c_std=c99',
-		'warning_level=2',
+		'warning_level=3',
 		'werror=true',
 	],
 )
 
-add_project_arguments([
+cc = meson.get_compiler('c')
+
+add_project_arguments(cc.get_supported_arguments([
+	'-Wundef',
+	'-Wlogical-op',
+	'-Wmissing-include-dirs',
+	'-Wold-style-definition',
+	'-Wpointer-arith',
+	'-Winit-self',
+	'-Wfloat-equal',
+	'-Wstrict-prototypes',
+	'-Wredundant-decls',
+	'-Wimplicit-fallthrough=5',
+	'-Wendif-labels',
+	'-Wstrict-aliasing=2',
+	'-Woverflow',
+	'-Wformat=2',
+
 	'-Wno-missing-braces',
 	'-Wno-missing-field-initializers',
 	'-Wno-unused-parameter',
-], language: 'c')
-
-cc = meson.get_compiler('c')
+]), language: 'c')
 
 if get_option('readline') != 'disabled'
 	if get_option('readline-provider') == 'readline'

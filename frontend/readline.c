@@ -15,7 +15,7 @@
 #endif
 #include "frontend.h"
 
-static const char *get_history_path() {
+static const char *get_history_path(void) {
 	static char history_path[PATH_MAX + 1];
 	snprintf(history_path, sizeof(history_path),
 			"%s/.mrsh_history", getenv("HOME"));

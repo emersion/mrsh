@@ -1,5 +1,6 @@
 #include <assert.h>
 #include <mrsh/builtin.h>
+#include <mrsh/entry.h>
 #include <stdlib.h>
 #include "shell/task_command.h"
 #include "shell/task.h"
@@ -56,6 +57,17 @@ static int task_command_poll(struct task *task, struct context *ctx) {
 	if (!tc->started) {
 		get_args(&tc->args, sc, ctx);
 		const char *argv_0 = (char *)tc->args.data[0];
+
+		if ((ctx->state->options & MRSH_OPT_XTRACE)) {
+			char *ps4 = mrsh_get_ps4(ctx->state);
+			fprintf(stderr, "%s", ps4);
+			for (size_t i = 0; i < tc->args.len - 1; ++i) {
+				fprintf(stderr, "%s%s", i != 0 ? " " : "",
+						(char *)tc->args.data[i]);
+			}
+			fprintf(stderr, "\n");
+			free(ps4);
+		}
 
 		enum task_command_type type;
 		tc->fn_def = mrsh_hashtable_get(&ctx->state->functions, argv_0);

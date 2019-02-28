@@ -17,6 +17,12 @@ char *mrsh_get_ps1(struct mrsh_state *state, int next_history_id);
 char *mrsh_get_ps2(struct mrsh_state *state);
 
 /**
+ * Expands $PS4 or returns the POSIX-specified default of "+ ". The caller must
+ * free the return value.
+ */
+char *mrsh_get_ps4(struct mrsh_state *state);
+
+/**
  * Copies variables from the environment and sets up internal variables like
  * IFS, PPID, PWD, etc.
  */

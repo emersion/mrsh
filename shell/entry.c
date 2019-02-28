@@ -46,6 +46,14 @@ char *mrsh_get_ps2(struct mrsh_state *state) {
 	return strdup("> ");
 }
 
+char *mrsh_get_ps4(struct mrsh_state *state) {
+	const char *ps4 = mrsh_env_get(state, "PS4", NULL);
+	if (ps4 != NULL) {
+		return expand_ps(state, ps4);
+	}
+	return strdup("+ ");
+}
+
 bool mrsh_populate_env(struct mrsh_state *state, char **environ) {
 	for (size_t i = 0; environ[i] != NULL; ++i) {
 		char *eql = strchr(environ[i], '=');

@@ -12,13 +12,18 @@
 
 static char *expand_ps(struct mrsh_state *state, const char *ps1) {
 	struct mrsh_parser *parser = mrsh_parser_with_data(ps1, strlen(ps1));
+	if (parser == NULL) {
+		return NULL;
+	}
 	struct mrsh_word *word = mrsh_parse_word(parser);
 	mrsh_parser_destroy(parser);
 	if (word == NULL) {
 		return NULL;
 	}
 	mrsh_run_word(state, &word);
-	return mrsh_word_str(word);
+	char *str = mrsh_word_str(word);
+	mrsh_word_destroy(word);
+	return str;
 }
 
 char *mrsh_get_ps1(struct mrsh_state *state, int next_history_id) {

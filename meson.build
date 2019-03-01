@@ -23,7 +23,7 @@ add_project_arguments(cc.get_supported_arguments([
 	'-Wfloat-equal',
 	'-Wstrict-prototypes',
 	'-Wredundant-decls',
-	'-Wimplicit-fallthrough=5',
+	'-Wimplicit-fallthrough=2',
 	'-Wendif-labels',
 	'-Wstrict-aliasing=2',
 	'-Woverflow',

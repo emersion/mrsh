@@ -1,4 +1,4 @@
-#define _POSIX_C_SOURCE 200809L
+#define _XOPEN_SOURCE 700
 #include <mrsh/builtin.h>
 #include <mrsh/entry.h>
 #include <mrsh/shell.h>
@@ -10,8 +10,8 @@
 #include <unistd.h>
 #include "builtin.h"
 
-static char *expand_ps(struct mrsh_state *state, const char *ps1) {
-	struct mrsh_parser *parser = mrsh_parser_with_data(ps1, strlen(ps1));
+static char *expand_parameter(struct mrsh_state *state, const char *src) {
+	struct mrsh_parser *parser = mrsh_parser_with_data(src, strlen(src));
 	if (parser == NULL) {
 		return NULL;
 	}
@@ -30,7 +30,7 @@ char *mrsh_get_ps1(struct mrsh_state *state, int next_history_id) {
 	// TODO: Replace ! with next history ID
 	const char *ps1 = mrsh_env_get(state, "PS1", NULL);
 	if (ps1 != NULL) {
-		return expand_ps(state, ps1);
+		return expand_parameter(state, ps1);
 	}
 	char *p = malloc(3);
 	sprintf(p, "%s", getuid() ? "$ " : "# ");
@@ -41,7 +41,7 @@ char *mrsh_get_ps2(struct mrsh_state *state) {
 	// TODO: Replace ! with next history ID
 	const char *ps2 = mrsh_env_get(state, "PS2", NULL);
 	if (ps2 != NULL) {
-		return expand_ps(state, ps2);
+		return expand_parameter(state, ps2);
 	}
 	return strdup("> ");
 }
@@ -49,7 +49,7 @@ char *mrsh_get_ps2(struct mrsh_state *state) {
 char *mrsh_get_ps4(struct mrsh_state *state) {
 	const char *ps4 = mrsh_env_get(state, "PS4", NULL);
 	if (ps4 != NULL) {
-		return expand_ps(state, ps4);
+		return expand_parameter(state, ps4);
 	}
 	return strdup("+ ");
 }
@@ -114,6 +114,17 @@ void mrsh_source_env(struct mrsh_state *state) {
 	if (getuid() != geteuid() || getgid() != getegid()) {
 		return;
 	}
-	// TODO: parameter expansion
-	source_file(state, path);
+	path = expand_parameter(state, path);
+	char *real = realpath(path, NULL);
+	if (strcmp(path, real) != 0) {
+		fprintf(stderr, "Error: $ENV is not an absolute path; "
+				"this is undefined behavior.\n");
+		fprintf(stderr, "Continuing without sourcing it.\n");
+		free(path);
+		free(real);
+		return;
+	}
+	source_file(state, real);
+	free(path);
+	free(real);
 }

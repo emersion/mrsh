@@ -79,7 +79,11 @@ bool mrsh_populate_env(struct mrsh_state *state, char **environ) {
 			fprintf(stderr, "getcwd failed: %s\n", strerror(errno));
 			return false;
 		}
-		mrsh_env_set(state, "PWD", cwd, MRSH_VAR_ATTRIB_EXPORT);
+		mrsh_env_set(state, "PWD", cwd,
+				MRSH_VAR_ATTRIB_EXPORT | MRSH_VAR_ATTRIB_READONLY);
+	} else {
+		mrsh_env_set(state, "PWD", pwd,
+				MRSH_VAR_ATTRIB_EXPORT | MRSH_VAR_ATTRIB_READONLY);
 	}
 
 	mrsh_env_set(state, "OPTIND", "1", MRSH_VAR_ATTRIB_NONE);

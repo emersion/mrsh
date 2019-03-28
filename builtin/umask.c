@@ -162,7 +162,7 @@ int builtin_umask(struct mrsh_state *state, int argc, char *argv[]) {
 	mode_t mode;
 	bool umask_symbolic = false;
 
-	mrsh_optind = 1;
+	mrsh_optind = 0;
 	int opt;
 
 	while ((opt = mrsh_getopt(argc, argv, ":S")) != -1) {

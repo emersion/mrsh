@@ -37,7 +37,7 @@ static int isdir(char *path) {
 }
 
 int builtin_cd(struct mrsh_state *state, int argc, char *argv[]) {
-	mrsh_optind = 1;
+	mrsh_optind = 0;
 	int opt;
 	while ((opt = mrsh_getopt(argc, argv, ":LP")) != -1) {
 		switch (opt) {

@@ -9,7 +9,7 @@
 static const char type_usage[] = "usage: type name...\n";
 
 int builtin_type(struct mrsh_state *state, int argc, char *argv[]) {
-	mrsh_optind = 1;
+	mrsh_optind = 0;
 	if (mrsh_getopt(argc, argv, ":") != -1) {
 		fprintf(stderr, "type: unknown option -- %c\n", mrsh_optopt);
 		fprintf(stderr, type_usage);

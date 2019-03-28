@@ -14,7 +14,7 @@
 static const char ulimit_usage[] = "usage: ulimit [-f] [blocks]\n";
 
 int builtin_ulimit(struct mrsh_state *state, int argc, char *argv[]) {
-	mrsh_optind = 1;
+	mrsh_optind = 0;
 	int opt;
 	while ((opt = mrsh_getopt(argc, argv, ":f")) != -1) {
 		if (opt == 'f') {

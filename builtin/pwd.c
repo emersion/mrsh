@@ -8,7 +8,7 @@
 static const char pwd_usage[] = "usage: pwd [-L|-P]\n";
 
 int builtin_pwd(struct mrsh_state *state, int argc, char *argv[]) {
-	mrsh_optind = 1;
+	mrsh_optind = 0;
 	int opt;
 	while ((opt = mrsh_getopt(argc, argv, ":LP")) != -1) {
 		switch (opt) {

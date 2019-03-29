@@ -15,7 +15,7 @@ int builtin_export(struct mrsh_state *state, int argc, char *argv[]) {
 
 	if (argc < 2) {
 		fprintf(stderr, export_usage, argv[0]);
-		return EXIT_FAILURE;
+		return 1;
 	} else if (argc == 2 && strcmp(argv[1], "-p") == 0) {
 		size_t count;
 		struct mrsh_collect_var *vars = mrsh_collect_vars(
@@ -26,7 +26,7 @@ int builtin_export(struct mrsh_state *state, int argc, char *argv[]) {
 			printf("\n");
 		}
 		free(vars);
-		return EXIT_SUCCESS;
+		return 0;
 	}
 
 	for (int i = 1; i < argc; ++i) {
@@ -50,11 +50,11 @@ int builtin_export(struct mrsh_state *state, int argc, char *argv[]) {
 			fprintf(stderr, "%s: cannot modify readonly variable %s\n",
 					argv[0], key);
 			free(key);
-			return EXIT_FAILURE;
+			return 1;
 		}
 		mrsh_env_set(state, key, val, attrib | prev_attribs);
 		free(key);
 	}
 
-	return EXIT_SUCCESS;
+	return 0;
 }

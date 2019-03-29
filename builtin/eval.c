@@ -15,7 +15,7 @@ static const char eval_usage[] = "usage: eval [cmds...]\n";
 int builtin_eval(struct mrsh_state *state, int argc, char *argv[]) {
 	if (argc == 1) {
 		fprintf(stderr, eval_usage);
-		return EXIT_FAILURE;
+		return 1;
 	}
 
 	struct mrsh_buffer buf = {0};
@@ -38,9 +38,9 @@ int builtin_eval(struct mrsh_state *state, int argc, char *argv[]) {
 		if (err_msg != NULL) {
 			fprintf(stderr, "%s %d:%d: %s\n",
 				argv[1], err_pos.line, err_pos.column, err_msg);
-			ret = EXIT_FAILURE;
+			ret = 1;
 		} else {
-			ret = EXIT_SUCCESS;
+			ret = 0;
 		}
 	} else {
 		ret = mrsh_run_program(state, program);

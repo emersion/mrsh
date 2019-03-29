@@ -51,7 +51,7 @@ static bool task_process_start(struct task_command *tc, struct context *ctx) {
 			int redir_fd;
 			int fd = process_redir(redir, &redir_fd);
 			if (fd < 0) {
-				exit(EXIT_FAILURE);
+				exit(1);
 			}
 
 			if (fd == redir_fd) {
@@ -62,7 +62,7 @@ static bool task_process_start(struct task_command *tc, struct context *ctx) {
 			if (ret < 0) {
 				fprintf(stderr, "cannot duplicate file descriptor: %s\n",
 					strerror(errno));
-				exit(EXIT_FAILURE);
+				exit(1);
 			}
 			close(fd);
 		}

@@ -17,17 +17,17 @@ static int cd(struct mrsh_state *state, const char *path) {
 	if (chdir(path) != 0) {
 		// TODO make better error messages
 		fprintf(stderr, "cd: %s\n", strerror(errno));
-		return EXIT_FAILURE;
+		return 1;
 	}
 	char cwd[PATH_MAX];
 	if (getcwd(cwd, PATH_MAX) == NULL) {
 		fprintf(stderr, "cd: Cannot set new PWD as the path "
 			"is too long\n");
-		return EXIT_FAILURE;
+		return 1;
 	}
 	mrsh_env_set(state, "OLDPWD", oldPWD, MRSH_VAR_ATTRIB_NONE);
 	mrsh_env_set(state, "PWD", cwd, MRSH_VAR_ATTRIB_EXPORT);
-	return EXIT_SUCCESS;
+	return 0;
 }
 
 static int isdir(char *path) {
@@ -45,11 +45,11 @@ int builtin_cd(struct mrsh_state *state, int argc, char *argv[]) {
 		case 'P':
 			// TODO implement `-L` and `-P`
 			fprintf(stderr, "cd: `-L` and `-P` not yet implemented\n");
-			return EXIT_FAILURE;
+			return 1;
 		default:
 			fprintf(stderr, "cd: unknown option -- %c\n", mrsh_optopt);
 			fprintf(stderr, cd_usage);
-			return EXIT_FAILURE;
+			return 1;
 		}
 	}
 
@@ -60,7 +60,7 @@ int builtin_cd(struct mrsh_state *state, int argc, char *argv[]) {
 		}
 		fprintf(stderr, "cd: No arguments were given and $HOME "
 			"is not defined.\n");
-		return EXIT_FAILURE;
+		return 1;
 	}
 
 	char *curpath = argv[mrsh_optind];
@@ -71,22 +71,22 @@ int builtin_cd(struct mrsh_state *state, int argc, char *argv[]) {
 		const char *pwd = mrsh_env_get(state, "PWD", NULL);
 		if (!pwd) {
 			fprintf(stderr, "cd: PWD is not set\n");
-			return EXIT_FAILURE;
+			return 1;
 		}
 		if (!oldpwd) {
 			fprintf(stderr, "cd: OLDPWD is not set\n");
-			return EXIT_FAILURE;
+			return 1;
 		}
 		if (chdir(oldpwd) != 0) {
 			fprintf(stderr, "cd: %s\n", strerror(errno));
-			return EXIT_FAILURE;
+			return 1;
 		}
 		char *_pwd = strdup(pwd);
 		puts(oldpwd);
 		mrsh_env_set(state, "PWD", oldpwd, MRSH_VAR_ATTRIB_EXPORT);
 		mrsh_env_set(state, "OLDPWD", _pwd, MRSH_VAR_ATTRIB_NONE);
 		free(_pwd);
-		return EXIT_SUCCESS;
+		return 0;
 	}
 	// $CDPATH
 	if (curpath[0] != '/' && strncmp(curpath, "./", 2) != 0 &&

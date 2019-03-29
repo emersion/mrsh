@@ -24,12 +24,12 @@ int builtin_read(struct mrsh_state *state, int argc, char *argv[]) {
 		default:
 			fprintf(stderr, "read: unknown option -- %c\n", mrsh_optopt);
 			fprintf(stderr, read_usage);
-			return EXIT_FAILURE;
+			return 1;
 		}
 	}
 	if (mrsh_optind == argc) {
 		fprintf(stderr, read_usage);
-		return EXIT_FAILURE;
+		return 1;
 	}
 
 	struct mrsh_buffer buf = {0};
@@ -89,5 +89,5 @@ int builtin_read(struct mrsh_state *state, int argc, char *argv[]) {
 		free(fields.data[i]);
 	}
 	mrsh_array_finish(&fields);
-	return EXIT_SUCCESS;
+	return 0;
 }

@@ -21,12 +21,12 @@ int builtin_alias(struct mrsh_state *state, int argc, char *argv[]) {
 	if (mrsh_getopt(argc, argv, ":") != -1) {
 		fprintf(stderr, "alias: unknown option -- %c\n", mrsh_optopt);
 		fprintf(stderr, alias_usage);
-		return EXIT_FAILURE;
+		return 1;
 	}
 
 	if (mrsh_optind == argc) {
 		mrsh_hashtable_for_each(&state->aliases, print_alias_iterator, NULL);
-		return EXIT_SUCCESS;
+		return 0;
 	}
 
 	for (int i = mrsh_optind; i < argc; ++i) {
@@ -42,7 +42,7 @@ int builtin_alias(struct mrsh_state *state, int argc, char *argv[]) {
 			const char *value = mrsh_hashtable_get(&state->aliases, alias);
 			if (value == NULL) {
 				fprintf(stderr, "%s: %s not found\n", argv[0], alias);
-				return EXIT_FAILURE;
+				return 1;
 			}
 
 			printf("%s=", alias);
@@ -51,5 +51,5 @@ int builtin_alias(struct mrsh_state *state, int argc, char *argv[]) {
 		}
 	}
 
-	return EXIT_SUCCESS;
+	return 0;
 }

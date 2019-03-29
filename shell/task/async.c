@@ -34,7 +34,7 @@ static int fork_detached(void) {
 		} else if (child_pid == 0) {
 			return 0;
 		} else {
-			exit(EXIT_SUCCESS);
+			exit(0);
 		}
 	} else {
 		if (waitpid(pid, NULL, 0) == -1) {
@@ -60,7 +60,7 @@ static bool task_async_start(struct task *task, struct context *ctx) {
 			if (fd < 0) {
 				fprintf(stderr, "failed to open /dev/null: %s\n",
 					strerror(errno));
-				exit(EXIT_FAILURE);
+				exit(1);
 			}
 			dup2(fd, STDIN_FILENO);
 			close(fd);

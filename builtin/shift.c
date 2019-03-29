@@ -9,7 +9,7 @@ static const char shift_usage[] = "usage: shift [n]\n";
 int builtin_shift(struct mrsh_state *state, int argc, char *argv[]) {
 	if (argc > 2) {
 		fprintf(stderr, shift_usage);
-		return EXIT_FAILURE;
+		return 1;
 	}
 	int n = 1;
 	if (argc == 2) {
@@ -19,26 +19,26 @@ int builtin_shift(struct mrsh_state *state, int argc, char *argv[]) {
 		if (*endptr != '\0' || errno != 0) {
 			fprintf(stderr, shift_usage);
 			if (!state->interactive) {
-				state->exit = EXIT_FAILURE;
+				state->exit = 1;
 			}
-			return EXIT_FAILURE;
+			return 1;
 		}
 		n = (int)n_long;
 	}
 	if (n == 0) {
-		return EXIT_SUCCESS;
+		return 0;
 	} else if (n < 1) {
 		fprintf(stderr, "shift: [n] must be positive\n");
 		if (!state->interactive) {
-			state->exit = EXIT_FAILURE;
+			state->exit = 1;
 		}
-		return EXIT_FAILURE;
+		return 1;
 	} else if (n > state->args->argc - 1) {
 		fprintf(stderr, "shift: [n] must be less than $#\n");
 		if (!state->interactive) {
-			state->exit = EXIT_FAILURE;
+			state->exit = 1;
 		}
-		return EXIT_FAILURE;
+		return 1;
 	}
 	for (int i = 1, j = n + 1; j < state->args->argc; ++i, ++j) {
 		if (j <= state->args->argc - n) {
@@ -48,5 +48,5 @@ int builtin_shift(struct mrsh_state *state, int argc, char *argv[]) {
 		}
 	}
 	state->args->argc -= n;
-	return EXIT_SUCCESS;
+	return 0;
 }

@@ -86,7 +86,7 @@ static bool task_word_command_start(struct task_word *tw,
 			mrsh_run_program(ctx->state, wc->program);
 		}
 
-		exit(ctx->state->exit >= 0 ? ctx->state->exit : EXIT_SUCCESS);
+		exit(ctx->state->exit >= 0 ? ctx->state->exit : 0);
 	}
 
 	close(fds[1]);
@@ -227,7 +227,7 @@ static int task_word_poll(struct task *task, struct context *ctx) {
 				struct mrsh_word_string *ws =
 					mrsh_word_string_create(strdup(buf), false);
 				task_word_swap(tw, &ws->word);
-				ret = EXIT_SUCCESS;
+				ret = 0;
 			}
 		}
 		mrsh_arithm_expr_destroy(expr);

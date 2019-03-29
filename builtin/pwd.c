@@ -16,23 +16,23 @@ int builtin_pwd(struct mrsh_state *state, int argc, char *argv[]) {
 		case 'P':
 			// TODO implement `-L` and `-P`
 			fprintf(stderr, "pwd: `-L` and `-P` not yet implemented\n");
-			return EXIT_FAILURE;
+			return 1;
 		default:
 			fprintf(stderr, "pwd: unknown option -- %c\n", mrsh_optopt);
 			fprintf(stderr, pwd_usage);
-			return EXIT_FAILURE;
+			return 1;
 		}
 	}
 	if (mrsh_optind < argc) {
 		fprintf(stderr, pwd_usage);
-		return EXIT_FAILURE;
+		return 1;
 	}
 
 	const char *pwd = mrsh_env_get(state, "PWD", NULL);
 	if (pwd == NULL) {
 		fprintf(stderr, "pwd: Cannot return current directory as PWD was unset\n");
-		return EXIT_FAILURE;
+		return 1;
 	}
 	puts(pwd);
-	return EXIT_SUCCESS;
+	return 0;
 }

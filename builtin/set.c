@@ -95,7 +95,7 @@ static int set(struct mrsh_state *state, struct mrsh_init_args *init_args,
 			printf("\n");
 		}
 		free(vars);
-		return EXIT_SUCCESS;
+		return 0;
 	}
 
 	bool force_positional = false;
@@ -111,19 +111,19 @@ static int set(struct mrsh_state *state, struct mrsh_init_args *init_args,
 		}
 		if (argv[i][1] == '\0') {
 			fprintf(stderr, set_usage);
-			return EXIT_FAILURE;
+			return 1;
 		}
 		const struct option_map *option;
 		switch (argv[i][1]) {
 		case 'o':
 			if (i + 1 == argc) {
 				fprintf(stderr, set_usage);
-				return EXIT_FAILURE;
+				return 1;
 			}
 			option = find_long_option(argv[i + 1]);
 			if (!option) {
 				fprintf(stderr, set_usage);
-				return EXIT_FAILURE;
+				return 1;
 			}
 			if (argv[i][0] == '-') {
 				state->options |= option->value;
@@ -135,7 +135,7 @@ static int set(struct mrsh_state *state, struct mrsh_init_args *init_args,
 		case 'c':
 			if (init_args == NULL) {
 				fprintf(stderr, set_usage);
-				return EXIT_FAILURE;
+				return 1;
 			}
 			state->interactive = false;
 			init_args->command_str = argv[i + 1];
@@ -144,7 +144,7 @@ static int set(struct mrsh_state *state, struct mrsh_init_args *init_args,
 		case 's':
 			if (init_args == NULL) {
 				fprintf(stderr, set_usage);
-				return EXIT_FAILURE;
+				return 1;
 			}
 			init_args->command_str = NULL;
 			init_args->command_file = NULL;
@@ -154,7 +154,7 @@ static int set(struct mrsh_state *state, struct mrsh_init_args *init_args,
 				option = find_option(argv[i][j]);
 				if (!option) {
 					fprintf(stderr, set_usage);
-					return EXIT_FAILURE;
+					return 1;
 				}
 				if (argv[i][0] == '-') {
 					state->options |= option->value;
@@ -187,7 +187,7 @@ static int set(struct mrsh_state *state, struct mrsh_init_args *init_args,
 		state->args->argv = argv_dup(strdup(argv[0]), 1, argv);
 	}
 
-	return EXIT_SUCCESS;
+	return 0;
 }
 
 int builtin_set(struct mrsh_state *state, int argc, char *argv[]) {

@@ -45,7 +45,7 @@ static void highlight(struct highlight_state *state, struct mrsh_position *pos,
 	} else {
 		if (state->fmt_stack_len >= FORMAT_STACK_SIZE) {
 			fprintf(stderr, "format stack overflow\n");
-			exit(EXIT_FAILURE);
+			exit(1);
 		}
 		state->fmt_stack[state->fmt_stack_len] = fmt;
 		++state->fmt_stack_len;
@@ -300,7 +300,7 @@ int main(int argc, char *argv[]) {
 		ssize_t n_read = read(STDIN_FILENO, dst, READ_SIZE);
 		if (n_read < 0) {
 			fprintf(stderr, "read() failed: %s\n", strerror(errno));
-			return EXIT_FAILURE;
+			return 1;
 		} else if (n_read == 0) {
 			break;
 		}
@@ -313,9 +313,9 @@ int main(int argc, char *argv[]) {
 		const char *err_msg = mrsh_parser_error(parser, NULL);
 		if (err_msg != NULL) {
 			fprintf(stderr, "failed to parse script: %s\n", err_msg);
-			return EXIT_FAILURE;
+			return 1;
 		}
-		return EXIT_SUCCESS;
+		return 0;
 	}
 	mrsh_parser_destroy(parser);
 
@@ -333,5 +333,5 @@ int main(int argc, char *argv[]) {
 	assert(state.fmt_stack_len == 0);
 
 	mrsh_buffer_finish(&buf);
-	return EXIT_SUCCESS;
+	return 0;
 }

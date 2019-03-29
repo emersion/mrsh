@@ -84,7 +84,7 @@ void mrsh_env_set(struct mrsh_state *state,
 	struct mrsh_variable *var = calloc(1, sizeof(struct mrsh_variable));
 	if (!var) {
 		fprintf(stderr, "Failed to allocate shell variable");
-		exit(EXIT_FAILURE);
+		exit(1);
 	}
 	var->value = strdup(value);
 	var->attribs = attribs;

@@ -13,11 +13,11 @@ int builtin_type(struct mrsh_state *state, int argc, char *argv[]) {
 	if (mrsh_getopt(argc, argv, ":") != -1) {
 		fprintf(stderr, "type: unknown option -- %c\n", mrsh_optopt);
 		fprintf(stderr, type_usage);
-		return EXIT_FAILURE;
+		return 1;
 	}
 	if (mrsh_optind == argc) {
 		fprintf(stderr, type_usage);
-		return EXIT_FAILURE;
+		return 1;
 	}
 
 	bool error = false;
@@ -45,5 +45,5 @@ int builtin_type(struct mrsh_state *state, int argc, char *argv[]) {
 		error = true;
 	}
 
-	return error ? EXIT_FAILURE : EXIT_SUCCESS;
+	return error ? 1 : 0;
 }

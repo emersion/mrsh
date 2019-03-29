@@ -12,19 +12,19 @@ static const char times_usage[] = "usage: times\n";
 int builtin_times(struct mrsh_state *state, int argc, char *argv[]) {
 	if (argc > 1) {
 		fprintf(stderr, times_usage);
-		return EXIT_FAILURE;
+		return 1;
 	}
 
 	struct tms buf;
 	long clk_tck = sysconf(_SC_CLK_TCK);
 	if (clk_tck == -1) {
 		fprintf(stderr, "sysconf error: %s", strerror(errno));
-		return EXIT_FAILURE;
+		return 1;
 	}
 
 	if (times(&buf) == (clock_t)-1) {
 		fprintf(stderr, "times error: %s", strerror(errno));
-		return EXIT_FAILURE;
+		return 1;
 	}
 
 	printf("%dm%fs %dm%fs\n%dm%fs %dm%fs\n",
@@ -37,5 +37,5 @@ int builtin_times(struct mrsh_state *state, int argc, char *argv[]) {
 			(int)(buf.tms_cstime / clk_tck / 60),
 			((double)buf.tms_cstime) / clk_tck);
 
-	return EXIT_SUCCESS;
+	return 0;
 }

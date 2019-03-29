@@ -32,14 +32,14 @@ static int task_assignment_poll(struct task *task, struct context *ctx) {
 			free(new_value);
 			fprintf(stderr, "cannot modify readonly variable %s\n",
 					assign->name);
-			task->status = EXIT_FAILURE;
+			task->status = 1;
 			return TASK_STATUS_ERROR;
 		}
 		mrsh_env_set(ctx->state, assign->name, new_value, attribs);
 		free(new_value);
 	}
 
-	return EXIT_SUCCESS;
+	return 0;
 }
 
 static const struct task_interface task_assignment_impl = {

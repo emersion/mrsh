@@ -174,7 +174,7 @@ int builtin_umask(struct mrsh_state *state, int argc, char *argv[]) {
 		default:
 			fprintf(stderr, "Unknown option -- '%c'\n", mrsh_optopt);
 			fprintf(stderr, umask_usage);
-			return EXIT_FAILURE;
+			return 1;
 		}
 	}
 
@@ -187,7 +187,7 @@ int builtin_umask(struct mrsh_state *state, int argc, char *argv[]) {
 			printf("%04o\n", mode);
 		}
 
-		return EXIT_SUCCESS;
+		return 0;
 	}
 
 	char *endptr;
@@ -196,10 +196,10 @@ int builtin_umask(struct mrsh_state *state, int argc, char *argv[]) {
 	if (*endptr != '\0') {
 		if (!umask_mode(&mode, argv[mrsh_optind])) {
 			fprintf(stderr, umask_usage);
-			return EXIT_FAILURE;
+			return 1;
 		}
 	}
 
 	umask(mode);
-	return EXIT_SUCCESS;
+	return 0;
 }

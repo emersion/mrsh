@@ -21,13 +21,13 @@ int main(int argc, char *argv[]) {
 	mrsh_state_init(&state);
 
 	struct mrsh_init_args init_args = {0};
-	if (mrsh_process_args(&state, &init_args, argc, argv) != EXIT_SUCCESS) {
+	if (mrsh_process_args(&state, &init_args, argc, argv) != 0) {
 		mrsh_state_finish(&state);
-		return EXIT_FAILURE;
+		return 1;
 	}
 
 	if (!mrsh_populate_env(&state, environ)) {
-		return EXIT_FAILURE;
+		return 1;
 	}
 
 	if (!(state.options & MRSH_OPT_NOEXEC)) {
@@ -56,7 +56,7 @@ int main(int argc, char *argv[]) {
 				if (fd < 0) {
 					fprintf(stderr, "failed to open %s for reading: %s\n",
 						init_args.command_file, strerror(errno));
-					return EXIT_FAILURE;
+					return 1;
 				}
 			} else {
 				fd = STDIN_FILENO;
@@ -107,7 +107,7 @@ int main(int argc, char *argv[]) {
 				if (state.interactive) {
 					continue;
 				} else {
-					state.exit = EXIT_FAILURE;
+					state.exit = 1;
 					break;
 				}
 			} else if (mrsh_parser_eof(parser)) {
@@ -115,7 +115,7 @@ int main(int argc, char *argv[]) {
 				break;
 			} else {
 				fprintf(stderr, "unknown error\n");
-				state.exit = EXIT_FAILURE;
+				state.exit = 1;
 				break;
 			}
 		} else {

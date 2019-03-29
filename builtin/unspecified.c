@@ -11,8 +11,8 @@ int builtin_unspecified(struct mrsh_state *state, int argc, char *argv[]) {
 	} else {
 		fprintf(stderr, "%s: The behavior of this command is undefined. "
 				"This is an error in your script. Aborting.\n", argv[0]);
-		state->exit = EXIT_FAILURE;
+		state->exit = 1;
 	}
 
-	return EXIT_FAILURE;
+	return 1;
 }

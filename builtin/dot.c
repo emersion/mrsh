@@ -16,16 +16,16 @@ static const char source_usage[] = "usage: . <path>\n";
 int builtin_dot(struct mrsh_state *state, int argc, char *argv[]) {
 	if (argc != 2) {
 		fprintf(stderr, source_usage);
-		return EXIT_FAILURE;
+		return 1;
 	}
 
 	const char *path = expand_path(state, argv[1], false);
 	if (!path) {
 		fprintf(stderr, "%s: not found\n", argv[1]);
 		if (!state->interactive) {
-			state->exit = EXIT_FAILURE;
+			state->exit = 1;
 		}
-		return EXIT_FAILURE;
+		return 1;
 	}
 
 	int fd = open(path, O_RDONLY | O_CLOEXEC);
@@ -45,9 +45,9 @@ int builtin_dot(struct mrsh_state *state, int argc, char *argv[]) {
 		if (err_msg != NULL) {
 			fprintf(stderr, "%s %d:%d: %s\n",
 				argv[1], err_pos.line, err_pos.column, err_msg);
-			ret = EXIT_FAILURE;
+			ret = 1;
 		} else {
-			ret = EXIT_SUCCESS;
+			ret = 0;
 		}
 	} else {
 		ret = mrsh_run_program(state, program);
@@ -60,7 +60,7 @@ int builtin_dot(struct mrsh_state *state, int argc, char *argv[]) {
 
 error:
 	if (!state->interactive) {
-		state->exit = EXIT_FAILURE;
+		state->exit = 1;
 	}
-	return EXIT_FAILURE;
+	return 1;
 }

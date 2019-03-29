@@ -82,11 +82,11 @@ static int create_here_document_fd(const struct mrsh_array *lines) {
 			ssize_t n = write_here_document_line(fds[1], line, -1);
 			if (n < 0) {
 				close(fds[1]);
-				exit(EXIT_FAILURE);
+				exit(1);
 			}
 		}
 		close(fds[1]);
-		exit(EXIT_SUCCESS);
+		exit(0);
 	}
 
 	close(fds[1]);

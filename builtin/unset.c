@@ -24,12 +24,12 @@ int builtin_unset(struct mrsh_state *state, int argc, char *argv[]) {
 		default:
 			fprintf(stderr, "unset: unknown option -- %c\n", mrsh_optopt);
 			fprintf(stderr, unset_usage);
-			return EXIT_FAILURE;
+			return 1;
 		}
 	}
 	if (mrsh_optind >= argc) {
 		fprintf(stderr, unset_usage);
-		return EXIT_FAILURE;
+		return 1;
 	}
 	for (int i = mrsh_optind; i < argc; ++i) {
 		if (!funcs) {
@@ -38,7 +38,7 @@ int builtin_unset(struct mrsh_state *state, int argc, char *argv[]) {
 				if ((prev_attribs & MRSH_VAR_ATTRIB_READONLY)) {
 					fprintf(stderr,
 						"unset: cannot modify readonly variable %s\n", argv[i]);
-					return EXIT_FAILURE;
+					return 1;
 				}
 				mrsh_env_unset(state, argv[i]);
 			}
@@ -48,5 +48,5 @@ int builtin_unset(struct mrsh_state *state, int argc, char *argv[]) {
 			mrsh_function_destroy(oldfn);
 		}
 	}
-	return EXIT_SUCCESS;
+	return 0;
 }

@@ -25,26 +25,26 @@ int builtin_unalias(struct mrsh_state *state, int argc, char *argv[]) {
 		default:
 			fprintf(stderr, "unalias: unknown option -- %c\n", mrsh_optopt);
 			fprintf(stderr, unalias_usage);
-			return EXIT_FAILURE;
+			return 1;
 		}
 	}
 
 	if (all) {
 		if (mrsh_optind < argc) {
 			fprintf(stderr, unalias_usage);
-			return EXIT_FAILURE;
+			return 1;
 		}
 		mrsh_hashtable_for_each(&state->aliases, delete_alias_iterator, &state->aliases);
-		return EXIT_SUCCESS;
+		return 0;
 	}
 
 	if (mrsh_optind == argc) {
 		fprintf(stderr, unalias_usage);
-		return EXIT_FAILURE;
+		return 1;
 	}
 
 	for (int i = mrsh_optind; i < argc; ++i) {
 		free(mrsh_hashtable_del(&state->aliases, argv[i]));
 	}
-	return EXIT_SUCCESS;
+	return 0;
 }

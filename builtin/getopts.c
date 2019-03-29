@@ -16,11 +16,11 @@ int builtin_getopts(struct mrsh_state *state, int argc, char *argv[]) {
 	if (mrsh_getopt(argc, argv, ":") != -1) {
 		fprintf(stderr, "getopts: unknown option -- %c\n", mrsh_optopt);
 		fprintf(stderr, getopts_usage);
-		return EXIT_FAILURE;
+		return 1;
 	}
 	if (mrsh_optind + 2 < argc) {
 		fprintf(stderr, getopts_usage);
-		return EXIT_FAILURE;
+		return 1;
 	}
 
 	int optc;
@@ -38,13 +38,13 @@ int builtin_getopts(struct mrsh_state *state, int argc, char *argv[]) {
 	const char *optind_str = mrsh_env_get(state, "OPTIND", NULL);
 	if (optind_str == NULL) {
 		fprintf(stderr, "getopts: OPTIND is not defined\n");
-		return EXIT_FAILURE;
+		return 1;
 	}
 	char *endptr;
 	long optind_long = strtol(optind_str, &endptr, 10);
 	if (endptr[0] != '\0' || optind_long <= 0 || optind_long > INT_MAX) {
 		fprintf(stderr, "getopts: OPTIND is not a positive integer\n");
-		return EXIT_FAILURE;
+		return 1;
 	}
 	mrsh_optind = (int)optind_long;
 
@@ -90,7 +90,7 @@ int builtin_getopts(struct mrsh_state *state, int argc, char *argv[]) {
 	mrsh_env_set(state, name, value, MRSH_VAR_ATTRIB_NONE);
 
 	if (opt == -1) {
-		return EXIT_FAILURE;
+		return 1;
 	}
-	return EXIT_SUCCESS;
+	return 0;
 }

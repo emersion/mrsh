@@ -46,7 +46,7 @@ int task_run(struct task *task, struct context *ctx) {
 
 		errno = 0;
 		int stat;
-		pid_t pid = waitpid(0, &stat, 0);
+		pid_t pid = waitpid(-1, &stat, 0);
 		if (pid == -1) {
 			if (errno == EINTR) {
 				continue;

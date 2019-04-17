@@ -25,6 +25,8 @@ static bool task_subshell_start(struct task_subshell *ts, struct context *ctx) {
 		fprintf(stderr, "failed to fork(): %s\n", strerror(errno));
 		return false;
 	} else if (pid == 0) {
+		// TODO: set process group ID
+
 		errno = 0;
 		int ret = task_run(ts->subtask, ctx);
 		if (ret < 0) {

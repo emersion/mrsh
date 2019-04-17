@@ -8,6 +8,7 @@
 struct task_pipeline {
 	struct task task;
 	struct mrsh_array children;
+	struct context child_ctx;
 	bool started;
 };
 
@@ -93,7 +94,11 @@ static int task_pipeline_poll(struct task *task, struct context *ctx) {
 	struct task_pipeline *tp = (struct task_pipeline *)task;
 
 	if (!tp->started) {
-		if (!task_pipeline_start(task, ctx)) {
+		// All child processes should be put into the same process group
+		tp->child_ctx = *ctx;
+		tp->child_ctx.pgid = 0;
+
+		if (!task_pipeline_start(task, &tp->child_ctx)) {
 			return TASK_STATUS_ERROR;
 		}
 		tp->started = true;
@@ -102,7 +107,7 @@ static int task_pipeline_poll(struct task *task, struct context *ctx) {
 	int ret = 0;
 	for (size_t i = 0; i < tp->children.len; ++i) {
 		struct task *child = tp->children.data[i];
-		ret = task_poll(child, ctx);
+		ret = task_poll(child, &tp->child_ctx);
 		if (ret < 0) {
 			return ret;
 		}

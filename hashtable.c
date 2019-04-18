@@ -87,7 +87,7 @@ void *mrsh_hashtable_del(struct mrsh_hashtable *table, const char *key) {
 	if (previous != NULL) {
 		previous->next = entry->next;
 	} else {
-		table->buckets[bucket] = NULL;
+		table->buckets[bucket] = entry->next;
 	}
 	void *old_value = entry->value;
 	hashtable_entry_destroy(entry);

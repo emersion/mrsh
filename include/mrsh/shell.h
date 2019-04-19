@@ -6,6 +6,7 @@
 #include <mrsh/hashtable.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <termios.h>
 
 enum mrsh_option {
 	// -a: When this option is on, the export attribute shall be set for each
@@ -81,6 +82,7 @@ struct mrsh_call_frame {
 
 struct mrsh_state {
 	int exit;
+	int fd;
 	uint32_t options; // enum mrsh_option
 	struct mrsh_call_frame *args;
 	bool interactive;
@@ -88,6 +90,10 @@ struct mrsh_state {
 	struct mrsh_hashtable aliases; // char *
 	struct mrsh_hashtable functions; // mrsh_function *
 	int last_status;
+
+	bool job_control;
+	pid_t pgid;
+	struct termios term_modes;
 };
 
 void mrsh_function_destroy(struct mrsh_function *fn);
@@ -108,5 +114,6 @@ void mrsh_pop_args(struct mrsh_state *state);
 int mrsh_run_program(struct mrsh_state *state, struct mrsh_program *prog);
 int mrsh_run_word(struct mrsh_state *state, struct mrsh_word **word);
 bool mrsh_run_arithm_expr(struct mrsh_arithm_expr *expr, long *result);
+bool mrsh_set_job_control(struct mrsh_state *state, bool enabled);
 
 #endif

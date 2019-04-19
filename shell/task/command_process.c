@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include "shell/job.h"
 #include "shell/path.h"
 #include "shell/redir.h"
 #include "shell/task_command.h"
@@ -40,7 +41,8 @@ static bool task_process_start(struct task_command *tc, struct context *ctx) {
 		return false;
 	} else if (pid == 0) {
 		put_into_process_group(ctx, getpid());
-		// TODO: give the process group the terminal, if foreground job
+		job_init_process(ctx->state);
+		// TODO: give the terminal to the process group, if foreground job
 
 		for (size_t i = 0; i < sc->assignments.len; ++i) {
 			struct mrsh_assignment *assign = sc->assignments.data[i];

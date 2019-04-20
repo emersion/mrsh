@@ -127,7 +127,7 @@ void job_add_process(struct job *job, struct process *proc) {
 }
 
 void job_notify(struct mrsh_state *state, pid_t pid, int stat) {
-	process_notify(pid, stat);
+	process_notify(state, pid, stat);
 
 	for (size_t i = 0; i < state->jobs.len; ++i) {
 		struct job *job = state->jobs.data[i];

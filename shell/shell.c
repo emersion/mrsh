@@ -73,6 +73,7 @@ void mrsh_state_finish(struct mrsh_state *state) {
 	mrsh_hashtable_for_each(&state->aliases,
 		state_string_finish_iterator, NULL);
 	mrsh_hashtable_finish(&state->aliases);
+	mrsh_array_finish(&state->processes);
 	for (size_t i = 0; i < state->jobs.len; ++i) {
 		job_destroy(state->jobs.data[i]);
 	}

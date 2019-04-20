@@ -39,7 +39,7 @@ static bool task_subshell_start(struct task_subshell *ts, struct context *ctx) {
 		}
 		exit(ret);
 	} else {
-		process_init(&ts->process, pid);
+		process_init(&ts->process, ctx->state, pid);
 		return true;
 	}
 }

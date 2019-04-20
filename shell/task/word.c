@@ -90,7 +90,7 @@ static bool task_word_command_start(struct task_word *tw,
 	}
 
 	close(fds[1]);
-	process_init(&tw->process, pid);
+	process_init(&tw->process, ctx->state, pid);
 	tw->fd = fds[0];
 	return true;
 }

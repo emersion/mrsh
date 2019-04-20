@@ -14,7 +14,9 @@ static void task_command_destroy(struct task *task) {
 	mrsh_array_finish(&tc->args);
 	switch (tc->type) {
 	case TASK_COMMAND_PROCESS:
-		process_finish(&tc->process);
+		if (tc->started) {
+			process_finish(&tc->process);
+		}
 		break;
 	case TASK_COMMAND_BUILTIN:
 		break;

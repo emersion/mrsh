@@ -89,6 +89,7 @@ struct mrsh_state {
 	struct mrsh_hashtable variables; // mrsh_variable *
 	struct mrsh_hashtable aliases; // char *
 	struct mrsh_hashtable functions; // mrsh_function *
+	struct mrsh_array processes;
 	int last_status;
 
 	bool job_control;

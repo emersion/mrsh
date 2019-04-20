@@ -93,7 +93,7 @@ static bool task_process_start(struct task_command *tc, struct context *ctx) {
 
 	struct job *job = put_into_process_group(ctx, pid);
 
-	process_init(&tc->process, pid);
+	process_init(&tc->process, ctx->state, pid);
 	job_add_process(job, &tc->process);
 	return true;
 }

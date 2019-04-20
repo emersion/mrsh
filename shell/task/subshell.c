@@ -15,7 +15,9 @@ struct task_subshell {
 static void task_subshell_destroy(struct task *task) {
 	struct task_subshell *ts = (struct task_subshell *)task;
 	task_destroy(ts->subtask);
-	process_finish(&ts->process);
+	if (ts->started) {
+		process_finish(&ts->process);
+	}
 	free(ts);
 }
 

@@ -10,6 +10,7 @@
 #include <sys/wait.h>
 #include <unistd.h>
 #include "shell/job.h"
+#include "shell/process.h"
 
 static const int ignored_signals[] = {
 	SIGINT,
@@ -89,4 +90,57 @@ bool job_init_process(struct mrsh_state *state) {
 	}
 
 	return true;
+}
+
+static void array_remove(struct mrsh_array *array, size_t i) {
+	memmove(&array->data[i], &array->data[i + 1],
+		(array->len - i - 1) * sizeof(void *));
+	--array->len;
+}
+
+struct job *job_create(struct mrsh_state *state, pid_t pgid) {
+	struct job *job = calloc(1, sizeof(struct job));
+	job->state = state;
+	job->pgid = pgid;
+	mrsh_array_add(&state->jobs, job);
+	return job;
+}
+
+void job_destroy(struct job *job) {
+	if (job == NULL) {
+		return;
+	}
+
+	struct mrsh_state *state = job->state;
+	for (size_t i = 0; i < state->jobs.len; ++i) {
+		if (state->jobs.data[i] == job) {
+			array_remove(&state->jobs, i);
+			break;
+		}
+	}
+	mrsh_array_finish(&job->processes);
+	free(job);
+}
+
+void job_add_process(struct job *job, struct process *proc) {
+	mrsh_array_add(&job->processes, proc);
+}
+
+void job_notify(struct mrsh_state *state, pid_t pid, int stat) {
+	process_notify(pid, stat);
+
+	for (size_t i = 0; i < state->jobs.len; ++i) {
+		struct job *job = state->jobs.data[i];
+		for (ssize_t j = 0; j < (ssize_t)job->processes.len; ++j) {
+			struct process *proc = job->processes.data[j];
+			if (proc->finished) {
+				array_remove(&job->processes, j);
+				j -= 1;
+			}
+		}
+
+		if (job->processes.len == 0) {
+			job->finished = true;
+		}
+	}
 }

@@ -4,7 +4,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/wait.h>
-#include "shell/process.h"
+#include "shell/job.h"
 #include "shell/task.h"
 
 void task_init(struct task *task, const struct task_interface *impl) {
@@ -55,6 +55,6 @@ int task_run(struct task *task, struct context *ctx) {
 			return -1;
 		}
 
-		process_notify(pid, stat);
+		job_notify(ctx->state, pid, stat);
 	}
 }

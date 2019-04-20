@@ -94,6 +94,7 @@ struct mrsh_state {
 	bool job_control;
 	pid_t pgid;
 	struct termios term_modes;
+	struct mrsh_array jobs;
 };
 
 void mrsh_function_destroy(struct mrsh_function *fn);

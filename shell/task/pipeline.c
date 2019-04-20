@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include "shell/job.h"
 #include "shell/task.h"
 
 struct task_pipeline {
@@ -96,7 +97,7 @@ static int task_pipeline_poll(struct task *task, struct context *ctx) {
 	if (!tp->started) {
 		// All child processes should be put into the same process group
 		tp->child_ctx = *ctx;
-		tp->child_ctx.pgid = 0;
+		tp->child_ctx.job = NULL;
 
 		if (!task_pipeline_start(task, &tp->child_ctx)) {
 			return TASK_STATUS_ERROR;
@@ -111,6 +112,10 @@ static int task_pipeline_poll(struct task *task, struct context *ctx) {
 		if (ret < 0) {
 			return ret;
 		}
+	}
+
+	if (ret != TASK_STATUS_WAIT) {
+		job_destroy(tp->child_ctx.job);
 	}
 
 	return ret;

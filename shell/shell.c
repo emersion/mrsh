@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include "shell/job.h"
 #include "shell/shell.h"
 #include "shell/task.h"
 
@@ -72,6 +73,10 @@ void mrsh_state_finish(struct mrsh_state *state) {
 	mrsh_hashtable_for_each(&state->aliases,
 		state_string_finish_iterator, NULL);
 	mrsh_hashtable_finish(&state->aliases);
+	for (size_t i = 0; i < state->jobs.len; ++i) {
+		job_destroy(state->jobs.data[i]);
+	}
+	mrsh_array_finish(&state->jobs);
 	struct mrsh_call_frame *args = state->args;
 	while (args) {
 		struct mrsh_call_frame *prev = args->prev;

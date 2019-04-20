@@ -1,3 +1,4 @@
+#include <assert.h>
 #include <mrsh/array.h>
 #include <stdbool.h>
 #include <string.h>
@@ -42,13 +43,24 @@ void process_finish(struct process *proc) {
 }
 
 void process_notify(pid_t pid, int stat) {
+	struct process *proc = NULL;
+	bool found = false;
 	for (size_t i = 0; i < running_processes.len; ++i) {
-		struct process *proc = running_processes.data[i];
+		proc = running_processes.data[i];
 		if (proc->pid == pid) {
-			proc->finished = true;
-			proc->stat = stat;
-			process_remove(proc);
+			found = true;
 			break;
 		}
+	}
+	if (!found) {
+		return;
+	}
+
+	if (WIFEXITED(stat) || WIFSIGNALED(stat)) {
+		proc->finished = true;
+		proc->stat = stat;
+		process_remove(proc);
+	} else {
+		assert(false);
 	}
 }

@@ -73,6 +73,7 @@ lib_mrsh = library(
 		'ast.c',
 		'buffer.c',
 		'builtin/alias.c',
+		'builtin/bg.c',
 		'builtin/builtin.c',
 		'builtin/cd.c',
 		'builtin/colon.c',

@@ -53,11 +53,9 @@ int task_run(struct task *task, struct context *ctx) {
 				ctx->state->exit = ret;
 			}
 
-			// Put the shell back in the foreground
-			tcsetpgrp(ctx->state->fd, ctx->state->pgid);
-			// Restore the shell’s terminal modes
-			// tcgetattr(ctx->state->fd, &job->term_modes); // TODO
-			tcsetattr(ctx->state->fd, TCSADRAIN, &ctx->state->term_modes);
+			if (ctx->state->foreground_job != NULL) {
+				job_set_foreground(ctx->state->foreground_job, false);
+			}
 
 			destroy_finished_jobs(ctx->state);
 

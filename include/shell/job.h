@@ -4,6 +4,7 @@
 #include <mrsh/array.h>
 #include <stdbool.h>
 #include <sys/types.h>
+#include <termios.h>
 
 struct mrsh_state;
 struct process;
@@ -14,6 +15,7 @@ struct process;
  */
 struct mrsh_job {
 	pid_t pgid;
+	struct termios term_modes;
 	struct mrsh_state *state;
 	struct mrsh_array processes; // struct process *
 };
@@ -22,6 +24,7 @@ struct mrsh_job *job_create(struct mrsh_state *state, pid_t pgid);
 void job_destroy(struct mrsh_job *job);
 void job_add_process(struct mrsh_job *job, struct process *proc);
 bool job_terminated(struct mrsh_job *job);
+void job_set_foreground(struct mrsh_job *job, bool foreground);
 
 bool init_job_child_process(struct mrsh_state *state);
 void update_job(struct mrsh_state *state, pid_t pid, int stat);

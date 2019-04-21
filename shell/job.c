@@ -94,6 +94,10 @@ void job_destroy(struct mrsh_job *job) {
 		return;
 	}
 
+	if (job->state->foreground_job == job) {
+		job_set_foreground(job, false);
+	}
+
 	struct mrsh_state *state = job->state;
 	for (size_t i = 0; i < state->jobs.len; ++i) {
 		if (state->jobs.data[i] == job) {
@@ -121,6 +125,25 @@ bool job_terminated(struct mrsh_job *job) {
 		}
 	}
 	return true;
+}
+
+void job_set_foreground(struct mrsh_job *job, bool foreground) {
+	struct mrsh_state *state = job->state;
+
+	if (foreground && state->foreground_job != job) {
+		assert(state->foreground_job == NULL);
+		tcsetpgrp(state->fd, job->pgid);
+		state->foreground_job = job;
+	}
+
+	if (!foreground && state->foreground_job == job) {
+		// Put the shell back in the foreground
+		tcsetpgrp(state->fd, state->pgid);
+		// Restore the shell’s terminal modes
+		tcgetattr(state->fd, &job->term_modes);
+		tcsetattr(state->fd, TCSADRAIN, &state->term_modes);
+		state->foreground_job = NULL;
+	}
 }
 
 bool init_job_child_process(struct mrsh_state *state) {

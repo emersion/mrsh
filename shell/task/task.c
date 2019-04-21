@@ -47,10 +47,16 @@ int task_run(struct task *task, struct context *ctx) {
 	while (true) {
 		int ret = task_poll(task, ctx);
 		if (ret != TASK_STATUS_WAIT) {
-			ctx->state->last_status = ret;
-			if (ret != 0
+			int status = ret;
+			if (ret == TASK_STATUS_STOPPED) {
+				status = 148;
+			}
+			if (ret != TASK_STATUS_ERROR) {
+				ctx->state->last_status = status;
+				if (status != 0
 					&& (ctx->state->options & MRSH_OPT_ERREXIT)) {
-				ctx->state->exit = ret;
+					ctx->state->exit = status;
+				}
 			}
 
 			if (ctx->state->foreground_job != NULL) {
@@ -66,7 +72,7 @@ int task_run(struct task *task, struct context *ctx) {
 
 		errno = 0;
 		int stat;
-		pid_t pid = waitpid(-1, &stat, 0);
+		pid_t pid = waitpid(-1, &stat, WUNTRACED);
 		if (pid == -1) {
 			if (errno == EINTR) {
 				continue;

@@ -24,6 +24,7 @@ struct mrsh_job *job_create(struct mrsh_state *state, pid_t pgid);
 void job_destroy(struct mrsh_job *job);
 void job_add_process(struct mrsh_job *job, struct process *proc);
 bool job_terminated(struct mrsh_job *job);
+bool job_stopped(struct mrsh_job *job);
 void job_set_foreground(struct mrsh_job *job, bool foreground);
 
 bool init_job_child_process(struct mrsh_state *state);

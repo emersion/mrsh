@@ -5,6 +5,7 @@
 #include <string.h>
 #include <sys/wait.h>
 #include "shell/process.h"
+#include "shell/task.h"
 
 struct process *process_create(struct mrsh_state *state, pid_t pid) {
 	struct process *proc = calloc(1, sizeof(struct process));
@@ -33,9 +34,12 @@ void process_destroy(struct process *proc) {
 }
 
 int process_poll(struct process *proc) {
-	if (!proc->terminated) {
-		return -1;
+	if (proc->stopped) {
+		return TASK_STATUS_STOPPED;
+	} else if (!proc->terminated) {
+		return TASK_STATUS_WAIT;
 	}
+
 	if (WIFEXITED(proc->stat)) {
 		return WEXITSTATUS(proc->stat);
 	} else if (WIFSIGNALED(proc->stat)) {
@@ -62,6 +66,8 @@ void update_process(struct mrsh_state *state, pid_t pid, int stat) {
 	if (WIFEXITED(stat) || WIFSIGNALED(stat)) {
 		proc->terminated = true;
 		proc->stat = stat;
+	} else if (WIFSTOPPED(stat)) {
+		proc->stopped = true;
 	} else {
 		assert(false);
 	}

@@ -127,6 +127,16 @@ bool job_terminated(struct mrsh_job *job) {
 	return true;
 }
 
+bool job_stopped(struct mrsh_job *job) {
+	for (size_t j = 0; j < job->processes.len; ++j) {
+		struct process *proc = job->processes.data[j];
+		if (!proc->terminated && !proc->stopped) {
+			return false;
+		}
+	}
+	return true;
+}
+
 void job_set_foreground(struct mrsh_job *job, bool foreground) {
 	struct mrsh_state *state = job->state;
 

@@ -15,6 +15,7 @@
 struct process {
 	pid_t pid;
 	struct mrsh_state *state;
+	bool stopped;
 	bool terminated;
 	int stat;
 };

@@ -44,6 +44,13 @@ bool job_terminated(struct mrsh_job *job);
  */
 bool job_stopped(struct mrsh_job *job);
 /**
+ * Polls the job's current status without blocking. Returns:
+ * - An integer >= 0 if the job has terminated
+ * - TASK_STATUS_STOPPED if the job is stopped
+ * - TASK_STATUS_WAIT if the job is running
+ */
+int job_poll(struct mrsh_job *job);
+/**
  * Wait for the completion of the job.
  */
 int job_wait(struct mrsh_job *job);

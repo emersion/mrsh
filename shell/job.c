@@ -184,8 +184,34 @@ bool job_set_foreground(struct mrsh_job *job, bool foreground, bool cont) {
 	return true;
 }
 
+int job_poll(struct mrsh_job *job) {
+	int proc_status = 0;
+	bool stopped = false;
+	for (size_t j = 0; j < job->processes.len; ++j) {
+		struct process *proc = job->processes.data[j];
+		proc_status = process_poll(proc);
+		if (proc_status == TASK_STATUS_WAIT) {
+			return TASK_STATUS_WAIT;
+		}
+		if (proc_status == TASK_STATUS_STOPPED) {
+			stopped = true;
+		}
+	}
+
+	if (stopped) {
+		return TASK_STATUS_STOPPED;
+	}
+	// All processes have terminated, return the last one's status
+	return proc_status;
+}
+
 int job_wait(struct mrsh_job *job) {
-	while (!job_stopped(job) && !job_terminated(job)) {
+	while (true) {
+		int status = job_poll(job);
+		if (status != TASK_STATUS_WAIT) {
+			return status;
+		}
+
 		int stat;
 		pid_t pid = waitpid(-1, &stat, WUNTRACED);
 		if (pid == -1) {
@@ -198,8 +224,6 @@ int job_wait(struct mrsh_job *job) {
 
 		update_job(job->state, pid, stat);
 	}
-
-	return 0; // TODO: return the job's status
 }
 
 bool init_job_child_process(struct mrsh_state *state) {

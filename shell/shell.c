@@ -7,6 +7,7 @@
 #include <unistd.h>
 #include "shell/job.h"
 #include "shell/shell.h"
+#include "shell/process.h"
 #include "shell/task.h"
 
 void mrsh_function_destroy(struct mrsh_function *fn) {
@@ -73,11 +74,14 @@ void mrsh_state_finish(struct mrsh_state *state) {
 	mrsh_hashtable_for_each(&state->aliases,
 		state_string_finish_iterator, NULL);
 	mrsh_hashtable_finish(&state->aliases);
-	mrsh_array_finish(&state->processes);
 	while (state->jobs.len > 0) {
 		job_destroy(state->jobs.data[state->jobs.len - 1]);
 	}
 	mrsh_array_finish(&state->jobs);
+	while (state->processes.len > 0) {
+		process_destroy(state->processes.data[state->processes.len - 1]);
+	}
+	mrsh_array_finish(&state->processes);
 	struct mrsh_call_frame *args = state->args;
 	while (args) {
 		struct mrsh_call_frame *prev = args->prev;

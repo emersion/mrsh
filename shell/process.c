@@ -1,23 +1,17 @@
 #include <assert.h>
 #include <mrsh/array.h>
 #include <stdbool.h>
+#include <stdlib.h>
 #include <string.h>
 #include <sys/wait.h>
 #include "shell/process.h"
 
-void process_init(struct process *proc, struct mrsh_state *state, pid_t pid) {
-	mrsh_array_add(&state->processes, proc);
+struct process *process_create(struct mrsh_state *state, pid_t pid) {
+	struct process *proc = calloc(1, sizeof(struct process));
 	proc->pid = pid;
 	proc->state = state;
-	proc->finished = false;
-	proc->stat = 0;
-}
-
-int process_poll(struct process *proc) {
-	if (!proc->finished) {
-		return -1;
-	}
-	return WEXITSTATUS(proc->stat);
+	mrsh_array_add(&state->processes, proc);
+	return proc;
 }
 
 static void array_remove(struct mrsh_array *array, size_t i) {
@@ -26,7 +20,7 @@ static void array_remove(struct mrsh_array *array, size_t i) {
 	--array->len;
 }
 
-static void process_remove(struct process *proc) {
+void process_destroy(struct process *proc) {
 	struct mrsh_state *state = proc->state;
 	for (size_t i = 0; i < state->processes.len; ++i) {
 		if (state->processes.data[i] == proc) {
@@ -34,10 +28,15 @@ static void process_remove(struct process *proc) {
 			break;
 		}
 	}
+
+	free(proc);
 }
 
-void process_finish(struct process *proc) {
-	process_remove(proc);
+int process_poll(struct process *proc) {
+	if (!proc->finished) {
+		return -1;
+	}
+	return WEXITSTATUS(proc->stat);
 }
 
 void process_notify(struct mrsh_state *state, pid_t pid, int stat) {
@@ -57,7 +56,6 @@ void process_notify(struct mrsh_state *state, pid_t pid, int stat) {
 	if (WIFEXITED(stat) || WIFSIGNALED(stat)) {
 		proc->finished = true;
 		proc->stat = stat;
-		process_remove(proc);
 	} else {
 		assert(false);
 	}

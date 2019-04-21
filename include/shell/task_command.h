@@ -18,7 +18,7 @@ struct task_command {
 	struct mrsh_array args;
 
 	// if a process
-	struct process process;
+	struct process *process;
 
 	// if a function
 	const struct mrsh_function *fn_def;

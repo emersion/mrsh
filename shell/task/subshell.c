@@ -9,15 +9,12 @@ struct task_subshell {
 	struct task task;
 	struct task *subtask;
 	bool started;
-	struct process process;
+	struct process *process;
 };
 
 static void task_subshell_destroy(struct task *task) {
 	struct task_subshell *ts = (struct task_subshell *)task;
 	task_destroy(ts->subtask);
-	if (ts->started) {
-		process_finish(&ts->process);
-	}
 	free(ts);
 }
 
@@ -40,10 +37,10 @@ static bool task_subshell_start(struct task_subshell *ts, struct context *ctx) {
 			exit(ctx->state->exit);
 		}
 		exit(ret);
-	} else {
-		process_init(&ts->process, ctx->state, pid);
-		return true;
 	}
+
+	ts->process = process_create(ctx->state, pid);
+	return true;
 }
 
 static int task_subshell_poll(struct task *task, struct context *ctx) {
@@ -56,7 +53,7 @@ static int task_subshell_poll(struct task *task, struct context *ctx) {
 		ts->started = true;
 	}
 
-	return process_poll(&ts->process);
+	return process_poll(ts->process);
 }
 
 static const struct task_interface task_subshell_impl = {

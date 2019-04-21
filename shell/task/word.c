@@ -21,7 +21,7 @@ struct task_word {
 
 	// only if it's a command
 	bool started;
-	struct process process;
+	struct process *process;
 	int fd;
 };
 
@@ -53,9 +53,6 @@ static void task_word_swap(struct task_word *tw,
 
 static void task_word_destroy(struct task *task) {
 	struct task_word *tw = (struct task_word *)task;
-	if (tw->started) {
-		process_finish(&tw->process);
-	}
 	free(tw);
 }
 
@@ -90,7 +87,7 @@ static bool task_word_command_start(struct task_word *tw,
 	}
 
 	close(fds[1]);
-	process_init(&tw->process, ctx->state, pid);
+	tw->process = process_create(ctx->state, pid);
 	tw->fd = fds[0];
 	return true;
 }
@@ -196,7 +193,7 @@ static int task_word_poll(struct task *task, struct context *ctx) {
 			task_word_swap(tw, &ws->word);
 		}
 
-		return process_poll(&tw->process);
+		return process_poll(tw->process);
 	case MRSH_WORD_ARITHMETIC:;
 		struct mrsh_word_arithmetic *wa = mrsh_word_get_arithmetic(word);
 		char *body_str = mrsh_word_str(wa->body);

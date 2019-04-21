@@ -7,6 +7,10 @@
 
 /**
  * This struct is used to track child processes.
+ *
+ * This object is guaranteed to be valid until either:
+ * - The process exits
+ * - The shell is destroyed
  */
 struct process {
 	pid_t pid;
@@ -15,9 +19,10 @@ struct process {
 	int stat;
 };
 
-void process_init(struct process *process, struct mrsh_state *state, pid_t pid);
-void process_finish(struct process *process);
+struct process *process_create(struct mrsh_state *state, pid_t pid);
+void process_destroy(struct process *process);
 int process_poll(struct process *process);
+
 void process_notify(struct mrsh_state *state, pid_t pid, int stat);
 
 #endif

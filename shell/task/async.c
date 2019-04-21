@@ -52,16 +52,13 @@ static bool task_async_start(struct task *task, struct context *ctx) {
 		exit(ret);
 	}
 
-	// TODO: this memory is leaked
-	struct process *proc = calloc(1, sizeof(struct process));
-	process_init(proc, ctx->state, pid);
-
 	pid_t pgid = pid;
 	if (setpgid(pid, pgid) != 0) {
 		fprintf(stderr, "setpgid failed: %s\n", strerror(errno));
 		return false;
 	}
 
+	struct process *proc = process_create(ctx->state, pid);
 	struct mrsh_job *job = job_create(ctx->state, pgid);
 	job_add_process(job, proc);
 

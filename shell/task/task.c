@@ -32,6 +32,16 @@ int task_poll(struct task *task, struct context *ctx) {
 	return task->status;
 }
 
+static void destroy_finished_jobs(struct mrsh_state *state) {
+	for (ssize_t i = 0; i < (ssize_t)state->jobs.len; ++i) {
+		struct mrsh_job *job = state->jobs.data[i];
+		if (job_finished(job)) {
+			job_destroy(job);
+			--i;
+		}
+	}
+}
+
 int task_run(struct task *task, struct context *ctx) {
 	while (true) {
 		int ret = task_poll(task, ctx);
@@ -43,6 +53,8 @@ int task_run(struct task *task, struct context *ctx) {
 			}
 			return ret;
 		}
+
+		destroy_finished_jobs(ctx->state);
 
 		errno = 0;
 		int stat;

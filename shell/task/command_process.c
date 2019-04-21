@@ -43,7 +43,7 @@ static bool task_process_start(struct task_command *tc, struct context *ctx) {
 	} else if (pid == 0) {
 		struct mrsh_job *job = put_into_process_group(ctx, getpid());
 		if (ctx->state->interactive && !ctx->background) {
-			job_set_foreground(job, true);
+			job_set_foreground(job, true, false);
 		}
 		init_job_child_process(ctx->state);
 
@@ -95,7 +95,7 @@ static bool task_process_start(struct task_command *tc, struct context *ctx) {
 
 	struct mrsh_job *job = put_into_process_group(ctx, pid);
 	if (ctx->state->interactive && !ctx->background) {
-		job_set_foreground(job, true);
+		job_set_foreground(job, true, false);
 	}
 
 	tc->process = process_create(ctx->state, pid);

@@ -25,7 +25,12 @@ void job_destroy(struct mrsh_job *job);
 void job_add_process(struct mrsh_job *job, struct process *proc);
 bool job_terminated(struct mrsh_job *job);
 bool job_stopped(struct mrsh_job *job);
-void job_set_foreground(struct mrsh_job *job, bool foreground);
+int job_wait(struct mrsh_job *job);
+/**
+ * Put the job in the foreground or in the background. If the job is stopped and
+ * cont is set to true, it will be continued.
+ */
+bool job_set_foreground(struct mrsh_job *job, bool foreground, bool cont);
 
 bool init_job_child_process(struct mrsh_state *state);
 void update_job(struct mrsh_state *state, pid_t pid, int stat);

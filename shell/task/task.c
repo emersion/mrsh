@@ -60,7 +60,7 @@ int task_run(struct task *task, struct context *ctx) {
 			}
 
 			if (ctx->state->foreground_job != NULL) {
-				job_set_foreground(ctx->state->foreground_job, false);
+				job_set_foreground(ctx->state->foreground_job, false, false);
 			}
 
 			destroy_finished_jobs(ctx->state);
@@ -70,7 +70,6 @@ int task_run(struct task *task, struct context *ctx) {
 
 		destroy_finished_jobs(ctx->state);
 
-		errno = 0;
 		int stat;
 		pid_t pid = waitpid(-1, &stat, WUNTRACED);
 		if (pid == -1) {

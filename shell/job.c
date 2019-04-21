@@ -11,6 +11,7 @@
 #include <unistd.h>
 #include "shell/job.h"
 #include "shell/process.h"
+#include "shell/task.h"
 
 static const int ignored_signals[] = {
 	SIGINT,
@@ -95,7 +96,7 @@ void job_destroy(struct mrsh_job *job) {
 	}
 
 	if (job->state->foreground_job == job) {
-		job_set_foreground(job, false);
+		job_set_foreground(job, false, false);
 	}
 
 	struct mrsh_state *state = job->state;
@@ -128,21 +129,30 @@ bool job_terminated(struct mrsh_job *job) {
 }
 
 bool job_stopped(struct mrsh_job *job) {
+	bool stopped = false;
 	for (size_t j = 0; j < job->processes.len; ++j) {
 		struct process *proc = job->processes.data[j];
 		if (!proc->terminated && !proc->stopped) {
 			return false;
 		}
+		stopped |= proc->stopped;
 	}
-	return true;
+	return stopped;
 }
 
-void job_set_foreground(struct mrsh_job *job, bool foreground) {
+bool job_set_foreground(struct mrsh_job *job, bool foreground, bool cont) {
 	struct mrsh_state *state = job->state;
+
+	if (!job_stopped(job)) {
+		cont = false;
+	}
 
 	if (foreground && state->foreground_job != job) {
 		assert(state->foreground_job == NULL);
 		tcsetpgrp(state->fd, job->pgid);
+		if (cont) {
+			tcsetattr(state->fd, TCSADRAIN, &job->term_modes);
+		}
 		state->foreground_job = job;
 	}
 
@@ -154,6 +164,38 @@ void job_set_foreground(struct mrsh_job *job, bool foreground) {
 		tcsetattr(state->fd, TCSADRAIN, &state->term_modes);
 		state->foreground_job = NULL;
 	}
+
+	if (cont) {
+		if (kill(-job->pgid, SIGCONT) != 0) {
+			fprintf(stderr, "kill failed: %s\n", strerror(errno));
+			return false;
+		}
+
+		for (size_t j = 0; j < job->processes.len; ++j) {
+			struct process *proc = job->processes.data[j];
+			proc->stopped = false;
+		}
+	}
+
+	return true;
+}
+
+int job_wait(struct mrsh_job *job) {
+	while (!job_stopped(job) && !job_terminated(job)) {
+		int stat;
+		pid_t pid = waitpid(-1, &stat, WUNTRACED);
+		if (pid == -1) {
+			if (errno == EINTR) {
+				continue;
+			}
+			fprintf(stderr, "failed to waitpid(): %s\n", strerror(errno));
+			return TASK_STATUS_ERROR;
+		}
+
+		update_job(job->state, pid, stat);
+	}
+
+	return 0; // TODO: return the job's status
 }
 
 bool init_job_child_process(struct mrsh_state *state) {

@@ -52,7 +52,7 @@ int task_builtin_poll(struct task *task, struct context *ctx) {
 
 	for (size_t i = 0; i < sc->io_redirects.len; ++i) {
 		struct mrsh_io_redirect *redir = sc->io_redirects.data[i];
-		struct saved_fd *saved = &fds[2 + i];
+		struct saved_fd *saved = &fds[i];
 
 		int redir_fd;
 		int fd = process_redir(redir, &redir_fd);

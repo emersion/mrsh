@@ -9,6 +9,7 @@
 struct task_pipeline {
 	struct task task;
 	struct mrsh_array children;
+	bool has_child_ctx;
 	struct context child_ctx;
 	bool started;
 };
@@ -94,12 +95,21 @@ static bool task_pipeline_start(struct task *task, struct context *ctx) {
 static int task_pipeline_poll(struct task *task, struct context *ctx) {
 	struct task_pipeline *tp = (struct task_pipeline *)task;
 
-	if (!tp->started) {
-		// All child processes should be put into the same process group
-		tp->child_ctx = *ctx;
-		tp->child_ctx.job = NULL;
+	struct context *child_ctx = ctx;
+	if (tp->has_child_ctx) {
+		child_ctx = &tp->child_ctx;
+	}
 
-		if (!task_pipeline_start(task, &tp->child_ctx)) {
+	if (!tp->started) {
+		// When simple commands will be started, we want them to be in the same
+		// job. However we don't want sibling pipelines to share this job.
+		if (ctx->job == NULL && !ctx->background) {
+			tp->child_ctx = *ctx;
+			tp->has_child_ctx = true;
+			child_ctx = &tp->child_ctx;
+		}
+
+		if (!task_pipeline_start(task, child_ctx)) {
 			return TASK_STATUS_ERROR;
 		}
 		tp->started = true;
@@ -108,7 +118,7 @@ static int task_pipeline_poll(struct task *task, struct context *ctx) {
 	int ret = 0;
 	for (size_t i = 0; i < tp->children.len; ++i) {
 		struct task *child = tp->children.data[i];
-		ret = task_poll(child, &tp->child_ctx);
+		ret = task_poll(child, child_ctx);
 		if (ret < 0) {
 			return ret;
 		}

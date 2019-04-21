@@ -14,6 +14,8 @@ struct context {
 	// When executing a pipeline, this is set to the job created for the
 	// pipeline
 	struct mrsh_job *job;
+	// When executing an asynchronous list, this is set to true
+	bool background;
 };
 
 #endif

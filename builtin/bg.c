@@ -4,6 +4,7 @@
 #include "builtin.h"
 #include "shell/job.h"
 #include "shell/shell.h"
+#include "shell/task.h"
 
 // TODO: bg [job_id]
 static const char bg_usage[] = "usage: bg\n";
@@ -27,7 +28,7 @@ int builtin_bg(struct mrsh_state *state, int argc, char *argv[]) {
 	struct mrsh_job *stopped = NULL;
 	for (ssize_t i = state->jobs.len - 1; i >= 0; --i) {
 		struct mrsh_job *job = state->jobs.data[i];
-		if (job_stopped(job)) {
+		if (job_poll(job) == TASK_STATUS_STOPPED) {
 			stopped = job;
 			break;
 		}

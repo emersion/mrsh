@@ -33,10 +33,10 @@ int task_poll(struct task *task, struct context *ctx) {
 	return task->status;
 }
 
-static void destroy_finished_jobs(struct mrsh_state *state) {
+static void destroy_terminated_jobs(struct mrsh_state *state) {
 	for (ssize_t i = 0; i < (ssize_t)state->jobs.len; ++i) {
 		struct mrsh_job *job = state->jobs.data[i];
-		if (job_terminated(job)) {
+		if (job_poll(job) >= 0) {
 			job_destroy(job);
 			--i;
 		}
@@ -62,12 +62,12 @@ int task_run(struct task *task, struct context *ctx) {
 			// Either the job has terminated, either it's been stopped
 			assert(ctx->state->foreground_job == NULL);
 
-			destroy_finished_jobs(ctx->state);
+			destroy_terminated_jobs(ctx->state);
 
 			return ret;
 		}
 
-		destroy_finished_jobs(ctx->state);
+		destroy_terminated_jobs(ctx->state);
 
 		int stat;
 		pid_t pid = waitpid(-1, &stat, WUNTRACED);

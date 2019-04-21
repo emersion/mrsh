@@ -118,32 +118,11 @@ void job_add_process(struct mrsh_job *job, struct process *proc) {
 	mrsh_array_add(&job->processes, proc);
 }
 
-bool job_terminated(struct mrsh_job *job) {
-	for (size_t j = 0; j < job->processes.len; ++j) {
-		struct process *proc = job->processes.data[j];
-		if (!proc->terminated) {
-			return false;
-		}
-	}
-	return true;
-}
-
-bool job_stopped(struct mrsh_job *job) {
-	bool stopped = false;
-	for (size_t j = 0; j < job->processes.len; ++j) {
-		struct process *proc = job->processes.data[j];
-		if (!proc->terminated && !proc->stopped) {
-			return false;
-		}
-		stopped |= proc->stopped;
-	}
-	return stopped;
-}
-
 bool job_set_foreground(struct mrsh_job *job, bool foreground, bool cont) {
 	struct mrsh_state *state = job->state;
 
-	if (!job_stopped(job)) {
+	// Don't try to continue the job if it's not stopped
+	if (job_poll(job) != TASK_STATUS_STOPPED) {
 		cont = false;
 	}
 

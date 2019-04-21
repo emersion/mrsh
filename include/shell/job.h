@@ -34,20 +34,13 @@ struct mrsh_job *job_create(struct mrsh_state *state, pid_t pgid);
 void job_destroy(struct mrsh_job *job);
 void job_add_process(struct mrsh_job *job, struct process *proc);
 /**
- * Check whether all child processes have terminated. If there are no child
- * processes in this job, returns true.
- */
-bool job_terminated(struct mrsh_job *job);
-/**
- * Check whether there is at least one stopped child process and all others
- * have terminated.
- */
-bool job_stopped(struct mrsh_job *job);
-/**
  * Polls the job's current status without blocking. Returns:
- * - An integer >= 0 if the job has terminated
- * - TASK_STATUS_STOPPED if the job is stopped
- * - TASK_STATUS_WAIT if the job is running
+ * - TASK_STATUS_WAIT if the job is running (ie. one or more processes are
+ *   running)
+ * - TASK_STATUS_STOPPED if the job is stopped (ie. one or more processes are
+ *   stopped, all the others are terminated)
+ * - An integer >= 0 if the job has terminated (ie. all processes have
+*    terminated)
  */
 int job_poll(struct mrsh_job *job);
 /**

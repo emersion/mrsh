@@ -189,6 +189,12 @@ pid_t subshell_fork(struct context *ctx, struct process **process_ptr) {
 				exit(1);
 			}
 			ctx->job = job_create(ctx->state, pgid);
+
+			if (ctx->state->interactive && !ctx->background) {
+				job_set_foreground(ctx->job, true, false);
+			}
+
+			init_job_child_process(ctx->state);
 		}
 
 		return 0;
@@ -205,9 +211,12 @@ pid_t subshell_fork(struct context *ctx, struct process **process_ptr) {
 			return false;
 		}
 
-		// Create a background job
 		struct mrsh_job *job = job_create(ctx->state, pgid);
 		job_add_process(job, proc);
+
+		if (ctx->state->interactive && !ctx->background) {
+			job_set_foreground(job, true, false);
+		}
 	}
 
 	return pid;

@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/wait.h>
+#include <unistd.h>
 #include "shell/job.h"
 #include "shell/task.h"
 
@@ -51,6 +52,15 @@ int task_run(struct task *task, struct context *ctx) {
 					&& (ctx->state->options & MRSH_OPT_ERREXIT)) {
 				ctx->state->exit = ret;
 			}
+
+			// Put the shell back in the foreground
+			tcsetpgrp(ctx->state->fd, ctx->state->pgid);
+			// Restore the shell’s terminal modes
+			// tcgetattr(ctx->state->fd, &job->term_modes); // TODO
+			tcsetattr(ctx->state->fd, TCSADRAIN, &ctx->state->term_modes);
+
+			destroy_finished_jobs(ctx->state);
+
 			return ret;
 		}
 

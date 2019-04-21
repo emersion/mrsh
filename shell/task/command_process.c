@@ -41,9 +41,11 @@ static bool task_process_start(struct task_command *tc, struct context *ctx) {
 		fprintf(stderr, "failed to fork(): %s\n", strerror(errno));
 		return false;
 	} else if (pid == 0) {
-		put_into_process_group(ctx, getpid());
+		struct mrsh_job *job = put_into_process_group(ctx, getpid());
+		if (ctx->state->interactive && !ctx->background) {
+			tcsetpgrp(ctx->state->fd, job->pgid);
+		}
 		init_job_child_process(ctx->state);
-		// TODO: give the terminal to the process group, if foreground job
 
 		for (size_t i = 0; i < sc->assignments.len; ++i) {
 			struct mrsh_assignment *assign = sc->assignments.data[i];
@@ -92,9 +94,13 @@ static bool task_process_start(struct task_command *tc, struct context *ctx) {
 	}
 
 	struct mrsh_job *job = put_into_process_group(ctx, pid);
+	if (ctx->state->interactive && !ctx->background) {
+		tcsetpgrp(ctx->state->fd, job->pgid);
+	}
 
 	tc->process = process_create(ctx->state, pid);
 	job_add_process(job, tc->process);
+
 	return true;
 }
 

@@ -33,13 +33,19 @@ void process_destroy(struct process *proc) {
 }
 
 int process_poll(struct process *proc) {
-	if (!proc->finished) {
+	if (!proc->terminated) {
 		return -1;
 	}
-	return WEXITSTATUS(proc->stat);
+	if (WIFEXITED(proc->stat)) {
+		return WEXITSTATUS(proc->stat);
+	} else if (WIFSIGNALED(proc->stat)) {
+		return 129; // POSIX requires >128
+	} else {
+		assert(false);
+	}
 }
 
-void process_notify(struct mrsh_state *state, pid_t pid, int stat) {
+void update_process(struct mrsh_state *state, pid_t pid, int stat) {
 	struct process *proc = NULL;
 	bool found = false;
 	for (size_t i = 0; i < state->processes.len; ++i) {
@@ -54,7 +60,7 @@ void process_notify(struct mrsh_state *state, pid_t pid, int stat) {
 	}
 
 	if (WIFEXITED(stat) || WIFSIGNALED(stat)) {
-		proc->finished = true;
+		proc->terminated = true;
 		proc->stat = stat;
 	} else {
 		assert(false);

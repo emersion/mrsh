@@ -75,23 +75,6 @@ bool mrsh_set_job_control(struct mrsh_state *state, bool enabled) {
 	return true;
 }
 
-bool job_init_process(struct mrsh_state *state) {
-	if (!state->job_control) {
-		return true;
-	}
-
-	struct sigaction sa = { .sa_handler = SIG_DFL };
-	sigemptyset(&sa.sa_mask);
-	for (size_t i = 0; i < IGNORED_SIGNALS_LEN; ++i) {
-		if (sigaction(ignored_signals[i], &sa, NULL) != 0) {
-			fprintf(stderr, "sigaction failed: %s\n", strerror(errno));
-			return false;
-		}
-	}
-
-	return true;
-}
-
 static void array_remove(struct mrsh_array *array, size_t i) {
 	memmove(&array->data[i], &array->data[i + 1],
 		(array->len - i - 1) * sizeof(void *));
@@ -133,13 +116,30 @@ void job_add_process(struct mrsh_job *job, struct process *proc) {
 bool job_finished(struct mrsh_job *job) {
 	for (size_t j = 0; j < job->processes.len; ++j) {
 		struct process *proc = job->processes.data[j];
-		if (!proc->finished) {
+		if (!proc->terminated) {
 			return false;
 		}
 	}
 	return true;
 }
 
-void job_notify(struct mrsh_state *state, pid_t pid, int stat) {
-	process_notify(state, pid, stat);
+bool init_job_child_process(struct mrsh_state *state) {
+	if (!state->job_control) {
+		return true;
+	}
+
+	struct sigaction sa = { .sa_handler = SIG_DFL };
+	sigemptyset(&sa.sa_mask);
+	for (size_t i = 0; i < IGNORED_SIGNALS_LEN; ++i) {
+		if (sigaction(ignored_signals[i], &sa, NULL) != 0) {
+			fprintf(stderr, "sigaction failed: %s\n", strerror(errno));
+			return false;
+		}
+	}
+
+	return true;
+}
+
+void update_job(struct mrsh_state *state, pid_t pid, int stat) {
+	update_process(state, pid, stat);
 }

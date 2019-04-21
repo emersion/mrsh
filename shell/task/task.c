@@ -67,6 +67,6 @@ int task_run(struct task *task, struct context *ctx) {
 			return -1;
 		}
 
-		job_notify(ctx->state, pid, stat);
+		update_job(ctx->state, pid, stat);
 	}
 }

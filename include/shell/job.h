@@ -24,7 +24,7 @@ void job_destroy(struct mrsh_job *job);
 void job_add_process(struct mrsh_job *job, struct process *proc);
 bool job_finished(struct mrsh_job *job);
 
-bool job_init_process(struct mrsh_state *state);
-void job_notify(struct mrsh_state *state, pid_t pid, int stat);
+bool init_job_child_process(struct mrsh_state *state);
+void update_job(struct mrsh_state *state, pid_t pid, int stat);
 
 #endif

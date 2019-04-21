@@ -42,7 +42,7 @@ static bool task_process_start(struct task_command *tc, struct context *ctx) {
 		return false;
 	} else if (pid == 0) {
 		put_into_process_group(ctx, getpid());
-		job_init_process(ctx->state);
+		init_job_child_process(ctx->state);
 		// TODO: give the terminal to the process group, if foreground job
 
 		for (size_t i = 0; i < sc->assignments.len; ++i) {

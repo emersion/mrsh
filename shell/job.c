@@ -245,4 +245,12 @@ bool init_job_child_process(struct mrsh_state *state) {
 
 void update_job(struct mrsh_state *state, pid_t pid, int stat) {
 	update_process(state, pid, stat);
+
+	// Put stopped and terminated jobs in the background
+	for (size_t i = 0; i < state->jobs.len; ++i) {
+		struct mrsh_job *job = state->jobs.data[i];
+		if (job_poll(job) != TASK_STATUS_WAIT) {
+			job_set_foreground(job, false, false);
+		}
+	}
 }

@@ -59,9 +59,8 @@ int task_run(struct task *task, struct context *ctx) {
 				}
 			}
 
-			if (ctx->state->foreground_job != NULL) {
-				job_set_foreground(ctx->state->foreground_job, false, false);
-			}
+			// Either the job has terminated, either it's been stopped
+			assert(ctx->state->foreground_job == NULL);
 
 			destroy_finished_jobs(ctx->state);
 

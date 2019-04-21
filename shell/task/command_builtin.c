@@ -71,6 +71,11 @@ int task_builtin_poll(struct task *task, struct context *ctx) {
 	char **argv = (char **)tc->args.data;
 	int ret = mrsh_run_builtin(ctx->state, argc, argv);
 
+	// In case stdout/stderr are pipes, we need to flush to ensure output lines
+	// aren't out-of-order
+	fflush(stdout);
+	fflush(stderr);
+
 	// Restore old FDs
 	for (size_t i = 0; i < sizeof(fds) / sizeof(fds[0]); ++i) {
 		if (fds[i].dup_fd < 0) {

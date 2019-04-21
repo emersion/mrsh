@@ -120,6 +120,10 @@ void mrsh_pop_args(struct mrsh_state *state);
 int mrsh_run_program(struct mrsh_state *state, struct mrsh_program *prog);
 int mrsh_run_word(struct mrsh_state *state, struct mrsh_word **word);
 bool mrsh_run_arithm_expr(struct mrsh_arithm_expr *expr, long *result);
+/**
+ * Enable or disable job control. This will setup signal handlers, process
+ * groups and the terminal accordingly.
+ */
 bool mrsh_set_job_control(struct mrsh_state *state, bool enabled);
 
 #endif

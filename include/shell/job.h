@@ -40,7 +40,7 @@ void job_add_process(struct mrsh_job *job, struct process *proc);
  * - TASK_STATUS_STOPPED if the job is stopped (ie. one or more processes are
  *   stopped, all the others are terminated)
  * - An integer >= 0 if the job has terminated (ie. all processes have
-*    terminated)
+ *   terminated)
  */
 int job_poll(struct mrsh_job *job);
 /**
@@ -50,6 +50,9 @@ int job_wait(struct mrsh_job *job);
 /**
  * Put the job in the foreground or in the background. If the job is stopped and
  * cont is set to true, it will be continued.
+ *
+ * It is illegal to put a job in the foreground if another job is already in the
+ * foreground.
  */
 bool job_set_foreground(struct mrsh_job *job, bool foreground, bool cont);
 

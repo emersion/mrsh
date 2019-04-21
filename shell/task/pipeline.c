@@ -102,7 +102,9 @@ static int task_pipeline_poll(struct task *task, struct context *ctx) {
 
 	if (!tp->started) {
 		// When simple commands will be started, we want them to be in the same
-		// job. However we don't want sibling pipelines to share this job.
+		// job. Moreover if we're run from inside a subshell, we want to be in
+		// the same job as the subshell. However we don't want sibling pipelines
+		// to share this job.
 		if (ctx->job == NULL && !ctx->background) {
 			tp->child_ctx = *ctx;
 			tp->has_child_ctx = true;

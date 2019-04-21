@@ -80,22 +80,24 @@ struct mrsh_call_frame {
 	struct mrsh_call_frame *prev;
 };
 
+struct mrsh_job;
+
 struct mrsh_state {
 	int exit;
 	int fd;
 	uint32_t options; // enum mrsh_option
 	struct mrsh_call_frame *args;
 	bool interactive;
-	struct mrsh_hashtable variables; // mrsh_variable *
+	struct mrsh_hashtable variables; // struct mrsh_variable *
 	struct mrsh_hashtable aliases; // char *
-	struct mrsh_hashtable functions; // mrsh_function *
+	struct mrsh_hashtable functions; // struct mrsh_function *
 	struct mrsh_array processes;
 	int last_status;
 
 	bool job_control;
 	pid_t pgid;
 	struct termios term_modes;
-	struct mrsh_array jobs;
+	struct mrsh_array jobs; // struct mrsh_job *
 };
 
 void mrsh_function_destroy(struct mrsh_function *fn);

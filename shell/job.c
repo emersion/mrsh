@@ -98,15 +98,15 @@ static void array_remove(struct mrsh_array *array, size_t i) {
 	--array->len;
 }
 
-struct job *job_create(struct mrsh_state *state, pid_t pgid) {
-	struct job *job = calloc(1, sizeof(struct job));
+struct mrsh_job *job_create(struct mrsh_state *state, pid_t pgid) {
+	struct mrsh_job *job = calloc(1, sizeof(struct mrsh_job));
 	job->state = state;
 	job->pgid = pgid;
 	mrsh_array_add(&state->jobs, job);
 	return job;
 }
 
-void job_destroy(struct job *job) {
+void job_destroy(struct mrsh_job *job) {
 	if (job == NULL) {
 		return;
 	}
@@ -122,7 +122,7 @@ void job_destroy(struct job *job) {
 	free(job);
 }
 
-void job_add_process(struct job *job, struct process *proc) {
+void job_add_process(struct mrsh_job *job, struct process *proc) {
 	mrsh_array_add(&job->processes, proc);
 }
 
@@ -130,7 +130,7 @@ void job_notify(struct mrsh_state *state, pid_t pid, int stat) {
 	process_notify(state, pid, stat);
 
 	for (size_t i = 0; i < state->jobs.len; ++i) {
-		struct job *job = state->jobs.data[i];
+		struct mrsh_job *job = state->jobs.data[i];
 		for (ssize_t j = 0; j < (ssize_t)job->processes.len; ++j) {
 			struct process *proc = job->processes.data[j];
 			if (proc->finished) {

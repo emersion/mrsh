@@ -19,7 +19,7 @@ static void populate_env_iterator(const char *key, void *_var, void *_) {
  * Put the process into its job's process group. This has to be done both in the
  * parent and the child because of potential race conditions.
  */
-static struct job *put_into_process_group(struct context *ctx, pid_t pid) {
+static struct mrsh_job *put_into_process_group(struct context *ctx, pid_t pid) {
 	if (ctx->job == NULL) {
 		ctx->job = job_create(ctx->state, pid);
 	}
@@ -91,7 +91,7 @@ static bool task_process_start(struct task_command *tc, struct context *ctx) {
 		exit(127);
 	}
 
-	struct job *job = put_into_process_group(ctx, pid);
+	struct mrsh_job *job = put_into_process_group(ctx, pid);
 
 	process_init(&tc->process, ctx->state, pid);
 	job_add_process(job, &tc->process);

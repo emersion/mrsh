@@ -3,7 +3,7 @@
 
 #include <mrsh/shell.h>
 
-struct job;
+struct mrsh_job;
 
 /**
  * A context holds state information and per-job information. A context is
@@ -13,7 +13,7 @@ struct context {
 	struct mrsh_state *state;
 	// When executing a pipeline, this is set to the job created for the
 	// pipeline
-	struct job *job;
+	struct mrsh_job *job;
 };
 
 #endif

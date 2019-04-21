@@ -149,8 +149,10 @@ bool job_set_foreground(struct mrsh_job *job, bool foreground, bool cont) {
 
 	if (foreground && state->foreground_job != job) {
 		assert(state->foreground_job == NULL);
+		// Put the job in the foreground
 		tcsetpgrp(state->fd, job->pgid);
 		if (cont) {
+			// Restore the job's terminal modes
 			tcsetattr(state->fd, TCSADRAIN, &job->term_modes);
 		}
 		state->foreground_job = job;
@@ -159,8 +161,10 @@ bool job_set_foreground(struct mrsh_job *job, bool foreground, bool cont) {
 	if (!foreground && state->foreground_job == job) {
 		// Put the shell back in the foreground
 		tcsetpgrp(state->fd, state->pgid);
-		// Restore the shell’s terminal modes
+		// Save the job's terminal modes, to restore them if it's put in the
+		// foreground again
 		tcgetattr(state->fd, &job->term_modes);
+		// Restore the shell’s terminal modes
 		tcsetattr(state->fd, TCSADRAIN, &state->term_modes);
 		state->foreground_job = NULL;
 	}

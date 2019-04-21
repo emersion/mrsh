@@ -17,13 +17,25 @@ struct process {
 	struct mrsh_state *state;
 	bool stopped;
 	bool terminated;
-	int stat;
+	int stat; // only valid if terminated
 };
 
+/**
+ * Register a new process.
+ */
 struct process *process_create(struct mrsh_state *state, pid_t pid);
 void process_destroy(struct process *process);
+/**
+ * Polls the process' current status without blocking. Returns:
+ * - An integer >= 0 if the process has terminated
+ * - TASK_STATUS_STOPPED if the process is stopped
+ * - TASK_STATUS_WAIT if the process is running
+ */
 int process_poll(struct process *process);
 
+/**
+ * Update the shell's state with a child process status.
+ */
 void update_process(struct mrsh_state *state, pid_t pid, int stat);
 
 #endif

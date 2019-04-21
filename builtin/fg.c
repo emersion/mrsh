@@ -27,7 +27,7 @@ int builtin_fg(struct mrsh_state *state, int argc, char *argv[]) {
 	struct mrsh_job *stopped = NULL;
 	for (ssize_t i = state->jobs.len - 1; i >= 0; --i) {
 		struct mrsh_job *job = state->jobs.data[i];
-		if (job_stopped(job)) {
+		if (job != state->foreground_job) {
 			stopped = job;
 			break;
 		}

@@ -15,14 +15,13 @@ struct process;
 struct mrsh_job {
 	pid_t pgid;
 	struct mrsh_state *state;
-	bool finished;
 	struct mrsh_array processes; // struct process *
 };
 
 struct mrsh_job *job_create(struct mrsh_state *state, pid_t pgid);
 void job_destroy(struct mrsh_job *job);
 void job_add_process(struct mrsh_job *job, struct process *proc);
-bool job_finished(struct mrsh_job *job);
+bool job_terminated(struct mrsh_job *job);
 
 bool init_job_child_process(struct mrsh_state *state);
 void update_job(struct mrsh_state *state, pid_t pid, int stat);

@@ -113,7 +113,7 @@ void job_add_process(struct mrsh_job *job, struct process *proc) {
 	mrsh_array_add(&job->processes, proc);
 }
 
-bool job_finished(struct mrsh_job *job) {
+bool job_terminated(struct mrsh_job *job) {
 	for (size_t j = 0; j < job->processes.len; ++j) {
 		struct process *proc = job->processes.data[j];
 		if (!proc->terminated) {

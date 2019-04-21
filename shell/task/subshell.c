@@ -1,3 +1,4 @@
+#include <assert.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
@@ -19,16 +20,13 @@ static void task_subshell_destroy(struct task *task) {
 }
 
 static bool task_subshell_start(struct task_subshell *ts, struct context *ctx) {
-	pid_t pid = fork();
+	pid_t pid = subshell_fork(ctx, &ts->process);
 	if (pid < 0) {
-		fprintf(stderr, "failed to fork(): %s\n", strerror(errno));
 		return false;
 	} else if (pid == 0) {
-		// TODO: set process group ID
-
-		errno = 0;
 		int ret = task_run(ts->subtask, ctx);
 		if (ret < 0) {
+			assert(ret == TASK_STATUS_ERROR);
 			fprintf(stderr, "failed to run task: %s\n", strerror(errno));
 			exit(127);
 		}
@@ -39,7 +37,6 @@ static bool task_subshell_start(struct task_subshell *ts, struct context *ctx) {
 		exit(ret);
 	}
 
-	ts->process = process_create(ctx->state, pid);
 	return true;
 }
 

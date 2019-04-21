@@ -1,5 +1,6 @@
 #define _POSIX_C_SOURCE 200809L
 #include <assert.h>
+#include <errno.h>
 #include <mrsh/hashtable.h>
 #include <mrsh/parser.h>
 #include <stdlib.h>
@@ -156,4 +157,58 @@ int mrsh_run_word(struct mrsh_state *state, struct mrsh_word **word) {
 	task_destroy(task);
 	state->last_status = last_status;
 	return ret;
+}
+
+/**
+ * Create a new process group. We need to do this in the parent and in the child
+ * to protect aginst race conditions.
+ */
+static pid_t create_process_group(pid_t pid) {
+	pid_t pgid = pid;
+	if (setpgid(pid, pgid) != 0) {
+		fprintf(stderr, "setpgid failed: %s\n", strerror(errno));
+		return -1;
+	}
+	return pgid;
+}
+
+pid_t subshell_fork(struct context *ctx, struct process **process_ptr) {
+	pid_t pid = fork();
+	if (pid < 0) {
+		fprintf(stderr, "fork failed: %s\n", strerror(errno));
+		return false;
+	} else if (pid == 0) {
+		if (process_ptr != NULL) {
+			*process_ptr = NULL;
+		}
+
+		if (ctx->state->options & MRSH_OPT_MONITOR) {
+			// Create a job for all children processes
+			pid_t pgid = create_process_group(getpid());
+			if (pgid < 0) {
+				exit(1);
+			}
+			ctx->job = job_create(ctx->state, pgid);
+		}
+
+		return 0;
+	}
+
+	struct process *proc = process_create(ctx->state, pid);
+	if (process_ptr != NULL) {
+		*process_ptr = proc;
+	}
+
+	if (ctx->state->options & MRSH_OPT_MONITOR) {
+		pid_t pgid = create_process_group(pid);
+		if (pgid < 0) {
+			return false;
+		}
+
+		// Create a background job
+		struct mrsh_job *job = job_create(ctx->state, pgid);
+		job_add_process(job, proc);
+	}
+
+	return pid;
 }

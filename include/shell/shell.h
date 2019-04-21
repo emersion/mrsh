@@ -2,8 +2,8 @@
 #define SHELL_SHELL_H
 
 #include <mrsh/shell.h>
-
-struct mrsh_job;
+#include "job.h"
+#include "process.h"
 
 /**
  * A context holds state information and per-job information. A context is
@@ -17,5 +17,7 @@ struct context {
 	// When executing an asynchronous list, this is set to true
 	bool background;
 };
+
+pid_t subshell_fork(struct context *ctx, struct process **process_ptr);
 
 #endif

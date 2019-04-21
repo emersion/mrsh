@@ -41,11 +41,13 @@ static bool task_process_start(struct task_command *tc, struct context *ctx) {
 		fprintf(stderr, "failed to fork(): %s\n", strerror(errno));
 		return false;
 	} else if (pid == 0) {
-		struct mrsh_job *job = put_into_process_group(ctx, getpid());
-		if (ctx->state->interactive && !ctx->background) {
-			job_set_foreground(job, true, false);
+		if (ctx->state->options & MRSH_OPT_MONITOR) {
+			struct mrsh_job *job = put_into_process_group(ctx, getpid());
+			if (ctx->state->interactive && !ctx->background) {
+				job_set_foreground(job, true, false);
+			}
+			init_job_child_process(ctx->state);
 		}
-		init_job_child_process(ctx->state);
 
 		for (size_t i = 0; i < sc->assignments.len; ++i) {
 			struct mrsh_assignment *assign = sc->assignments.data[i];
@@ -93,13 +95,16 @@ static bool task_process_start(struct task_command *tc, struct context *ctx) {
 		exit(127);
 	}
 
-	struct mrsh_job *job = put_into_process_group(ctx, pid);
-	if (ctx->state->interactive && !ctx->background) {
-		job_set_foreground(job, true, false);
-	}
-
 	tc->process = process_create(ctx->state, pid);
-	job_add_process(job, tc->process);
+
+	if (ctx->state->options & MRSH_OPT_MONITOR) {
+		struct mrsh_job *job = put_into_process_group(ctx, pid);
+		if (ctx->state->interactive && !ctx->background) {
+			job_set_foreground(job, true, false);
+		}
+
+		job_add_process(job, tc->process);
+	}
 
 	return true;
 }

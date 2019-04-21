@@ -46,12 +46,14 @@ static bool task_async_start(struct task *task, struct context *ctx) {
 		fprintf(stderr, "fork failed: %s\n", strerror(errno));
 		return false;
 	} else if (pid == 0) {
-		// Create a job for all children processes
-		pid_t pgid = create_process_group(getpid());
-		if (pgid < 0) {
-			exit(1);
+		if (ctx->state->options & MRSH_OPT_MONITOR) {
+			// Create a job for all children processes
+			pid_t pgid = create_process_group(getpid());
+			if (pgid < 0) {
+				exit(1);
+			}
+			ctx->job = job_create(ctx->state, pgid);
 		}
-		ctx->job = job_create(ctx->state, pgid);
 
 		if (!(ctx->state->options & MRSH_OPT_MONITOR)) {
 			// If job control is disabled, stdin is /dev/null
@@ -73,15 +75,17 @@ static bool task_async_start(struct task *task, struct context *ctx) {
 		exit(ret);
 	}
 
-	pid_t pgid = create_process_group(pid);
-	if (pgid < 0) {
-		return false;
-	}
+	if (ctx->state->options & MRSH_OPT_MONITOR) {
+		pid_t pgid = create_process_group(pid);
+		if (pgid < 0) {
+			return false;
+		}
 
-	// Create a background job
-	struct process *proc = process_create(ctx->state, pid);
-	struct mrsh_job *job = job_create(ctx->state, pgid);
-	job_add_process(job, proc);
+		// Create a background job
+		struct process *proc = process_create(ctx->state, pid);
+		struct mrsh_job *job = job_create(ctx->state, pgid);
+		job_add_process(job, proc);
+	}
 
 	return true;
 }

@@ -124,10 +124,6 @@ static int task_pipeline_poll(struct task *task, struct context *ctx) {
 		}
 	}
 
-	if (ret != TASK_STATUS_WAIT) {
-		job_destroy(tp->child_ctx.job);
-	}
-
 	return ret;
 }
 

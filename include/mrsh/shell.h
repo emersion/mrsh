@@ -29,11 +29,12 @@ enum mrsh_option {
 	// are defined (the utilities are normally located when the function is
 	// executed).
 	MRSH_OPT_PRELOOKUP = 1 << 5,
-	// -m: Immediately before the shell issues a prompt after completion of the
-	// background job, a message reporting the exit status of the background job
-	// shall be written to standard error. If a foreground job stops, the shell
-	// shall write a message to standard error to that effect, formatted as
-	// described by the jobs utility.
+	// -m: All jobs shall be run in their own process groups. Immediately before
+	// the shell issues a prompt after completion of the background job, a
+	// message reporting the exit status of the background job shall be written
+	// to standard error. If a foreground job stops, the shell shall write a
+	// message to standard error to that effect, formatted as described by the
+	// jobs utility.
 	MRSH_OPT_MONITOR = 1 << 6,
 	// -n: The shell shall read commands but does not execute them; this can be
 	// used to check for shell script syntax errors. An interactive shell may

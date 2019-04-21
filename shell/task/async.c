@@ -7,6 +7,8 @@
 #include <sys/stat.h>
 #include <sys/wait.h>
 #include <unistd.h>
+#include "shell/job.h"
+#include "shell/process.h"
 #include "shell/task.h"
 
 struct task_async {
@@ -21,39 +23,15 @@ static void task_async_destroy(struct task *task) {
 	free(ta);
 }
 
-static int fork_detached(void) {
-	pid_t pid = fork();
-	if (pid < 0) {
-		fprintf(stderr, "failed to fork(): %s\n", strerror(errno));
-		return -1;
-	} else if (pid == 0) {
-		pid_t child_pid = fork();
-		if (child_pid < 0) {
-			fprintf(stderr, "failed to fork(): %s\n", strerror(errno));
-			return -1;
-		} else if (child_pid == 0) {
-			return 0;
-		} else {
-			exit(0);
-		}
-	} else {
-		if (waitpid(pid, NULL, 0) == -1) {
-			fprintf(stderr, "failed to waitpid(): %s\n", strerror(errno));
-			return -1;
-		}
-
-		return 1;
-	}
-}
-
 static bool task_async_start(struct task *task, struct context *ctx) {
 	struct task_async *ta = (struct task_async *)task;
 
 	// Start a subshell
-	int ret = fork_detached();
-	if (ret < 0) {
+	pid_t pid = fork();
+	if (pid < 0) {
+		fprintf(stderr, "fork failed: %s\n", strerror(errno));
 		return false;
-	} else if (ret == 0) {
+	} else if (pid == 0) {
 		if (!(ctx->state->options & MRSH_OPT_MONITOR)) {
 			// If job control is disabled, stdin is /dev/null
 			int fd = open("/dev/null", O_CLOEXEC | O_RDONLY);
@@ -73,6 +51,19 @@ static bool task_async_start(struct task *task, struct context *ctx) {
 
 		exit(ret);
 	}
+
+	// TODO: this memory is leaked
+	struct process *proc = calloc(1, sizeof(struct process));
+	process_init(proc, ctx->state, pid);
+
+	pid_t pgid = pid;
+	if (setpgid(pid, pgid) != 0) {
+		fprintf(stderr, "setpgid failed: %s\n", strerror(errno));
+		return false;
+	}
+
+	struct mrsh_job *job = job_create(ctx->state, pgid);
+	job_add_process(job, proc);
 
 	return true;
 }

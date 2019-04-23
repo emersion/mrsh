@@ -77,6 +77,7 @@ lib_mrsh = library(
 		'builtin/builtin.c',
 		'builtin/cd.c',
 		'builtin/colon.c',
+		'builtin/command.c',
 		'builtin/dot.c',
 		'builtin/eval.c',
 		'builtin/exit.c',

@@ -11,6 +11,7 @@ void print_escaped(const char *value);
 int builtin_alias(struct mrsh_state *state, int argc, char *argv[]);
 int builtin_bg(struct mrsh_state *state, int argc, char *argv[]);
 int builtin_cd(struct mrsh_state *state, int argc, char *argv[]);
+int builtin_command(struct mrsh_state *state, int argc, char *argv[]);
 int builtin_colon(struct mrsh_state *state, int argc, char *argv[]);
 int builtin_dot(struct mrsh_state *state, int argc, char *argv[]);
 int builtin_eval(struct mrsh_state *state, int argc, char *argv[]);

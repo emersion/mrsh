@@ -19,6 +19,7 @@ static const struct builtin builtins[] = {
 	{ "alias", builtin_alias, false },
 	{ "bg", builtin_bg, false },
 	{ "cd", builtin_cd, false },
+	{ "command", builtin_command, false },
 	{ "eval", builtin_eval, true },
 	{ "exit", builtin_exit, true },
 	{ "export", builtin_export, true },

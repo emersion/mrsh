@@ -11,6 +11,7 @@ test_files = [
 	'subshell.sh',
 	'ulimit.sh',
 	'word.sh',
+	'command.sh',
 ]
 
 foreach test_file : test_files

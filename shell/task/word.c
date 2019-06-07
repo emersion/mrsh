@@ -113,7 +113,15 @@ static const char *parameter_get_value(struct mrsh_state *state, char *name) {
 		sprintf(value, "%d", (int)getpid());
 		return value;
 	} else if (strcmp(name, "!") == 0) {
-		// TODO
+		if (state->jobs.len == 0) {
+			/* Standard is unclear on what to do in this case, mimic dash */
+			return "";
+		}
+		struct mrsh_job *job = state->jobs.data[state->jobs.len - 1];
+		struct process *process =
+			job->processes.data[job->processes.len - 1];
+		sprintf(value, "%d", process->pid);
+		return value;
 	} else if (end[0] == '\0') {
 		if (lvalue >= state->args->argc) {
 			return NULL;

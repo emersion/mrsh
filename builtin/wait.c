@@ -41,9 +41,12 @@ int builtin_wait(struct mrsh_state *state, int argc, char *argv[]) {
 	} else {
 		for (int i = 1; i < argc; ++i) {
 			if (argv[i][0] == '%') {
-				// TODO
-				fprintf(stderr, "wait: job control IDs are unimplemented\n");
-				goto failure;
+				struct mrsh_job *job = job_by_id(state, argv[i]);
+				if (!job) {
+					goto failure;
+				}
+				pids[i - 1].pid = job->pgid;
+				pids[i - 1].status = -1;
 			} else {
 				char *endptr;
 				pid_t pid = (pid_t)strtol(argv[i], &endptr, 10);

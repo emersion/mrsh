@@ -83,9 +83,18 @@ static void array_remove(struct mrsh_array *array, size_t i) {
 }
 
 struct mrsh_job *job_create(struct mrsh_state *state, pid_t pgid) {
+	int id = 1;
+	for (size_t i = 0; i < state->jobs.len; ++i) {
+		struct mrsh_job *job = state->jobs.data[i];
+		if (id < job->job_id) {
+			id = job->job_id + 1;
+		}
+	}
+
 	struct mrsh_job *job = calloc(1, sizeof(struct mrsh_job));
 	job->state = state;
 	job->pgid = pgid;
+	job->job_id = id;
 	mrsh_array_add(&state->jobs, job);
 	return job;
 }
@@ -232,4 +241,68 @@ void update_job(struct mrsh_state *state, pid_t pid, int stat) {
 			job_set_foreground(job, false, false);
 		}
 	}
+}
+
+struct mrsh_job *job_by_id(struct mrsh_state *state, const char *id) {
+	if (id[0] != '%' || id[1] == '\0') {
+		fprintf(stderr, "Invalid job ID specifier\n");
+		return NULL;
+	}
+
+	if (id[2] == '\0') {
+		switch (id[1]) {
+		case '%':
+		case '+':
+			for (ssize_t i = state->jobs.len - 1; i >= 0; --i) {
+				struct mrsh_job *job = state->jobs.data[i];
+				if (job_poll(job) == TASK_STATUS_STOPPED) {
+					return job;
+				}
+			}
+			if (state->jobs.len < 1) {
+				fprintf(stderr, "No current job\n");
+			}
+			return state->jobs.data[state->jobs.len - 1];
+		case '-':
+			for (ssize_t i = state->jobs.len - 1, n = 0; i >= 0; --i) {
+				struct mrsh_job *job = state->jobs.data[i];
+				if (job_poll(job) == TASK_STATUS_STOPPED) {
+					if (++n == 2) {
+						return job;
+					}
+				}
+			}
+			if (state->jobs.len < 2) {
+				fprintf(stderr, "No previous job\n");
+				return NULL;
+			}
+			return state->jobs.data[state->jobs.len - 2];
+		}
+	}
+
+	if (id[1] >= '0' && id[1] <= '9') {
+		char *endptr;
+		int n = strtol(&id[1], &endptr, 10);
+		if (endptr[0] != '\0') {
+			fprintf(stderr, "Invalid job number '%s'\n", id);
+			return NULL;
+		}
+		for (size_t i = 0; i < state->jobs.len; ++i) {
+			struct mrsh_job *job = state->jobs.data[i];
+			if (job->job_id == n) {
+				return job;
+			}
+		}
+		fprintf(stderr, "No such job '%s' (%d)\n", id, n);
+		return NULL;
+	}
+
+	if (id[1] == '?') {
+		// TODO
+		fprintf(stderr, "Job lookup by command string is unimplemented\n");
+		return NULL;
+	}
+
+	fprintf(stderr, "Job lookup by command string is unimplemented\n");
+	return NULL;
 }

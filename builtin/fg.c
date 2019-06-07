@@ -5,8 +5,7 @@
 #include "shell/job.h"
 #include "shell/shell.h"
 
-// TODO: fg [job_id]
-static const char fg_usage[] = "usage: fg\n";
+static const char fg_usage[] = "usage: fg [job_id]\n";
 
 int builtin_fg(struct mrsh_state *state, int argc, char *argv[]) {
 	mrsh_optind = 0;
@@ -19,26 +18,22 @@ int builtin_fg(struct mrsh_state *state, int argc, char *argv[]) {
 			return EXIT_FAILURE;
 		}
 	}
-	if (mrsh_optind < argc) {
+
+	struct mrsh_job *job;
+	if (mrsh_optind == argc) {
+		job = job_by_id(state, "%%");
+	} else if (mrsh_optind == argc - 1) {
+		job = job_by_id(state, argv[mrsh_optind]);
+	} else {
 		fprintf(stderr, fg_usage);
 		return EXIT_FAILURE;
 	}
-
-	struct mrsh_job *stopped = NULL;
-	for (ssize_t i = state->jobs.len - 1; i >= 0; --i) {
-		struct mrsh_job *job = state->jobs.data[i];
-		if (job != state->foreground_job) {
-			stopped = job;
-			break;
-		}
-	}
-	if (stopped == NULL) {
-		fprintf(stderr, "fg: no current job");
+	if (!job) {
 		return EXIT_FAILURE;
 	}
 
-	if (!job_set_foreground(stopped, true, true)) {
+	if (!job_set_foreground(job, true, true)) {
 		return EXIT_FAILURE;
 	}
-	return job_wait(stopped);
+	return job_wait(job);
 }

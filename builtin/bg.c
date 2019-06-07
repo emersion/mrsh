@@ -6,8 +6,7 @@
 #include "shell/shell.h"
 #include "shell/task.h"
 
-// TODO: bg [job_id]
-static const char bg_usage[] = "usage: bg\n";
+static const char bg_usage[] = "usage: bg [job_id...]\n";
 
 int builtin_bg(struct mrsh_state *state, int argc, char *argv[]) {
 	mrsh_optind = 0;
@@ -20,26 +19,25 @@ int builtin_bg(struct mrsh_state *state, int argc, char *argv[]) {
 			return EXIT_FAILURE;
 		}
 	}
-	if (mrsh_optind < argc) {
-		fprintf(stderr, bg_usage);
-		return EXIT_FAILURE;
-	}
-
-	struct mrsh_job *stopped = NULL;
-	for (ssize_t i = state->jobs.len - 1; i >= 0; --i) {
-		struct mrsh_job *job = state->jobs.data[i];
-		if (job_poll(job) == TASK_STATUS_STOPPED) {
-			stopped = job;
-			break;
+	if (mrsh_optind == argc) {
+		struct mrsh_job *job = job_by_id(state, "%%");
+		if (!job) {
+			return EXIT_FAILURE;
 		}
-	}
-	if (stopped == NULL) {
-		fprintf(stderr, "bg: no current job");
-		return EXIT_FAILURE;
+		if (!job_set_foreground(job, false, true)) {
+			return EXIT_FAILURE;
+		}
+		return EXIT_SUCCESS;
 	}
 
-	if (!job_set_foreground(stopped, false, true)) {
-		return EXIT_FAILURE;
+	for (int i = mrsh_optind; i < argc; ++i) {
+		struct mrsh_job *job = job_by_id(state, argv[i]);
+		if (!job) {
+			return EXIT_FAILURE;
+		}
+		if (!job_set_foreground(job, false, true)) {
+			return EXIT_FAILURE;
+		}
 	}
 	return EXIT_SUCCESS;
 }

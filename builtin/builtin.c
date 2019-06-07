@@ -38,6 +38,7 @@ static const struct builtin builtins[] = {
 	{ "umask", builtin_umask, false },
 	{ "unalias", builtin_unalias, false },
 	{ "unset", builtin_unset, true },
+	{ "wait", builtin_wait, false },
 };
 
 // The following commands are explicitly unspecified by POSIX

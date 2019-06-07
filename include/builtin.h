@@ -31,6 +31,7 @@ int builtin_ulimit(struct mrsh_state *state, int argc, char *argv[]);
 int builtin_umask(struct mrsh_state *state, int argc, char *argv[]);
 int builtin_unalias(struct mrsh_state *state, int argc, char *argv[]);
 int builtin_unset(struct mrsh_state *state, int argc, char *argv[]);
+int builtin_wait(struct mrsh_state *state, int argc, char *argv[]);
 
 int builtin_unspecified(struct mrsh_state *state, int argc, char *argv[]);
 

@@ -97,6 +97,7 @@ lib_mrsh = library(
 		'builtin/unalias.c',
 		'builtin/unset.c',
 		'builtin/unspecified.c',
+		'builtin/wait.c',
 		'getopt.c',
 		'hashtable.c',
 		'parser/arithm.c',

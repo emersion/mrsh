@@ -1,3 +1,4 @@
+#include <assert.h>
 #include <stdbool.h>
 #include <stdlib.h>
 #include "shell/task.h"
@@ -11,7 +12,8 @@ struct task_loop_clause {
 		struct task *condition, *body;
 	} tasks;
 	bool until;
-	int last_body_status;
+	int exit_status;
+	int loop_num;
 };
 
 static void task_loop_clause_destroy(struct task *task) {
@@ -23,34 +25,64 @@ static void task_loop_clause_destroy(struct task *task) {
 
 static int task_loop_clause_poll(struct task *task, struct context *ctx) {
 	struct task_loop_clause *tlc = (struct task_loop_clause *)task;
+	if (tlc->loop_num == -1) {
+		tlc->loop_num = ++ctx->state->nloops;
+	}
 
 	while (ctx->state->exit == -1) {
+		int status;
+
 		if (tlc->tasks.condition) {
-			int condition_status = task_poll(tlc->tasks.condition, ctx);
-			if (condition_status < 0) {
-				return condition_status;
-			} else if (condition_status > 0 && !tlc->until) {
-				return tlc->last_body_status;
-			} else if (condition_status == 0 && tlc->until) {
-				return tlc->last_body_status;
+			status = task_poll(tlc->tasks.condition, ctx);
+			if (status == TASK_STATUS_INTERRUPTED) {
+				goto interrupt;
+			} else if (status < 0) {
+				return status;
+			} else if (status > 0 && !tlc->until) {
+				goto exit;
+			} else if (status == 0 && tlc->until) {
+				goto exit;
 			}
 			task_destroy(tlc->tasks.condition);
 			tlc->tasks.condition = NULL;
 		}
 
-		int body_status = task_poll(tlc->tasks.body, ctx);
-		if (body_status < 0) {
-			return body_status;
-		} else {
-			tlc->last_body_status = body_status;
+		status = task_poll(tlc->tasks.body, ctx);
+		if (status == TASK_STATUS_INTERRUPTED) {
+			goto interrupt;
+		} else if (status < 0) {
+			return status;
+		}
+
+		tlc->exit_status = status;
+		task_destroy(tlc->tasks.body);
+		tlc->tasks.condition =
+			task_for_command_list_array(tlc->ast.condition);
+		tlc->tasks.body = task_for_command_list_array(tlc->ast.body);
+		continue;
+
+interrupt:
+		if (ctx->state->nloops < tlc->loop_num) {
+			/* break to parent loop */
+			return status;
+		}
+		if (ctx->state->branch_control == MRSH_BRANCH_BREAK) {
+			tlc->exit_status = 0;
+			goto exit;
+		} else if (ctx->state->branch_control == MRSH_BRANCH_CONTINUE) {
 			task_destroy(tlc->tasks.body);
-			tlc->tasks.condition =
-				task_for_command_list_array(tlc->ast.condition);
-			tlc->tasks.body = task_for_command_list_array(tlc->ast.body);
+			tlc->tasks.body = NULL;
+		} else {
+			assert(0 && "Unknown task interruption cause");
 		}
 	}
 
+	--ctx->state->nloops;
 	return ctx->state->exit;
+
+exit:
+	--ctx->state->nloops;
+	return tlc->exit_status;
 }
 
 static const struct task_interface task_loop_clause_impl = {
@@ -67,5 +99,6 @@ struct task *task_loop_clause_create(const struct mrsh_array *condition,
 	tlc->tasks.condition = task_for_command_list_array(condition);
 	tlc->tasks.body = task_for_command_list_array(body);
 	tlc->until = until;
+	tlc->loop_num = -1;
 	return &tlc->task;
 }

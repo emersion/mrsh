@@ -83,6 +83,12 @@ struct mrsh_call_frame {
 
 struct mrsh_job;
 
+enum mrsh_branch_control {
+	MRSH_BRANCH_BREAK,
+	MRSH_BRANCH_CONTINUE,
+	MRSH_BRANCH_RETURN,
+};
+
 struct mrsh_state {
 	int exit;
 	int fd;
@@ -100,6 +106,10 @@ struct mrsh_state {
 	struct termios term_modes;
 	struct mrsh_array jobs; // struct mrsh_job *
 	struct mrsh_job *foreground_job;
+
+	// TODO: move this to context
+	enum mrsh_branch_control branch_control;
+	int nloops;
 };
 
 void mrsh_function_destroy(struct mrsh_function *fn);

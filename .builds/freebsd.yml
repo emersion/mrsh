@@ -8,7 +8,7 @@ sources:
 tasks:
   - setup: |
       cd mrsh
-      meson build -Dreadline=enabled -Dreadline-provider=editline
+      meson build -Dauto_features=enabled -Dreadline-provider=editline
   - build: |
       cd mrsh
       ninja -C build

@@ -8,7 +8,7 @@ sources:
 tasks:
   - setup: |
       cd mrsh
-      meson build -Db_sanitize=address,undefined -Dreadline=enabled
+      meson build -Db_sanitize=address,undefined -Dauto_features=enabled
   - build: |
       cd mrsh
       ninja -C build
@@ -19,9 +19,9 @@ tasks:
       cd mrsh
       meson configure build --buildtype release
       ninja -C build
-  - build-no-readline: |
+  - build-minimal: |
       cd mrsh
-      meson configure build -Dreadline=disabled
+      meson configure build -Dauto_features=disabled
       ninja -C build
 triggers:
   - action: email

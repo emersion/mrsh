@@ -434,15 +434,8 @@ struct mrsh_word *expect_dollar(struct mrsh_parser *state) {
 			} else {
 				// 2.6. If an unquoted '$' is followed by a character that is
 				// not one of the following […] the result is unspecified.
-				char str[] = {'$', c, '\0'};
-				struct mrsh_word_string *ws =
-					mrsh_word_string_create(strdup(str), false);
-				if (ws == NULL) {
-					return NULL;
-				}
-				ws->range.begin = dollar_pos;
-				ws->range.end = state->pos;
-				return &ws->word;
+				parser_set_error(state, "invalid parameter name");
+				return NULL;
 			}
 		}
 

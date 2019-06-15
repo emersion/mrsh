@@ -383,8 +383,9 @@ struct mrsh_word *expect_dollar(struct mrsh_parser *state) {
 	assert(c == '$');
 
 	struct mrsh_word_parameter *wp;
-	switch (parser_peek_char(state)) {
-	case '{':; // Parameter expansion in the form `${expression}`
+	c = parser_peek_char(state);
+	switch (c) {
+	case '{': // Parameter expansion in the form `${expression}`
 		wp = expect_parameter_expression(state);
 		if (wp == NULL) {
 			return NULL;
@@ -414,7 +415,35 @@ struct mrsh_word *expect_dollar(struct mrsh_parser *state) {
 	default:; // Parameter expansion in the form `$parameter`
 		size_t name_len = peek_name(state, false);
 		if (name_len == 0) {
-			name_len = 1;
+			bool ok = false;
+			switch (c) {
+			case '@':
+			case '*':
+			case '#':
+			case '?':
+			case '-':
+			case '$':
+			case '!':
+				ok = true;
+				break;
+			default:
+				ok = isdigit(c);
+			}
+			if (ok) {
+				name_len = 1;
+			} else {
+				// 2.6. If an unquoted '$' is followed by a character that is
+				// not one of the following […] the result is unspecified.
+				char str[] = {'$', c, '\0'};
+				struct mrsh_word_string *ws =
+					mrsh_word_string_create(strdup(str), false);
+				if (ws == NULL) {
+					return NULL;
+				}
+				ws->range.begin = dollar_pos;
+				ws->range.end = state->pos;
+				return &ws->word;
+			}
 		}
 
 		struct mrsh_range name_range;

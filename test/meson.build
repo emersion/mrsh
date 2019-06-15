@@ -8,6 +8,7 @@ test_files = [
 	'for.sh',
 	'function.sh',
 	'loop.sh',
+	'pipeline.sh',
 	'subshell.sh',
 	'ulimit.sh',
 	'word.sh',

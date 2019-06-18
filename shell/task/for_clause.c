@@ -15,7 +15,8 @@ struct task_for_clause {
 		struct task *word, *body;
 	} tasks;
 	size_t index;
-	int last_body_status;
+	int exit_status;
+	int loop_num;
 };
 
 static void task_for_clause_destroy(struct task *task) {
@@ -27,20 +28,30 @@ static void task_for_clause_destroy(struct task *task) {
 
 static int task_for_clause_poll(struct task *task, struct context *ctx) {
 	struct task_for_clause *tfc = (struct task_for_clause *)task;
+	if (tfc->loop_num == -1) {
+		tfc->loop_num = ++ctx->state->nloops;
+	}
+
 	while (true) {
+		int status;
+
 		if (tfc->tasks.body) {
 			/* wait for body */
-			int body_status = task_poll(tfc->tasks.body, ctx);
-			if (body_status < 0) {
-				return body_status;
+			status = task_poll(tfc->tasks.body, ctx);
+			if (status == TASK_STATUS_INTERRUPTED) {
+				goto interrupt;
+			} else if (status < 0) {
+				return status;
 			}
 			task_destroy(tfc->tasks.body);
 			tfc->tasks.body = NULL;
 		} else if (tfc->tasks.word) {
 			/* wait for word */
-			int word_status = task_poll(tfc->tasks.word, ctx);
-			if (word_status < 0) {
-				return word_status;
+			status = task_poll(tfc->tasks.word, ctx);
+			if (status == TASK_STATUS_INTERRUPTED) {
+				goto interrupt;
+			} else if (status < 0) {
+				return status;
 			}
 			struct mrsh_word_string *word = (struct mrsh_word_string *)
 				tfc->ast.word_list->data[tfc->index - 1];
@@ -53,14 +64,34 @@ static int task_for_clause_poll(struct task *task, struct context *ctx) {
 		} else {
 			/* create a new word */
 			if (tfc->index == tfc->ast.word_list->len) {
-				return 0;
+				goto exit;
 			}
 			struct mrsh_word **word_ptr =
 				(struct mrsh_word **)&tfc->ast.word_list->data[tfc->index++];
 			tfc->tasks.word = task_word_create(
 				word_ptr, TILDE_EXPANSION_NAME);
 		}
+		continue;
+
+interrupt:
+		if (ctx->state->nloops < tfc->loop_num) {
+			/* break to parent loop */
+			return status;
+		}
+		if (ctx->state->branch_control == MRSH_BRANCH_BREAK) {
+			tfc->exit_status = 0;
+			goto exit;
+		} else if (ctx->state->branch_control == MRSH_BRANCH_CONTINUE) {
+			task_destroy(tfc->tasks.body);
+			tfc->tasks.body = NULL;
+		} else {
+			assert(0 && "Unknown task interruption cause");
+		}
 	}
+
+exit:
+	--ctx->state->nloops;
+	return tfc->exit_status;
 }
 
 static const struct task_interface task_for_clause_impl = {
@@ -76,5 +107,7 @@ struct task *task_for_clause_create(const char *name,
 	tfc->ast.word_list = word_list;
 	tfc->ast.body = body;
 	tfc->index = 0;
+	tfc->exit_status = 0;
+	tfc->loop_num = -1;
 	return &tfc->task;
 }

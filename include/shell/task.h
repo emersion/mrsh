@@ -16,6 +16,10 @@
  * The task has been stopped and the job has been put in the background.
  */
 #define TASK_STATUS_STOPPED -3
+/**
+ * The task has been interrupted for some reason.
+ */
+#define TASK_STATUS_INTERRUPTED -4
 
 struct task_interface;
 

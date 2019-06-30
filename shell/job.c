@@ -193,13 +193,8 @@ int job_poll(struct mrsh_job *job) {
 	return proc_status;
 }
 
-int job_wait(struct mrsh_job *job) {
+static bool wait_any(struct mrsh_state *state) {
 	while (true) {
-		int status = job_poll(job);
-		if (status != TASK_STATUS_WAIT) {
-			return status;
-		}
-
 		int stat;
 		pid_t pid = waitpid(-1, &stat, WUNTRACED);
 		if (pid == -1) {
@@ -207,10 +202,37 @@ int job_wait(struct mrsh_job *job) {
 				continue;
 			}
 			fprintf(stderr, "failed to waitpid(): %s\n", strerror(errno));
-			return TASK_STATUS_ERROR;
+			return false;
 		}
 
-		update_job(job->state, pid, stat);
+		update_job(state, pid, stat);
+		return true;
+	}
+}
+
+int job_wait(struct mrsh_job *job) {
+	while (true) {
+		int status = job_poll(job);
+		if (status != TASK_STATUS_WAIT) {
+			return status;
+		}
+
+		if (!wait_any(job->state)) {
+			return TASK_STATUS_ERROR;
+		}
+	}
+}
+
+int job_wait_process(struct process *proc) {
+	while (true) {
+		int status = process_poll(proc);
+		if (status != TASK_STATUS_WAIT) {
+			return status;
+		}
+
+		if (!wait_any(proc->state)) {
+			return TASK_STATUS_ERROR;
+		}
 	}
 }
 

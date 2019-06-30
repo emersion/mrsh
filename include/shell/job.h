@@ -49,6 +49,10 @@ int job_poll(struct mrsh_job *job);
  */
 int job_wait(struct mrsh_job *job);
 /**
+ * Wait for the completion of the process.
+ */
+int job_wait_process(struct process *proc);
+/**
  * Put the job in the foreground or in the background. If the job is stopped and
  * cont is set to true, it will be continued.
  *

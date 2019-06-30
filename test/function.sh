@@ -27,6 +27,7 @@ func_e() {
 
 func_a
 func_b
+func_a
 func_c
 func_c
 func_d

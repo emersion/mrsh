@@ -210,6 +210,16 @@ static int run_case_clause(struct context *ctx, struct mrsh_case_clause *cc) {
 	return case_ret;
 }
 
+static int run_function_definition(struct context *ctx,
+		struct mrsh_function_definition *fnd) {
+	struct mrsh_function *fn = calloc(1, sizeof(struct mrsh_function));
+	fn->body = mrsh_command_copy(fnd->body);
+	struct mrsh_function *old_fn =
+		mrsh_hashtable_set(&ctx->state->functions, fnd->name, fn);
+	mrsh_function_destroy(old_fn);
+	return 0;
+}
+
 int run_command(struct context *ctx, struct mrsh_command *cmd) {
 	switch (cmd->type) {
 	case MRSH_SIMPLE_COMMAND:;
@@ -234,12 +244,10 @@ int run_command(struct context *ctx, struct mrsh_command *cmd) {
 		struct mrsh_case_clause *cc =
 			mrsh_command_get_case_clause(cmd);
 		return run_case_clause(ctx, cc);
-	/*case MRSH_FUNCTION_DEFINITION:;
-		struct mrsh_function_definition *fn =
+	case MRSH_FUNCTION_DEFINITION:;
+		struct mrsh_function_definition *fnd =
 			mrsh_command_get_function_definition(cmd);
-		return run_function_definition(ctx, fn);*/
-	default:
-		assert(false);
+		return run_function_definition(ctx, fnd);
 	}
 	assert(false);
 }

@@ -112,6 +112,7 @@ lib_mrsh = library(
 		'shell/process.c',
 		'shell/redir.c',
 		'shell/shell.c',
+		'shell/task/pipeline.c',
 		'shell/task/simple_command.c',
 		'shell/task/task.c',
 		'shell/task/word.c',

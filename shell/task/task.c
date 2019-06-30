@@ -15,7 +15,7 @@ static int run_subshell(struct context *ctx, struct mrsh_array *array) {
 	// Start a subshell
 	pid_t pid = subshell_fork(ctx, NULL);
 	if (pid < 0) {
-		return -1;
+		return TASK_STATUS_ERROR;
 	} else if (pid == 0) {
 		if (!(ctx->state->options & MRSH_OPT_MONITOR)) {
 			// If job control is disabled, stdin is /dev/null
@@ -256,12 +256,7 @@ int run_node(struct context *ctx, struct mrsh_node *node) {
 	switch (node->type) {
 	case MRSH_NODE_PIPELINE:;
 		struct mrsh_pipeline *pl = mrsh_node_get_pipeline(node);
-		assert(pl->commands.len == 1); // TODO
-		/*for (size_t i = 0; i < pl->commands.len; ++i) {
-			struct mrsh_command *cmd = pl->commands.data[i];
-			task_pipeline_add(task_pipeline, task_for_command(cmd));
-		}*/
-		return run_command(ctx, pl->commands.data[0]);
+		return run_pipeline(ctx, pl);
 	case MRSH_NODE_BINOP:;
 		struct mrsh_binop *binop = mrsh_node_get_binop(node);
 		int left_status = run_node(ctx, binop->left);

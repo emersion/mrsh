@@ -9,12 +9,16 @@ echo "a b c d" | sed s/b/B/
 echo >&2 "Pipeline with 3 commands"
 echo "a b c d" | sed s/b/B/ | sed s/c/C/
 
+#echo >&2 "Pipeline with bang"
+#! false
+#echo $?
+
 # https://github.com/emersion/mrsh/issues/100
 #echo >&2 "Pipeline with subshell"
 #(echo "a b"; echo "c d") | sed s/c/C/
 
 # https://github.com/emersion/mrsh/issues/96
-#echo >&2 "Pipeline with brace group"
+echo >&2 "Pipeline with brace group"
 #{ echo "a b"; echo "c d"; } | sed s/c/C/
 
 # https://github.com/emersion/mrsh/issues/95

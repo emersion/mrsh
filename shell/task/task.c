@@ -317,6 +317,9 @@ int run_command_list_array(struct context *ctx, struct mrsh_array *array) {
 				return ret;
 			}
 		}
+		if (ret >= 0) {
+			ctx->state->last_status = ret;
+		}
 	}
 	return ret;
 }

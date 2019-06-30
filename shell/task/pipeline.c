@@ -88,5 +88,8 @@ int run_pipeline(struct context *ctx, struct mrsh_pipeline *pl) {
 		}
 	}
 	mrsh_array_finish(&procs);
+	if (pl->bang && ret >= 0) {
+		ret = !ret;
+	}
 	return ret;
 }

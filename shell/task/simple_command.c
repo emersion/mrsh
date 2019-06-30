@@ -348,10 +348,6 @@ int run_simple_command(struct context *ctx, struct mrsh_simple_command *sc) {
 		ret = run_process(ctx, sc, argv);
 	}
 
-	if (ret >= 0) {
-		ctx->state->last_status = ret;
-	}
-
 	mrsh_command_destroy(&sc->command);
 	for (size_t i = 0; i < args.len; ++i) {
 		free(args.data[i]);

@@ -285,7 +285,32 @@ int run_command_list_array(struct context *ctx, struct mrsh_array *array) {
 	for (size_t i = 0; i < array->len; ++i) {
 		struct mrsh_command_list *list = array->data[i];
 		if (list->ampersand) {
-			assert(false); // TODO
+			struct context child_ctx = *ctx;
+			child_ctx.background = true;
+
+			pid_t pid = subshell_fork(ctx, NULL);
+			if (pid < 0) {
+				return TASK_STATUS_ERROR;
+			} else if (pid == 0) {
+				if (!(child_ctx.state->options & MRSH_OPT_MONITOR)) {
+					// If job control is disabled, stdin is /dev/null
+					int fd = open("/dev/null", O_CLOEXEC | O_RDONLY);
+					if (fd < 0) {
+						fprintf(stderr, "failed to open /dev/null: %s\n",
+							strerror(errno));
+						exit(1);
+					}
+					dup2(fd, STDIN_FILENO);
+					close(fd);
+				}
+
+				int ret = run_node(&child_ctx, list->node);
+				if (ret < 0) {
+					exit(127);
+				}
+				exit(ret);
+			}
+			ret = 0;
 		} else {
 			ret = run_node(ctx, list->node);
 			if (ret < 0) {

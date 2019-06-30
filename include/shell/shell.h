@@ -18,6 +18,12 @@ struct context {
 	bool background;
 };
 
+/**
+ * Like fork(2), but keeps track of the child.
+ *
+ * This function returns twice on success: once with 0 in the child, once with
+ * a > 0 value in the parent. On error, it returns -1 once.
+ */
 pid_t subshell_fork(struct context *ctx, struct process **process_ptr);
 
 #endif

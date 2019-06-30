@@ -135,14 +135,6 @@ void mrsh_pop_args(struct mrsh_state *state) {
 	call_frame_destroy(args);
 }
 
-int mrsh_run_program(struct mrsh_state *state, struct mrsh_program *prog) {
-	return 0; // TODO
-}
-
-int mrsh_run_word(struct mrsh_state *state, struct mrsh_word **word) {
-	return 0; // TODO
-}
-
 /**
  * Create a new process group. We need to do this in the parent and in the child
  * to protect aginst race conditions.

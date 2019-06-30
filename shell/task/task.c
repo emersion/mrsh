@@ -2,6 +2,7 @@
 #include <assert.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <fnmatch.h>
 #include <mrsh/ast.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -123,6 +124,7 @@ static int run_for_clause(struct context *ctx, struct mrsh_for_clause *fc) {
 			break;
 		}
 
+		// TODO: this mutates the AST
 		struct mrsh_word **word_ptr =
 			(struct mrsh_word **)&fc->word_list.data[word_index++];
 		int ret = run_word(ctx, word_ptr, TILDE_EXPANSION_NAME);
@@ -168,6 +170,46 @@ interrupt:
 	return loop_ret;
 }
 
+static int run_case_clause(struct context *ctx, struct mrsh_case_clause *cc) {
+	struct mrsh_word *word = mrsh_word_copy(cc->word);
+	int ret = run_word(ctx, &word, TILDE_EXPANSION_NAME);
+	if (ret < 0) {
+		mrsh_word_destroy(word);
+		return ret;
+	}
+	char *word_str = mrsh_word_str(word);
+	mrsh_word_destroy(word);
+
+	int case_ret = 0;
+	for (size_t i = 0; i < cc->items.len; ++i) {
+		struct mrsh_case_item *ci = cc->items.data[i];
+
+		bool selected = false;
+		for (size_t j = 0; j < ci->patterns.len; ++j) {
+			// TODO: this mutates the AST
+			struct mrsh_word **word_ptr =
+				(struct mrsh_word **)&ci->patterns.data[j];
+			int ret = run_word(ctx, word_ptr, TILDE_EXPANSION_NAME);
+			if (ret < 0) {
+				return ret;
+			}
+			struct mrsh_word_string *ws = mrsh_word_get_string(*word_ptr);
+			if (fnmatch(ws->str, word_str, 0) == 0) {
+				selected = true;
+				break;
+			}
+		}
+
+		if (selected) {
+			case_ret = run_command_list_array(ctx, &ci->body);
+			break;
+		}
+	}
+
+	free(word_str);
+	return case_ret;
+}
+
 int run_command(struct context *ctx, struct mrsh_command *cmd) {
 	switch (cmd->type) {
 	case MRSH_SIMPLE_COMMAND:;
@@ -188,11 +230,11 @@ int run_command(struct context *ctx, struct mrsh_command *cmd) {
 	case MRSH_FOR_CLAUSE:;
 		struct mrsh_for_clause *fc = mrsh_command_get_for_clause(cmd);
 		return run_for_clause(ctx, fc);
-	/*case MRSH_CASE_CLAUSE:;
+	case MRSH_CASE_CLAUSE:;
 		struct mrsh_case_clause *cc =
 			mrsh_command_get_case_clause(cmd);
 		return run_case_clause(ctx, cc);
-	case MRSH_FUNCTION_DEFINITION:;
+	/*case MRSH_FUNCTION_DEFINITION:;
 		struct mrsh_function_definition *fn =
 			mrsh_command_get_function_definition(cmd);
 		return run_function_definition(ctx, fn);*/

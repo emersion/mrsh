@@ -152,7 +152,7 @@ pid_t subshell_fork(struct context *ctx, struct process **process_ptr) {
 	pid_t pid = fork();
 	if (pid < 0) {
 		fprintf(stderr, "fork failed: %s\n", strerror(errno));
-		return false;
+		return -1;
 	} else if (pid == 0) {
 		if (process_ptr != NULL) {
 			*process_ptr = NULL;
@@ -184,7 +184,7 @@ pid_t subshell_fork(struct context *ctx, struct process **process_ptr) {
 	if (ctx->state->options & MRSH_OPT_MONITOR) {
 		pid_t pgid = create_process_group(pid);
 		if (pgid < 0) {
-			return false;
+			return -1;
 		}
 
 		struct mrsh_job *job = job_create(ctx->state, pgid);

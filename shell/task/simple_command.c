@@ -34,8 +34,8 @@ static struct mrsh_job *put_into_process_group(struct context *ctx, pid_t pid) {
 	return ctx->job;
 }
 
-static int run_simple_command_process(struct context *ctx,
-		struct mrsh_simple_command *sc, char **argv) {
+static int run_process(struct context *ctx, struct mrsh_simple_command *sc,
+		char **argv) {
 	const char *path = expand_path(ctx->state, argv[0], true);
 	if (!path) {
 		fprintf(stderr, "%s: not found\n", argv[0]);
@@ -110,11 +110,88 @@ static int run_simple_command_process(struct context *ctx,
 		}
 
 		job_add_process(job, process);
-
-		return job_wait(job);
-	} else {
-		assert(false); // TODO
 	}
+
+	return job_wait_process(process);
+}
+
+struct saved_fd {
+	int dup_fd;
+	int redir_fd;
+};
+
+bool dup_and_save_fd(int fd, int redir_fd, struct saved_fd *saved) {
+	saved->redir_fd = redir_fd;
+
+	if (fd == redir_fd) {
+		return true;
+	}
+
+	saved->dup_fd = dup(redir_fd);
+	if (saved->dup_fd < 0) {
+		fprintf(stderr, "failed to duplicate file descriptor: %s\n",
+			strerror(errno));
+		return false;
+	}
+
+	if (dup2(fd, redir_fd) < 0) {
+		fprintf(stderr, "failed to duplicate file descriptor: %s\n",
+			strerror(errno));
+		return false;
+	}
+	close(fd);
+
+	return true;
+}
+
+static int run_builtin(struct context *ctx, struct mrsh_simple_command *sc,
+		int argc, char **argv) {
+	// Duplicate old FDs to be able to restore them later
+	// Zero-length VLAs are undefined behaviour
+	struct saved_fd fds[sc->io_redirects.len + 1];
+	for (size_t i = 0; i < sizeof(fds) / sizeof(fds[0]); ++i) {
+		fds[i].dup_fd = fds[i].redir_fd = -1;
+	}
+
+	for (size_t i = 0; i < sc->io_redirects.len; ++i) {
+		struct mrsh_io_redirect *redir = sc->io_redirects.data[i];
+		struct saved_fd *saved = &fds[i];
+
+		int redir_fd;
+		int fd = process_redir(redir, &redir_fd);
+		if (fd < 0) {
+			return TASK_STATUS_ERROR;
+		}
+
+		if (!dup_and_save_fd(fd, redir_fd, saved)) {
+			return TASK_STATUS_ERROR;
+		}
+	}
+
+	// TODO: environment from assignements
+
+	int ret = mrsh_run_builtin(ctx->state, argc, argv);
+
+	// In case stdout/stderr are pipes, we need to flush to ensure output lines
+	// aren't out-of-order
+	fflush(stdout);
+	fflush(stderr);
+
+	// Restore old FDs
+	for (size_t i = 0; i < sizeof(fds) / sizeof(fds[0]); ++i) {
+		if (fds[i].dup_fd < 0) {
+			continue;
+		}
+
+		if (dup2(fds[i].dup_fd, fds[i].redir_fd) < 0) {
+			fprintf(stderr, "failed to duplicate file descriptor: %s\n",
+				strerror(errno));
+			return TASK_STATUS_ERROR;
+		}
+		close(fds[i].dup_fd);
+	}
+
+	return ret;
 }
 
 static int run_assignments(struct context *ctx, struct mrsh_array *assignments) {
@@ -261,9 +338,9 @@ int run_simple_command(struct context *ctx, struct mrsh_simple_command *sc) {
 		ret = run_command(ctx, fn_def->body);
 		mrsh_pop_args(ctx->state);
 	} else if (mrsh_has_builtin(argv_0)) {
-		ret = mrsh_run_builtin(ctx->state, argc, argv);
+		ret = run_builtin(ctx, sc, argc, argv);
 	} else {
-		ret = run_simple_command_process(ctx, sc, argv);
+		ret = run_process(ctx, sc, argv);
 	}
 
 	mrsh_command_destroy(&sc->command);

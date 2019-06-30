@@ -317,6 +317,7 @@ int run_command_list_array(struct context *ctx, struct mrsh_array *array) {
 				return ret;
 			}
 		}
+
 		if (ret >= 0) {
 			ctx->state->last_status = ret;
 		}
@@ -324,9 +325,21 @@ int run_command_list_array(struct context *ctx, struct mrsh_array *array) {
 	return ret;
 }
 
+static void destroy_terminated_jobs(struct mrsh_state *state) {
+	for (ssize_t i = 0; i < (ssize_t)state->jobs.len; ++i) {
+		struct mrsh_job *job = state->jobs.data[i];
+		if (job_poll(job) >= 0) {
+			job_destroy(job);
+			--i;
+		}
+	}
+}
+
 int mrsh_run_program(struct mrsh_state *state, struct mrsh_program *prog) {
 	struct context ctx = { .state = state };
-	return run_command_list_array(&ctx, &prog->body);
+	int ret = run_command_list_array(&ctx, &prog->body);
+	destroy_terminated_jobs(state);
+	return ret;
 }
 
 int mrsh_run_word(struct mrsh_state *state, struct mrsh_word **word) {

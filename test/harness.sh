@@ -2,7 +2,6 @@
 dir=$(dirname "$0")
 testcase="$dir/$1"
 
-env
 echo >&2 "Running with mrsh"
 mrsh_out=$("$MRSH" "$testcase")
 mrsh_ret=$?

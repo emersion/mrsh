@@ -10,8 +10,8 @@ test_files = [
 	'loop.sh',
 	'pipeline.sh',
 	'subshell.sh',
+	'syntax.sh',
 	'ulimit.sh',
-	'word.sh',
 	'command.sh',
 ]
 

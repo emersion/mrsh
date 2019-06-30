@@ -300,5 +300,8 @@ int mrsh_run_program(struct mrsh_state *state, struct mrsh_program *prog) {
 
 int mrsh_run_word(struct mrsh_state *state, struct mrsh_word **word) {
 	struct context ctx = { .state = state };
-	return run_word(&ctx, word, TILDE_EXPANSION_NAME);
+	int last_status = state->last_status;
+	int ret = run_word(&ctx, word, TILDE_EXPANSION_NAME);
+	state->last_status = last_status;
+	return ret;
 }

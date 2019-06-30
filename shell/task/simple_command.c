@@ -331,6 +331,7 @@ int run_simple_command(struct context *ctx, struct mrsh_simple_command *sc) {
 		free(ps4);
 	}
 
+	ret = -1;
 	const struct mrsh_function *fn_def =
 		mrsh_hashtable_get(&ctx->state->functions, argv_0);
 	if (fn_def != NULL) {
@@ -345,6 +346,10 @@ int run_simple_command(struct context *ctx, struct mrsh_simple_command *sc) {
 		ret = run_builtin(ctx, sc, argc, argv);
 	} else {
 		ret = run_process(ctx, sc, argv);
+	}
+
+	if (ret >= 0) {
+		ctx->state->last_status = ret;
 	}
 
 	mrsh_command_destroy(&sc->command);

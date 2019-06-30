@@ -114,6 +114,7 @@ lib_mrsh = library(
 		'shell/shell.c',
 		'shell/task/simple_command.c',
 		'shell/task/task.c',
+		'shell/task/word.c',
 		'shell/word.c',
 	),
 	include_directories: mrsh_inc,

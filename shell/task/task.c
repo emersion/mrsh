@@ -122,5 +122,6 @@ int mrsh_run_program(struct mrsh_state *state, struct mrsh_program *prog) {
 }
 
 int mrsh_run_word(struct mrsh_state *state, struct mrsh_word **word) {
-	return 0; // TODO
+	struct context ctx = { .state = state };
+	return run_word(&ctx, word, TILDE_EXPANSION_NAME);
 }

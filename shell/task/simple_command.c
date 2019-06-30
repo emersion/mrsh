@@ -143,10 +143,9 @@ static int run_assignments(struct context *ctx, struct mrsh_array *assignments) 
 static void expand_assignments(struct context *ctx,
 		struct mrsh_array *assignments) {
 	for (size_t i = 0; i < assignments->len; ++i) {
-		// TODO
-		//struct mrsh_assignment *assign = assignments->data[i];
-		//task_list_add(task_list,
-		//	task_word_create(&assign->value, TILDE_EXPANSION_ASSIGNMENT));
+		struct mrsh_assignment *assign = assignments->data[i];
+		run_word(ctx, &assign->value, TILDE_EXPANSION_ASSIGNMENT);
+		// TODO: report errors
 	}
 }
 
@@ -175,6 +174,12 @@ static void get_args(struct mrsh_array *args, struct mrsh_simple_command *sc,
 	mrsh_array_add(args, NULL);
 }
 
+static struct mrsh_simple_command *copy_simple_command(
+		const struct mrsh_simple_command *sc) {
+	struct mrsh_command *cmd = mrsh_command_copy(&sc->command);
+	return mrsh_command_get_simple_command(cmd);
+}
+
 int run_simple_command(struct context *ctx, struct mrsh_simple_command *sc) {
 	if (sc->name == NULL) {
 		// Copy each assignment from the AST, because during expansion and
@@ -187,7 +192,49 @@ int run_simple_command(struct context *ctx, struct mrsh_simple_command *sc) {
 		}
 
 		expand_assignments(ctx, &assignments);
-		return run_assignments(ctx, &assignments);
+		int ret = run_assignments(ctx, &assignments);
+
+		for (size_t i = 0; i < assignments.len; ++i) {
+			struct mrsh_assignment *assign = assignments.data[i];
+			mrsh_assignment_destroy(assign);
+		}
+		mrsh_array_finish(&assignments);
+		return ret;
+	}
+
+	// Copy the command from the AST, because during expansion and substitution
+	// we'll mutate the tree
+	sc = copy_simple_command(sc);
+
+	int ret = run_word(ctx, &sc->name, TILDE_EXPANSION_NAME);
+	if (ret < 0) {
+		return ret;
+	}
+	expand_assignments(ctx, &sc->assignments);
+
+	for (size_t i = 0; i < sc->arguments.len; ++i) {
+		struct mrsh_word **arg_ptr =
+			(struct mrsh_word **)&sc->arguments.data[i];
+		ret = run_word(ctx, arg_ptr, TILDE_EXPANSION_NAME);
+		if (ret < 0) {
+			return ret;
+		}
+	}
+
+	for (size_t i = 0; i < sc->io_redirects.len; ++i) {
+		struct mrsh_io_redirect *redir = sc->io_redirects.data[i];
+		ret = run_word(ctx, &redir->name, TILDE_EXPANSION_NAME);
+		if (ret < 0) {
+			return ret;
+		}
+		for (size_t j = 0; j < redir->here_document.len; ++j) {
+			struct mrsh_word **line_word_ptr =
+				(struct mrsh_word **)&redir->here_document.data[j];
+			ret = run_word(ctx, line_word_ptr, TILDE_EXPANSION_NAME);
+			if (ret < 0) {
+				return ret;
+			}
+		}
 	}
 
 	struct mrsh_array args = {0};
@@ -207,7 +254,6 @@ int run_simple_command(struct context *ctx, struct mrsh_simple_command *sc) {
 		free(ps4);
 	}
 
-	int ret;
 	const struct mrsh_function *fn_def =
 		mrsh_hashtable_get(&ctx->state->functions, argv_0);
 	if (fn_def != NULL) {
@@ -220,6 +266,7 @@ int run_simple_command(struct context *ctx, struct mrsh_simple_command *sc) {
 		ret = run_simple_command_process(ctx, sc, argv);
 	}
 
+	mrsh_command_destroy(&sc->command);
 	for (size_t i = 0; i < args.len; ++i) {
 		free(args.data[i]);
 	}

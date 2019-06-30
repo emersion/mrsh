@@ -113,6 +113,61 @@ interrupt:
 	return loop_ret;
 }
 
+static int run_for_clause(struct context *ctx, struct mrsh_for_clause *fc) {
+	int loop_num = ++ctx->state->nloops;
+
+	int loop_ret = 0;
+	size_t word_index = 0;
+	while (ctx->state->exit == -1) {
+		if (word_index == fc->word_list.len) {
+			break;
+		}
+
+		struct mrsh_word **word_ptr =
+			(struct mrsh_word **)&fc->word_list.data[word_index++];
+		int ret = run_word(ctx, word_ptr, TILDE_EXPANSION_NAME);
+		if (ret == TASK_STATUS_INTERRUPTED) {
+			goto interrupt;
+		} else if (ret < 0) {
+			return ret;
+		}
+		struct mrsh_word_string *ws = mrsh_word_get_string(*word_ptr);
+		mrsh_env_set(ctx->state, fc->name, ws->str, MRSH_VAR_ATTRIB_NONE);
+
+		loop_ret = run_command_list_array(ctx, &fc->body);
+		if (loop_ret == TASK_STATUS_INTERRUPTED) {
+			goto interrupt;
+		} else if (loop_ret < 0) {
+			return loop_ret;
+		}
+
+		continue;
+
+interrupt:
+		if (ctx->state->nloops < loop_num) {
+			loop_ret = TASK_STATUS_INTERRUPTED; // break to parent loop
+			break;
+		}
+		bool break_loop = false;
+		switch (ctx->state->branch_control) {
+		case MRSH_BRANCH_BREAK:
+			break_loop = true;
+			loop_ret = 0;
+			break;
+		case MRSH_BRANCH_CONTINUE:
+			break;
+		case MRSH_BRANCH_RETURN:
+			assert(false);
+		}
+		if (break_loop) {
+			break;
+		}
+	}
+
+	--ctx->state->nloops;
+	return loop_ret;
+}
+
 int run_command(struct context *ctx, struct mrsh_command *cmd) {
 	switch (cmd->type) {
 	case MRSH_SIMPLE_COMMAND:;
@@ -130,10 +185,10 @@ int run_command(struct context *ctx, struct mrsh_command *cmd) {
 	case MRSH_LOOP_CLAUSE:;
 		struct mrsh_loop_clause *lc = mrsh_command_get_loop_clause(cmd);
 		return run_loop_clause(ctx, lc);
-	/*case MRSH_FOR_CLAUSE:;
+	case MRSH_FOR_CLAUSE:;
 		struct mrsh_for_clause *fc = mrsh_command_get_for_clause(cmd);
 		return run_for_clause(ctx, fc);
-	case MRSH_CASE_CLAUSE:;
+	/*case MRSH_CASE_CLAUSE:;
 		struct mrsh_case_clause *cc =
 			mrsh_command_get_case_clause(cmd);
 		return run_case_clause(ctx, cc);

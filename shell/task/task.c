@@ -12,8 +12,8 @@
 #include "shell/task.h"
 
 static int run_subshell(struct context *ctx, struct mrsh_array *array) {
-	// Start a subshell
-	pid_t pid = subshell_fork(ctx, NULL);
+	struct process *process;
+	pid_t pid = subshell_fork(ctx, &process);
 	if (pid < 0) {
 		return TASK_STATUS_ERROR;
 	} else if (pid == 0) {
@@ -34,10 +34,13 @@ static int run_subshell(struct context *ctx, struct mrsh_array *array) {
 			exit(127);
 		}
 
+		if (ctx->state->exit >= 0) {
+			exit(ctx->state->exit);
+		}
 		exit(ret);
 	}
 
-	return 0;
+	return job_wait_process(process);
 }
 
 static int run_if_clause(struct context *ctx, struct mrsh_if_clause *ic) {

@@ -55,6 +55,64 @@ static int run_if_clause(struct context *ctx, struct mrsh_if_clause *ic) {
 	}
 }
 
+static int run_loop_clause(struct context *ctx, struct mrsh_loop_clause *lc) {
+	int loop_num = ++ctx->state->nloops;
+
+	int loop_ret = 0;
+	while (ctx->state->exit == -1) {
+		int ret = run_command_list_array(ctx, &lc->condition);
+		if (ret == TASK_STATUS_INTERRUPTED) {
+			goto interrupt;
+		} else if (ret < 0) {
+			return ret;
+		}
+
+		bool break_loop;
+		switch (lc->type) {
+		case MRSH_LOOP_WHILE:
+			break_loop = ret > 0;
+			break;
+		case MRSH_LOOP_UNTIL:
+			break_loop = ret == 0;
+			break;
+		}
+		if (break_loop) {
+			break;
+		}
+
+		loop_ret = run_command_list_array(ctx, &lc->body);
+		if (loop_ret == TASK_STATUS_INTERRUPTED) {
+			goto interrupt;
+		} else if (loop_ret < 0) {
+			return loop_ret;
+		}
+
+		continue;
+
+interrupt:
+		if (ctx->state->nloops < loop_num) {
+			loop_ret = TASK_STATUS_INTERRUPTED; // break to parent loop
+			break;
+		}
+		switch (ctx->state->branch_control) {
+		case MRSH_BRANCH_BREAK:
+			break_loop = true;
+			loop_ret = 0;
+			break;
+		case MRSH_BRANCH_CONTINUE:
+			break;
+		case MRSH_BRANCH_RETURN:
+			assert(false);
+		}
+		if (break_loop) {
+			break;
+		}
+	}
+
+	--ctx->state->nloops;
+	return loop_ret;
+}
+
 int run_command(struct context *ctx, struct mrsh_command *cmd) {
 	switch (cmd->type) {
 	case MRSH_SIMPLE_COMMAND:;
@@ -69,10 +127,10 @@ int run_command(struct context *ctx, struct mrsh_command *cmd) {
 	case MRSH_IF_CLAUSE:;
 		struct mrsh_if_clause *ic = mrsh_command_get_if_clause(cmd);
 		return run_if_clause(ctx, ic);
-	/*case MRSH_LOOP_CLAUSE:;
+	case MRSH_LOOP_CLAUSE:;
 		struct mrsh_loop_clause *lc = mrsh_command_get_loop_clause(cmd);
 		return run_loop_clause(ctx, lc);
-	case MRSH_FOR_CLAUSE:;
+	/*case MRSH_FOR_CLAUSE:;
 		struct mrsh_for_clause *fc = mrsh_command_get_for_clause(cmd);
 		return run_for_clause(ctx, fc);
 	case MRSH_CASE_CLAUSE:;
@@ -127,6 +185,9 @@ int run_command_list_array(struct context *ctx, struct mrsh_array *array) {
 			assert(false); // TODO
 		} else {
 			ret = run_node(ctx, list->node);
+			if (ret < 0) {
+				return ret;
+			}
 		}
 	}
 	return ret;

@@ -39,6 +39,22 @@ static int run_subshell(struct context *ctx, struct mrsh_array *array) {
 	return 0;
 }
 
+static int run_if_clause(struct context *ctx, struct mrsh_if_clause *ic) {
+	int ret = run_command_list_array(ctx, &ic->condition);
+	if (ret < 0) {
+		return ret;
+	}
+
+	if (ret == 0) {
+		return run_command_list_array(ctx, &ic->body);
+	} else {
+		if (ic->else_part) {
+			return run_command(ctx, ic->else_part);
+		}
+		return 0;
+	}
+}
+
 int run_command(struct context *ctx, struct mrsh_command *cmd) {
 	switch (cmd->type) {
 	case MRSH_SIMPLE_COMMAND:;
@@ -50,23 +66,23 @@ int run_command(struct context *ctx, struct mrsh_command *cmd) {
 	case MRSH_SUBSHELL:;
 		struct mrsh_subshell *s = mrsh_command_get_subshell(cmd);
 		return run_subshell(ctx, &s->body);
-	/*case MRSH_IF_CLAUSE:;
+	case MRSH_IF_CLAUSE:;
 		struct mrsh_if_clause *ic = mrsh_command_get_if_clause(cmd);
-		return run_if_clause(ic);
-	case MRSH_LOOP_CLAUSE:;
+		return run_if_clause(ctx, ic);
+	/*case MRSH_LOOP_CLAUSE:;
 		struct mrsh_loop_clause *lc = mrsh_command_get_loop_clause(cmd);
-		return run_loop_clause(lc);
+		return run_loop_clause(ctx, lc);
 	case MRSH_FOR_CLAUSE:;
 		struct mrsh_for_clause *fc = mrsh_command_get_for_clause(cmd);
-		return run_for_clause(fc);
+		return run_for_clause(ctx, fc);
 	case MRSH_CASE_CLAUSE:;
 		struct mrsh_case_clause *cc =
 			mrsh_command_get_case_clause(cmd);
-		return run_case_clause(cc);
+		return run_case_clause(ctx, cc);
 	case MRSH_FUNCTION_DEFINITION:;
 		struct mrsh_function_definition *fn =
 			mrsh_command_get_function_definition(cmd);
-		return run_function_definition(fn);*/
+		return run_function_definition(ctx, fn);*/
 	default:
 		assert(false);
 	}

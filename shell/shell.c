@@ -9,7 +9,6 @@
 #include "shell/job.h"
 #include "shell/shell.h"
 #include "shell/process.h"
-#include "shell/task.h"
 
 void mrsh_function_destroy(struct mrsh_function *fn) {
 	if (!fn) {
@@ -137,27 +136,11 @@ void mrsh_pop_args(struct mrsh_state *state) {
 }
 
 int mrsh_run_program(struct mrsh_state *state, struct mrsh_program *prog) {
-	struct task *task = task_for_command_list_array(&prog->body);
-
-	struct context ctx = {
-		.state = state,
-	};
-	int ret = task_run(task, &ctx);
-	task_destroy(task);
-	return ret;
+	return 0; // TODO
 }
 
 int mrsh_run_word(struct mrsh_state *state, struct mrsh_word **word) {
-	struct task *task = task_word_create(word, TILDE_EXPANSION_NAME);
-
-	int last_status = state->last_status;
-	struct context ctx = {
-		.state = state,
-	};
-	int ret = task_run(task, &ctx);
-	task_destroy(task);
-	state->last_status = last_status;
-	return ret;
+	return 0; // TODO
 }
 
 /**

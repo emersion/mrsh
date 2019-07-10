@@ -288,7 +288,7 @@ int run_command_list_array(struct context *ctx, struct mrsh_array *array) {
 			struct context child_ctx = *ctx;
 			child_ctx.background = true;
 
-			pid_t pid = subshell_fork(ctx, NULL);
+			pid_t pid = subshell_fork(&child_ctx, NULL);
 			if (pid < 0) {
 				return TASK_STATUS_ERROR;
 			} else if (pid == 0) {

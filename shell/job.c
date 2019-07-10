@@ -283,6 +283,7 @@ struct mrsh_job *job_by_id(struct mrsh_state *state, const char *id) {
 			}
 			if (state->jobs.len < 1) {
 				fprintf(stderr, "No current job\n");
+				return NULL;
 			}
 			return state->jobs.data[state->jobs.len - 1];
 		case '-':

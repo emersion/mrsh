@@ -1,6 +1,8 @@
 #!/bin/sh
+
 x=hello
 
+echo "exact matching with variable expansion"
 case "$x" in
 	hello)
 		echo pass
@@ -10,6 +12,7 @@ case "$x" in
 		;;
 esac
 
+echo "* pattern"
 case "$x" in
 	he*)
 		echo pass
@@ -19,6 +22,7 @@ case "$x" in
 		;;
 esac
 
+echo "? pattern"
 case "$x" in
 	foo)
 		echo fail
@@ -28,6 +32,7 @@ case "$x" in
 		;;
 esac
 
+echo "default pattern"
 case "$x" in
 	foo)
 		echo fail
@@ -37,6 +42,7 @@ case "$x" in
 		;;
 esac
 
+echo "| pattern"
 case "$x" in
 	world|hello)
 		echo pass
@@ -46,6 +52,7 @@ case "$x" in
 		;;
 esac
 
+echo "[] pattern"
 case "$x" in
 	hell[a-z])
 		echo pass
@@ -57,7 +64,7 @@ esac
 
 y=hello
 
-# Expanding patterns
+echo "expanding patterns"
 case "$x" in
 	$y)
 		echo pass
@@ -67,7 +74,7 @@ case "$x" in
 		;;
 esac
 
-# ;; optional for last item
+echo ";; optional for last item"
 case hello in
 	*)
 		echo pass

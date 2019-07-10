@@ -27,7 +27,7 @@ int run_word(struct context *ctx, struct mrsh_word **word_ptr,
 	enum tilde_expansion tilde_expansion);
 int run_simple_command(struct context *ctx, struct mrsh_simple_command *sc);
 int run_command(struct context *ctx, struct mrsh_command *cmd);
-int run_node(struct context *ctx, struct mrsh_node *node);
+int run_and_or_list(struct context *ctx, struct mrsh_and_or_list *and_or_list);
 int run_pipeline(struct context *ctx, struct mrsh_pipeline *pipeline);
 int run_command_list_array(struct context *ctx, struct mrsh_array *array);
 

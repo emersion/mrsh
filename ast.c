@@ -177,14 +177,14 @@ void mrsh_command_destroy(struct mrsh_command *cmd) {
 	assert(0);
 }
 
-void mrsh_node_destroy(struct mrsh_node *node) {
-	if (node == NULL) {
+void mrsh_and_or_list_destroy(struct mrsh_and_or_list *and_or_list) {
+	if (and_or_list == NULL) {
 		return;
 	}
 
-	switch (node->type) {
-	case MRSH_NODE_PIPELINE:;
-		struct mrsh_pipeline *p = mrsh_node_get_pipeline(node);
+	switch (and_or_list->type) {
+	case MRSH_AND_OR_LIST_PIPELINE:;
+		struct mrsh_pipeline *p = mrsh_and_or_list_get_pipeline(and_or_list);
 		for (size_t i = 0; i < p->commands.len; ++i) {
 			struct mrsh_command *cmd = p->commands.data[i];
 			mrsh_command_destroy(cmd);
@@ -192,10 +192,10 @@ void mrsh_node_destroy(struct mrsh_node *node) {
 		mrsh_array_finish(&p->commands);
 		free(p);
 		return;
-	case MRSH_NODE_BINOP:;
-		struct mrsh_binop *binop = mrsh_node_get_binop(node);
-		mrsh_node_destroy(binop->left);
-		mrsh_node_destroy(binop->right);
+	case MRSH_AND_OR_LIST_BINOP:;
+		struct mrsh_binop *binop = mrsh_and_or_list_get_binop(and_or_list);
+		mrsh_and_or_list_destroy(binop->left);
+		mrsh_and_or_list_destroy(binop->right);
 		free(binop);
 		return;
 	}
@@ -207,7 +207,7 @@ void mrsh_command_list_destroy(struct mrsh_command_list *l) {
 		return;
 	}
 
-	mrsh_node_destroy(l->node);
+	mrsh_and_or_list_destroy(l->and_or_list);
 	free(l);
 }
 
@@ -424,30 +424,30 @@ struct mrsh_function_definition *mrsh_command_get_function_definition(
 struct mrsh_pipeline *mrsh_pipeline_create(struct mrsh_array *commands,
 		bool bang) {
 	struct mrsh_pipeline *pl = calloc(1, sizeof(struct mrsh_pipeline));
-	pl->node.type = MRSH_NODE_PIPELINE;
+	pl->and_or_list.type = MRSH_AND_OR_LIST_PIPELINE;
 	pl->commands = *commands;
 	pl->bang = bang;
 	return pl;
 }
 
 struct mrsh_binop *mrsh_binop_create(enum mrsh_binop_type type,
-		struct mrsh_node *left, struct mrsh_node *right) {
+		struct mrsh_and_or_list *left, struct mrsh_and_or_list *right) {
 	struct mrsh_binop *binop = calloc(1, sizeof(struct mrsh_binop));
-	binop->node.type = MRSH_NODE_BINOP;
+	binop->and_or_list.type = MRSH_AND_OR_LIST_BINOP;
 	binop->type = type;
 	binop->left = left;
 	binop->right = right;
 	return binop;
 }
 
-struct mrsh_pipeline *mrsh_node_get_pipeline(const struct mrsh_node *node) {
-	assert(node->type == MRSH_NODE_PIPELINE);
-	return (struct mrsh_pipeline *)node;
+struct mrsh_pipeline *mrsh_and_or_list_get_pipeline(const struct mrsh_and_or_list *and_or_list) {
+	assert(and_or_list->type == MRSH_AND_OR_LIST_PIPELINE);
+	return (struct mrsh_pipeline *)and_or_list;
 }
 
-struct mrsh_binop *mrsh_node_get_binop(const struct mrsh_node *node) {
-	assert(node->type == MRSH_NODE_BINOP);
-	return (struct mrsh_binop *)node;
+struct mrsh_binop *mrsh_and_or_list_get_binop(const struct mrsh_and_or_list *and_or_list) {
+	assert(and_or_list->type == MRSH_AND_OR_LIST_BINOP);
+	return (struct mrsh_binop *)and_or_list;
 }
 
 static void position_next(struct mrsh_position *dst,
@@ -833,10 +833,10 @@ struct mrsh_command *mrsh_command_copy(const struct mrsh_command *cmd) {
 	assert(0);
 }
 
-struct mrsh_node *mrsh_node_copy(const struct mrsh_node *node) {
-	switch (node->type) {
-	case MRSH_NODE_PIPELINE:;
-		struct mrsh_pipeline *pl = mrsh_node_get_pipeline(node);
+struct mrsh_and_or_list *mrsh_and_or_list_copy(const struct mrsh_and_or_list *and_or_list) {
+	switch (and_or_list->type) {
+	case MRSH_AND_OR_LIST_PIPELINE:;
+		struct mrsh_pipeline *pl = mrsh_and_or_list_get_pipeline(and_or_list);
 		struct mrsh_array commands = {0};
 		mrsh_array_reserve(&commands, pl->commands.len);
 		for (size_t i = 0; i < pl->commands.len; ++i) {
@@ -845,12 +845,12 @@ struct mrsh_node *mrsh_node_copy(const struct mrsh_node *node) {
 		}
 		struct mrsh_pipeline *p_copy =
 			mrsh_pipeline_create(&commands, pl->bang);
-		return &p_copy->node;
-	case MRSH_NODE_BINOP:;
-		struct mrsh_binop *binop = mrsh_node_get_binop(node);
+		return &p_copy->and_or_list;
+	case MRSH_AND_OR_LIST_BINOP:;
+		struct mrsh_binop *binop = mrsh_and_or_list_get_binop(and_or_list);
 		struct mrsh_binop *binop_copy = mrsh_binop_create(binop->type,
-			mrsh_node_copy(binop->left), mrsh_node_copy(binop->right));
-		return &binop_copy->node;
+			mrsh_and_or_list_copy(binop->left), mrsh_and_or_list_copy(binop->right));
+		return &binop_copy->and_or_list;
 	}
 	assert(0);
 }
@@ -859,7 +859,7 @@ struct mrsh_command_list *mrsh_command_list_copy(
 		const struct mrsh_command_list *l) {
 	struct mrsh_command_list *l_copy =
 		calloc(1, sizeof(struct mrsh_command_list));
-	l_copy->node = mrsh_node_copy(l->node);
+	l_copy->and_or_list = mrsh_and_or_list_copy(l->and_or_list);
 	l_copy->ampersand = l->ampersand;
 	return l_copy;
 }

@@ -444,7 +444,7 @@ static const char *binop_type_str(enum mrsh_binop_type type) {
 	return NULL;
 }
 
-static void print_node(struct mrsh_node *node, const char *prefix);
+static void print_and_or_list(struct mrsh_and_or_list *and_or_list, const char *prefix);
 
 static void print_binop(struct mrsh_binop *binop, const char *prefix) {
 	printf("binop %s\n", binop_type_str(binop->type));
@@ -453,21 +453,21 @@ static void print_binop(struct mrsh_binop *binop, const char *prefix) {
 
 	make_sub_prefix(prefix, false, sub_prefix);
 	print_prefix(prefix, false);
-	print_node(binop->left, sub_prefix);
+	print_and_or_list(binop->left, sub_prefix);
 
 	make_sub_prefix(prefix, true, sub_prefix);
 	print_prefix(prefix, true);
-	print_node(binop->right, sub_prefix);
+	print_and_or_list(binop->right, sub_prefix);
 }
 
-static void print_node(struct mrsh_node *node, const char *prefix) {
-	switch (node->type) {
-	case MRSH_NODE_PIPELINE:;
-		struct mrsh_pipeline *pl = mrsh_node_get_pipeline(node);
+static void print_and_or_list(struct mrsh_and_or_list *and_or_list, const char *prefix) {
+	switch (and_or_list->type) {
+	case MRSH_AND_OR_LIST_PIPELINE:;
+		struct mrsh_pipeline *pl = mrsh_and_or_list_get_pipeline(and_or_list);
 		print_pipeline(pl, prefix);
 		break;
-	case MRSH_NODE_BINOP:;
-		struct mrsh_binop *binop = mrsh_node_get_binop(node);
+	case MRSH_AND_OR_LIST_BINOP:;
+		struct mrsh_binop *binop = mrsh_and_or_list_get_binop(and_or_list);
 		print_binop(binop, prefix);
 		break;
 	}
@@ -477,7 +477,7 @@ static void print_command_list(struct mrsh_command_list *list,
 		const char *prefix) {
 	printf("command_list%s ─ ", list->ampersand ? " &" : "");
 
-	print_node(list->node, prefix);
+	print_and_or_list(list->and_or_list, prefix);
 }
 
 static void print_program(struct mrsh_program *prog, const char *prefix) {

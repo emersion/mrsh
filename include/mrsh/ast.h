@@ -322,25 +322,25 @@ struct mrsh_function_definition {
 	struct mrsh_position lparen_pos, rparen_pos;
 };
 
-enum mrsh_node_type {
-	MRSH_NODE_PIPELINE,
-	MRSH_NODE_BINOP,
+enum mrsh_and_or_list_type {
+	MRSH_AND_OR_LIST_PIPELINE,
+	MRSH_AND_OR_LIST_BINOP,
 };
 
 /**
- * A node is an AND-OR list component. It is either a pipeline or a binary
+ * A and_or_list is an AND-OR list component. It is either a pipeline or a binary
  * operation.
  */
-struct mrsh_node {
-	enum mrsh_node_type type;
+struct mrsh_and_or_list {
+	enum mrsh_and_or_list_type type;
 };
 
 /**
- * A pipeline is a type of node which consists of multiple commands
+ * A pipeline is a type of and_or_list which consists of multiple commands
  * separated by `|`. The format is: `[!] command1 [ | command2 ...]`.
  */
 struct mrsh_pipeline {
-	struct mrsh_node node;
+	struct mrsh_and_or_list and_or_list;
 	struct mrsh_array commands; // struct mrsh_command *
 	bool bang; // whether the pipeline begins with `!`
 
@@ -354,13 +354,13 @@ enum mrsh_binop_type {
 };
 
 /**
- * A binary operation is a type of node which consists of multiple pipelines
+ * A binary operation is a type of and_or_list which consists of multiple pipelines
  * separated by `&&` or `||`.
  */
 struct mrsh_binop {
-	struct mrsh_node node;
+	struct mrsh_and_or_list and_or_list;
 	enum mrsh_binop_type type;
-	struct mrsh_node *left, *right;
+	struct mrsh_and_or_list *left, *right;
 
 	struct mrsh_range op_range;
 };
@@ -370,7 +370,7 @@ struct mrsh_binop {
  * execution) or `&` (for asynchronous execution).
  */
 struct mrsh_command_list {
-	struct mrsh_node *node;
+	struct mrsh_and_or_list *and_or_list;
 	bool ampersand; // whether the command list ends with `&`
 
 	struct mrsh_position separator_pos; // can be invalid
@@ -390,7 +390,7 @@ void mrsh_word_destroy(struct mrsh_word *word);
 void mrsh_io_redirect_destroy(struct mrsh_io_redirect *redir);
 void mrsh_assignment_destroy(struct mrsh_assignment *assign);
 void mrsh_command_destroy(struct mrsh_command *cmd);
-void mrsh_node_destroy(struct mrsh_node *node);
+void mrsh_and_or_list_destroy(struct mrsh_and_or_list *and_or_list);
 void mrsh_command_list_destroy(struct mrsh_command_list *l);
 void mrsh_program_destroy(struct mrsh_program *prog);
 
@@ -447,9 +447,9 @@ struct mrsh_function_definition *mrsh_command_get_function_definition(
 struct mrsh_pipeline *mrsh_pipeline_create(struct mrsh_array *commands,
 	bool bang);
 struct mrsh_binop *mrsh_binop_create(enum mrsh_binop_type type,
-	struct mrsh_node *left, struct mrsh_node *right);
-struct mrsh_pipeline *mrsh_node_get_pipeline(const struct mrsh_node *node);
-struct mrsh_binop *mrsh_node_get_binop(const struct mrsh_node *node);
+	struct mrsh_and_or_list *left, struct mrsh_and_or_list *right);
+struct mrsh_pipeline *mrsh_and_or_list_get_pipeline(const struct mrsh_and_or_list *and_or_list);
+struct mrsh_binop *mrsh_and_or_list_get_binop(const struct mrsh_and_or_list *and_or_list);
 
 void mrsh_word_range(struct mrsh_word *word, struct mrsh_position *begin,
 	struct mrsh_position *end);
@@ -464,7 +464,7 @@ struct mrsh_io_redirect *mrsh_io_redirect_copy(
 struct mrsh_assignment *mrsh_assignment_copy(
 	const struct mrsh_assignment *assign);
 struct mrsh_command *mrsh_command_copy(const struct mrsh_command *cmd);
-struct mrsh_node *mrsh_node_copy(const struct mrsh_node *node);
+struct mrsh_and_or_list *mrsh_and_or_list_copy(const struct mrsh_and_or_list *and_or_list);
 struct mrsh_command_list *mrsh_command_list_copy(
 	const struct mrsh_command_list *l);
 struct mrsh_program *mrsh_program_copy(const struct mrsh_program *prog);

@@ -255,14 +255,14 @@ int run_command(struct context *ctx, struct mrsh_command *cmd) {
 	assert(false);
 }
 
-int run_node(struct context *ctx, struct mrsh_node *node) {
-	switch (node->type) {
-	case MRSH_NODE_PIPELINE:;
-		struct mrsh_pipeline *pl = mrsh_node_get_pipeline(node);
+int run_and_or_list(struct context *ctx, struct mrsh_and_or_list *and_or_list) {
+	switch (and_or_list->type) {
+	case MRSH_AND_OR_LIST_PIPELINE:;
+		struct mrsh_pipeline *pl = mrsh_and_or_list_get_pipeline(and_or_list);
 		return run_pipeline(ctx, pl);
-	case MRSH_NODE_BINOP:;
-		struct mrsh_binop *binop = mrsh_node_get_binop(node);
-		int left_status = run_node(ctx, binop->left);
+	case MRSH_AND_OR_LIST_BINOP:;
+		struct mrsh_binop *binop = mrsh_and_or_list_get_binop(and_or_list);
+		int left_status = run_and_or_list(ctx, binop->left);
 		switch (binop->type) {
 		case MRSH_BINOP_AND:
 			if (left_status != 0) {
@@ -275,7 +275,7 @@ int run_node(struct context *ctx, struct mrsh_node *node) {
 			}
 			break;
 		}
-		return run_node(ctx, binop->right);
+		return run_and_or_list(ctx, binop->right);
 	}
 	assert(false);
 }
@@ -304,7 +304,7 @@ int run_command_list_array(struct context *ctx, struct mrsh_array *array) {
 					close(fd);
 				}
 
-				int ret = run_node(&child_ctx, list->node);
+				int ret = run_and_or_list(&child_ctx, list->and_or_list);
 				if (ret < 0) {
 					exit(127);
 				}
@@ -312,7 +312,7 @@ int run_command_list_array(struct context *ctx, struct mrsh_array *array) {
 			}
 			ret = 0;
 		} else {
-			ret = run_node(ctx, list->node);
+			ret = run_and_or_list(ctx, list->and_or_list);
 			if (ret < 0) {
 				return ret;
 			}

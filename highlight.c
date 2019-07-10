@@ -250,11 +250,11 @@ static void highlight_command(struct highlight_state *state,
 	}
 }
 
-static void highlight_node(struct highlight_state *state,
-		struct mrsh_node *node) {
-	switch (node->type) {
-	case MRSH_NODE_PIPELINE:;
-		struct mrsh_pipeline *pl = mrsh_node_get_pipeline(node);
+static void highlight_and_or_list(struct highlight_state *state,
+		struct mrsh_and_or_list *and_or_list) {
+	switch (and_or_list->type) {
+	case MRSH_AND_OR_LIST_PIPELINE:;
+		struct mrsh_pipeline *pl = mrsh_and_or_list_get_pipeline(and_or_list);
 		if (mrsh_position_valid(&pl->bang_pos)) {
 			highlight_char(state, &pl->bang_pos, FORMAT_GREEN);
 		}
@@ -263,18 +263,18 @@ static void highlight_node(struct highlight_state *state,
 			highlight_command(state, cmd);
 		}
 		break;
-	case MRSH_NODE_BINOP:;
-		struct mrsh_binop *binop = mrsh_node_get_binop(node);
-		highlight_node(state, binop->left);
+	case MRSH_AND_OR_LIST_BINOP:;
+		struct mrsh_binop *binop = mrsh_and_or_list_get_binop(and_or_list);
+		highlight_and_or_list(state, binop->left);
 		highlight_str(state, &binop->op_range, FORMAT_GREEN);
-		highlight_node(state, binop->right);
+		highlight_and_or_list(state, binop->right);
 		break;
 	}
 }
 
 static void highlight_command_list(struct highlight_state *state,
 		struct mrsh_command_list *list) {
-	highlight_node(state, list->node);
+	highlight_and_or_list(state, list->and_or_list);
 	if (mrsh_position_valid(&list->separator_pos)) {
 		highlight_char(state, &list->separator_pos, FORMAT_GREEN);
 	}

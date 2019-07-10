@@ -360,16 +360,16 @@ static int separator(struct mrsh_parser *state) {
 	return -1;
 }
 
-static struct mrsh_node *and_or(struct mrsh_parser *state);
+static struct mrsh_and_or_list *and_or(struct mrsh_parser *state);
 
 static struct mrsh_command_list *term(struct mrsh_parser *state) {
-	struct mrsh_node *node = and_or(state);
-	if (node == NULL) {
+	struct mrsh_and_or_list *and_or_list = and_or(state);
+	if (and_or_list == NULL) {
 		return NULL;
 	}
 
 	struct mrsh_command_list *cmd = calloc(1, sizeof(struct mrsh_command_list));
-	cmd->node = node;
+	cmd->and_or_list = and_or_list;
 
 	struct mrsh_position separator_pos = state->pos;
 	int sep = separator(state);
@@ -955,7 +955,7 @@ error_commands:
 	return NULL;
 }
 
-static struct mrsh_node *and_or(struct mrsh_parser *state) {
+static struct mrsh_and_or_list *and_or(struct mrsh_parser *state) {
 	struct mrsh_pipeline *pl = pipeline(state);
 	if (pl == NULL) {
 		return NULL;
@@ -968,30 +968,30 @@ static struct mrsh_node *and_or(struct mrsh_parser *state) {
 	} else if (operator(state, OR_IF, &op_range)) {
 		binop_type = MRSH_BINOP_OR;
 	} else {
-		return &pl->node;
+		return &pl->and_or_list;
 	}
 
 	linebreak(state);
-	struct mrsh_node *node = and_or(state);
-	if (node == NULL) {
-		mrsh_node_destroy(&pl->node);
+	struct mrsh_and_or_list *and_or_list = and_or(state);
+	if (and_or_list == NULL) {
+		mrsh_and_or_list_destroy(&pl->and_or_list);
 		parser_set_error(state, "expected an AND-OR list");
 		return NULL;
 	}
 
-	struct mrsh_binop *binop = mrsh_binop_create(binop_type, &pl->node, node);
+	struct mrsh_binop *binop = mrsh_binop_create(binop_type, &pl->and_or_list, and_or_list);
 	binop->op_range = op_range;
-	return &binop->node;
+	return &binop->and_or_list;
 }
 
 static struct mrsh_command_list *list(struct mrsh_parser *state) {
-	struct mrsh_node *node = and_or(state);
-	if (node == NULL) {
+	struct mrsh_and_or_list *and_or_list = and_or(state);
+	if (and_or_list == NULL) {
 		return NULL;
 	}
 
 	struct mrsh_command_list *cmd = calloc(1, sizeof(struct mrsh_command_list));
-	cmd->node = node;
+	cmd->and_or_list = and_or_list;
 
 	struct mrsh_position separator_pos = state->pos;
 	int sep = separator_op(state);

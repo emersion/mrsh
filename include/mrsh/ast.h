@@ -442,6 +442,12 @@ void mrsh_and_or_list_destroy(struct mrsh_and_or_list *and_or_list);
 void mrsh_command_list_destroy(struct mrsh_command_list *l);
 void mrsh_program_destroy(struct mrsh_program *prog);
 
+struct mrsh_word *mrsh_node_get_word(struct mrsh_node *node);
+struct mrsh_command *mrsh_node_get_command(struct mrsh_node *node);
+struct mrsh_and_or_list *mrsh_node_get_and_or_list(struct mrsh_node *node);
+struct mrsh_command_list *mrsh_node_get_command_list(struct mrsh_node *node);
+struct mrsh_program *mrsh_node_get_program(struct mrsh_node *node);
+
 struct mrsh_word_string *mrsh_word_get_string(const struct mrsh_word *word);
 struct mrsh_word_parameter *mrsh_word_get_parameter(
 	const struct mrsh_word *word);

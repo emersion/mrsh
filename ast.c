@@ -232,6 +232,31 @@ void mrsh_program_destroy(struct mrsh_program *prog) {
 	free(prog);
 }
 
+struct mrsh_word *mrsh_node_get_word(struct mrsh_node *node) {
+	assert(node->type == MRSH_NODE_WORD);
+	return (struct mrsh_word *)node;
+}
+
+struct mrsh_command *mrsh_node_get_command(struct mrsh_node *node) {
+	assert(node->type == MRSH_NODE_COMMAND);
+	return (struct mrsh_command *)node;
+}
+
+struct mrsh_and_or_list *mrsh_node_get_and_or_list(struct mrsh_node *node) {
+	assert(node->type == MRSH_NODE_AND_OR_LIST);
+	return (struct mrsh_and_or_list *)node;
+}
+
+struct mrsh_command_list *mrsh_node_get_command_list(struct mrsh_node *node) {
+	assert(node->type == MRSH_NODE_COMMAND_LIST);
+	return (struct mrsh_command_list *)node;
+}
+
+struct mrsh_program *mrsh_node_get_program(struct mrsh_node *node) {
+	assert(node->type == MRSH_NODE_PROGRAM);
+	return (struct mrsh_program *)node;
+}
+
 struct mrsh_word_string *mrsh_word_string_create(char *str,
 		bool single_quoted) {
 	struct mrsh_word_string *ws = calloc(1, sizeof(struct mrsh_word_string));

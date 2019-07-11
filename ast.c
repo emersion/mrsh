@@ -202,6 +202,12 @@ void mrsh_and_or_list_destroy(struct mrsh_and_or_list *and_or_list) {
 	assert(0);
 }
 
+struct mrsh_command_list *mrsh_command_list_create(void) {
+	struct mrsh_command_list *list = calloc(1, sizeof(struct mrsh_command_list));
+	list->node.type = MRSH_NODE_COMMAND_LIST;
+	return list;
+}
+
 void mrsh_command_list_destroy(struct mrsh_command_list *l) {
 	if (l == NULL) {
 		return;
@@ -209,6 +215,12 @@ void mrsh_command_list_destroy(struct mrsh_command_list *l) {
 
 	mrsh_and_or_list_destroy(l->and_or_list);
 	free(l);
+}
+
+struct mrsh_program *mrsh_program_create(void) {
+	struct mrsh_program *prog = calloc(1, sizeof(struct mrsh_program));
+	prog->node.type = MRSH_NODE_PROGRAM;
+	return prog;
 }
 
 void mrsh_program_destroy(struct mrsh_program *prog) {
@@ -223,6 +235,7 @@ void mrsh_program_destroy(struct mrsh_program *prog) {
 struct mrsh_word_string *mrsh_word_string_create(char *str,
 		bool single_quoted) {
 	struct mrsh_word_string *ws = calloc(1, sizeof(struct mrsh_word_string));
+	ws->word.node.type = MRSH_NODE_WORD;
 	ws->word.type = MRSH_WORD_STRING;
 	ws->str = str;
 	ws->single_quoted = single_quoted;
@@ -233,6 +246,7 @@ struct mrsh_word_parameter *mrsh_word_parameter_create(char *name,
 		enum mrsh_word_parameter_op op, bool colon, struct mrsh_word *arg) {
 	struct mrsh_word_parameter *wp =
 		calloc(1, sizeof(struct mrsh_word_parameter));
+	wp->word.node.type = MRSH_NODE_WORD;
 	wp->word.type = MRSH_WORD_PARAMETER;
 	wp->name = name;
 	wp->op = op;
@@ -245,6 +259,7 @@ struct mrsh_word_command *mrsh_word_command_create(struct mrsh_program *prog,
 		bool back_quoted) {
 	struct mrsh_word_command *wc =
 		calloc(1, sizeof(struct mrsh_word_command));
+	wc->word.node.type = MRSH_NODE_WORD;
 	wc->word.type = MRSH_WORD_COMMAND;
 	wc->program = prog;
 	wc->back_quoted = back_quoted;
@@ -255,6 +270,7 @@ struct mrsh_word_arithmetic *mrsh_word_arithmetic_create(
 		struct mrsh_word *body) {
 	struct mrsh_word_arithmetic *wa =
 		calloc(1, sizeof(struct mrsh_word_arithmetic));
+	wa->word.node.type = MRSH_NODE_WORD;
 	wa->word.type = MRSH_WORD_ARITHMETIC;
 	wa->body = body;
 	return wa;
@@ -263,6 +279,7 @@ struct mrsh_word_arithmetic *mrsh_word_arithmetic_create(
 struct mrsh_word_list *mrsh_word_list_create(struct mrsh_array *children,
 		bool double_quoted) {
 	struct mrsh_word_list *wl = calloc(1, sizeof(struct mrsh_word_list));
+	wl->word.node.type = MRSH_NODE_WORD;
 	wl->word.type = MRSH_WORD_LIST;
 	wl->children = *children;
 	wl->double_quoted = double_quoted;
@@ -301,6 +318,7 @@ struct mrsh_simple_command *mrsh_simple_command_create(struct mrsh_word *name,
 		struct mrsh_array *assignments) {
 	struct mrsh_simple_command *cmd =
 		calloc(1, sizeof(struct mrsh_simple_command));
+	cmd->command.node.type = MRSH_NODE_COMMAND;
 	cmd->command.type = MRSH_SIMPLE_COMMAND;
 	cmd->name = name;
 	cmd->arguments = *arguments;
@@ -311,6 +329,7 @@ struct mrsh_simple_command *mrsh_simple_command_create(struct mrsh_word *name,
 
 struct mrsh_brace_group *mrsh_brace_group_create(struct mrsh_array *body) {
 	struct mrsh_brace_group *bg = calloc(1, sizeof(struct mrsh_brace_group));
+	bg->command.node.type = MRSH_NODE_COMMAND;
 	bg->command.type = MRSH_BRACE_GROUP;
 	bg->body = *body;
 	return bg;
@@ -318,6 +337,7 @@ struct mrsh_brace_group *mrsh_brace_group_create(struct mrsh_array *body) {
 
 struct mrsh_subshell *mrsh_subshell_create(struct mrsh_array *body) {
 	struct mrsh_subshell *s = calloc(1, sizeof(struct mrsh_subshell));
+	s->command.node.type = MRSH_NODE_COMMAND;
 	s->command.type = MRSH_SUBSHELL;
 	s->body = *body;
 	return s;
@@ -326,6 +346,7 @@ struct mrsh_subshell *mrsh_subshell_create(struct mrsh_array *body) {
 struct mrsh_if_clause *mrsh_if_clause_create(struct mrsh_array *condition,
 		struct mrsh_array *body, struct mrsh_command *else_part) {
 	struct mrsh_if_clause *ic = calloc(1, sizeof(struct mrsh_if_clause));
+	ic->command.node.type = MRSH_NODE_COMMAND;
 	ic->command.type = MRSH_IF_CLAUSE;
 	ic->condition = *condition;
 	ic->body = *body;
@@ -336,6 +357,7 @@ struct mrsh_if_clause *mrsh_if_clause_create(struct mrsh_array *condition,
 struct mrsh_for_clause *mrsh_for_clause_create(char *name, bool in,
 		struct mrsh_array *word_list, struct mrsh_array *body) {
 	struct mrsh_for_clause *fc = calloc(1, sizeof(struct mrsh_for_clause));
+	fc->command.node.type = MRSH_NODE_COMMAND;
 	fc->command.type = MRSH_FOR_CLAUSE;
 	fc->name = name;
 	fc->in = in;
@@ -347,6 +369,7 @@ struct mrsh_for_clause *mrsh_for_clause_create(char *name, bool in,
 struct mrsh_loop_clause *mrsh_loop_clause_create(enum mrsh_loop_type type,
 		struct mrsh_array *condition, struct mrsh_array *body) {
 	struct mrsh_loop_clause *lc = calloc(1, sizeof(struct mrsh_loop_clause));
+	lc->command.node.type = MRSH_NODE_COMMAND;
 	lc->command.type = MRSH_LOOP_CLAUSE;
 	lc->type = type;
 	lc->condition = *condition;
@@ -357,6 +380,7 @@ struct mrsh_loop_clause *mrsh_loop_clause_create(enum mrsh_loop_type type,
 struct mrsh_case_clause *mrsh_case_clause_create(struct mrsh_word *word,
 		struct mrsh_array *items) {
 	struct mrsh_case_clause *cc = calloc(1, sizeof(struct mrsh_case_clause));
+	cc->command.node.type = MRSH_NODE_COMMAND;
 	cc->command.type = MRSH_CASE_CLAUSE;
 	cc->word = word;
 	cc->items = *items;
@@ -367,6 +391,7 @@ struct mrsh_function_definition *mrsh_function_definition_create(char *name,
 		struct mrsh_command *body) {
 	struct mrsh_function_definition *fd =
 		calloc(1, sizeof(struct mrsh_function_definition));
+	fd->command.node.type = MRSH_NODE_COMMAND;
 	fd->command.type = MRSH_FUNCTION_DEFINITION;
 	fd->name = name;
 	fd->body = body;
@@ -424,6 +449,7 @@ struct mrsh_function_definition *mrsh_command_get_function_definition(
 struct mrsh_pipeline *mrsh_pipeline_create(struct mrsh_array *commands,
 		bool bang) {
 	struct mrsh_pipeline *pl = calloc(1, sizeof(struct mrsh_pipeline));
+	pl->and_or_list.node.type = MRSH_NODE_AND_OR_LIST;
 	pl->and_or_list.type = MRSH_AND_OR_LIST_PIPELINE;
 	pl->commands = *commands;
 	pl->bang = bang;
@@ -433,6 +459,7 @@ struct mrsh_pipeline *mrsh_pipeline_create(struct mrsh_array *commands,
 struct mrsh_binop *mrsh_binop_create(enum mrsh_binop_type type,
 		struct mrsh_and_or_list *left, struct mrsh_and_or_list *right) {
 	struct mrsh_binop *binop = calloc(1, sizeof(struct mrsh_binop));
+	binop->and_or_list.node.type = MRSH_NODE_AND_OR_LIST;
 	binop->and_or_list.type = MRSH_AND_OR_LIST_BINOP;
 	binop->type = type;
 	binop->left = left;
@@ -440,12 +467,14 @@ struct mrsh_binop *mrsh_binop_create(enum mrsh_binop_type type,
 	return binop;
 }
 
-struct mrsh_pipeline *mrsh_and_or_list_get_pipeline(const struct mrsh_and_or_list *and_or_list) {
+struct mrsh_pipeline *mrsh_and_or_list_get_pipeline(
+		const struct mrsh_and_or_list *and_or_list) {
 	assert(and_or_list->type == MRSH_AND_OR_LIST_PIPELINE);
 	return (struct mrsh_pipeline *)and_or_list;
 }
 
-struct mrsh_binop *mrsh_and_or_list_get_binop(const struct mrsh_and_or_list *and_or_list) {
+struct mrsh_binop *mrsh_and_or_list_get_binop(
+		const struct mrsh_and_or_list *and_or_list) {
 	assert(and_or_list->type == MRSH_AND_OR_LIST_BINOP);
 	return (struct mrsh_binop *)and_or_list;
 }
@@ -833,7 +862,8 @@ struct mrsh_command *mrsh_command_copy(const struct mrsh_command *cmd) {
 	assert(0);
 }
 
-struct mrsh_and_or_list *mrsh_and_or_list_copy(const struct mrsh_and_or_list *and_or_list) {
+struct mrsh_and_or_list *mrsh_and_or_list_copy(
+		const struct mrsh_and_or_list *and_or_list) {
 	switch (and_or_list->type) {
 	case MRSH_AND_OR_LIST_PIPELINE:;
 		struct mrsh_pipeline *pl = mrsh_and_or_list_get_pipeline(and_or_list);
@@ -849,7 +879,8 @@ struct mrsh_and_or_list *mrsh_and_or_list_copy(const struct mrsh_and_or_list *an
 	case MRSH_AND_OR_LIST_BINOP:;
 		struct mrsh_binop *binop = mrsh_and_or_list_get_binop(and_or_list);
 		struct mrsh_binop *binop_copy = mrsh_binop_create(binop->type,
-			mrsh_and_or_list_copy(binop->left), mrsh_and_or_list_copy(binop->right));
+			mrsh_and_or_list_copy(binop->left),
+			mrsh_and_or_list_copy(binop->right));
 		return &binop_copy->and_or_list;
 	}
 	assert(0);
@@ -857,15 +888,14 @@ struct mrsh_and_or_list *mrsh_and_or_list_copy(const struct mrsh_and_or_list *an
 
 struct mrsh_command_list *mrsh_command_list_copy(
 		const struct mrsh_command_list *l) {
-	struct mrsh_command_list *l_copy =
-		calloc(1, sizeof(struct mrsh_command_list));
+	struct mrsh_command_list *l_copy = mrsh_command_list_create();
 	l_copy->and_or_list = mrsh_and_or_list_copy(l->and_or_list);
 	l_copy->ampersand = l->ampersand;
 	return l_copy;
 }
 
 struct mrsh_program *mrsh_program_copy(const struct mrsh_program *prog) {
-	struct mrsh_program *prog_copy = calloc(1, sizeof(struct mrsh_program));
+	struct mrsh_program *prog_copy = mrsh_program_create();
 	command_list_array_copy(&prog_copy->body, &prog->body);
 	return prog_copy;
 }

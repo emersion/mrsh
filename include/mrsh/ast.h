@@ -22,6 +22,18 @@ struct mrsh_range {
 	struct mrsh_position begin, end;
 };
 
+enum mrsh_node_type {
+	MRSH_NODE_PROGRAM,
+	MRSH_NODE_COMMAND_LIST,
+	MRSH_NODE_AND_OR_LIST,
+	MRSH_NODE_COMMAND,
+	MRSH_NODE_WORD,
+};
+
+struct mrsh_node {
+	enum mrsh_node_type type;
+};
+
 enum mrsh_word_type {
 	MRSH_WORD_STRING,
 	MRSH_WORD_PARAMETER,
@@ -39,6 +51,7 @@ enum mrsh_word_type {
  * - An unquoted or a double-quoted list of words
  */
 struct mrsh_word {
+	struct mrsh_node node;
 	enum mrsh_word_type type;
 };
 
@@ -169,6 +182,7 @@ enum mrsh_command_type {
  * A command. It is either a simple command, a brace group or an if clause.
  */
 struct mrsh_command {
+	struct mrsh_node node;
 	enum mrsh_command_type type;
 };
 
@@ -328,15 +342,15 @@ enum mrsh_and_or_list_type {
 };
 
 /**
- * A and_or_list is an AND-OR list component. It is either a pipeline or a binary
- * operation.
+ * An AND-OR list is a tree of pipelines and binary operations.
  */
 struct mrsh_and_or_list {
+	struct mrsh_node node;
 	enum mrsh_and_or_list_type type;
 };
 
 /**
- * A pipeline is a type of and_or_list which consists of multiple commands
+ * A pipeline is a type of AND-OR list which consists of multiple commands
  * separated by `|`. The format is: `[!] command1 [ | command2 ...]`.
  */
 struct mrsh_pipeline {
@@ -354,8 +368,8 @@ enum mrsh_binop_type {
 };
 
 /**
- * A binary operation is a type of and_or_list which consists of multiple pipelines
- * separated by `&&` or `||`.
+ * A binary operation is a type of AND-OR list which consists of multiple
+ * pipelines separated by `&&` or `||`.
  */
 struct mrsh_binop {
 	struct mrsh_and_or_list and_or_list;
@@ -370,6 +384,7 @@ struct mrsh_binop {
  * execution) or `&` (for asynchronous execution).
  */
 struct mrsh_command_list {
+	struct mrsh_node node;
 	struct mrsh_and_or_list *and_or_list;
 	bool ampersand; // whether the command list ends with `&`
 
@@ -380,19 +395,12 @@ struct mrsh_command_list {
  * A shell program. It contains command lists.
  */
 struct mrsh_program {
+	struct mrsh_node node;
 	struct mrsh_array body; // struct mrsh_command_list *
 };
 
 bool mrsh_position_valid(const struct mrsh_position *pos);
 bool mrsh_range_valid(const struct mrsh_range *range);
-
-void mrsh_word_destroy(struct mrsh_word *word);
-void mrsh_io_redirect_destroy(struct mrsh_io_redirect *redir);
-void mrsh_assignment_destroy(struct mrsh_assignment *assign);
-void mrsh_command_destroy(struct mrsh_command *cmd);
-void mrsh_and_or_list_destroy(struct mrsh_and_or_list *and_or_list);
-void mrsh_command_list_destroy(struct mrsh_command_list *l);
-void mrsh_program_destroy(struct mrsh_program *prog);
 
 struct mrsh_word_string *mrsh_word_string_create(char *str,
 	bool single_quoted);
@@ -404,14 +412,6 @@ struct mrsh_word_arithmetic *mrsh_word_arithmetic_create(
 	struct mrsh_word *body);
 struct mrsh_word_list *mrsh_word_list_create(struct mrsh_array *children,
 	bool double_quoted);
-struct mrsh_word_string *mrsh_word_get_string(const struct mrsh_word *word);
-struct mrsh_word_parameter *mrsh_word_get_parameter(
-	const struct mrsh_word *word);
-struct mrsh_word_command *mrsh_word_get_command(const struct mrsh_word *word);
-struct mrsh_word_arithmetic *mrsh_word_get_arithmetic(
-	const struct mrsh_word *word);
-struct mrsh_word_list *mrsh_word_get_list(const struct mrsh_word *word);
-
 struct mrsh_simple_command *mrsh_simple_command_create(struct mrsh_word *name,
 	struct mrsh_array *arguments, struct mrsh_array *io_redirects,
 	struct mrsh_array *assignments);
@@ -427,6 +427,29 @@ struct mrsh_case_clause *mrsh_case_clause_create(struct mrsh_word *word,
 	struct mrsh_array *items);
 struct mrsh_function_definition *mrsh_function_definition_create(char *name,
 	struct mrsh_command *body);
+struct mrsh_pipeline *mrsh_pipeline_create(struct mrsh_array *commands,
+	bool bang);
+struct mrsh_binop *mrsh_binop_create(enum mrsh_binop_type type,
+	struct mrsh_and_or_list *left, struct mrsh_and_or_list *right);
+struct mrsh_command_list *mrsh_command_list_create(void);
+struct mrsh_program *mrsh_program_create(void);
+
+void mrsh_word_destroy(struct mrsh_word *word);
+void mrsh_io_redirect_destroy(struct mrsh_io_redirect *redir);
+void mrsh_assignment_destroy(struct mrsh_assignment *assign);
+void mrsh_command_destroy(struct mrsh_command *cmd);
+void mrsh_and_or_list_destroy(struct mrsh_and_or_list *and_or_list);
+void mrsh_command_list_destroy(struct mrsh_command_list *l);
+void mrsh_program_destroy(struct mrsh_program *prog);
+
+struct mrsh_word_string *mrsh_word_get_string(const struct mrsh_word *word);
+struct mrsh_word_parameter *mrsh_word_get_parameter(
+	const struct mrsh_word *word);
+struct mrsh_word_command *mrsh_word_get_command(const struct mrsh_word *word);
+struct mrsh_word_arithmetic *mrsh_word_get_arithmetic(
+	const struct mrsh_word *word);
+struct mrsh_word_list *mrsh_word_get_list(const struct mrsh_word *word);
+
 struct mrsh_simple_command *mrsh_command_get_simple_command(
 	const struct mrsh_command *cmd);
 struct mrsh_brace_group *mrsh_command_get_brace_group(
@@ -444,12 +467,10 @@ struct mrsh_case_clause *mrsh_command_get_case_clause(
 struct mrsh_function_definition *mrsh_command_get_function_definition(
 	const struct mrsh_command *cmd);
 
-struct mrsh_pipeline *mrsh_pipeline_create(struct mrsh_array *commands,
-	bool bang);
-struct mrsh_binop *mrsh_binop_create(enum mrsh_binop_type type,
-	struct mrsh_and_or_list *left, struct mrsh_and_or_list *right);
-struct mrsh_pipeline *mrsh_and_or_list_get_pipeline(const struct mrsh_and_or_list *and_or_list);
-struct mrsh_binop *mrsh_and_or_list_get_binop(const struct mrsh_and_or_list *and_or_list);
+struct mrsh_pipeline *mrsh_and_or_list_get_pipeline(
+	const struct mrsh_and_or_list *and_or_list);
+struct mrsh_binop *mrsh_and_or_list_get_binop(
+	const struct mrsh_and_or_list *and_or_list);
 
 void mrsh_word_range(struct mrsh_word *word, struct mrsh_position *begin,
 	struct mrsh_position *end);
@@ -464,7 +485,8 @@ struct mrsh_io_redirect *mrsh_io_redirect_copy(
 struct mrsh_assignment *mrsh_assignment_copy(
 	const struct mrsh_assignment *assign);
 struct mrsh_command *mrsh_command_copy(const struct mrsh_command *cmd);
-struct mrsh_and_or_list *mrsh_and_or_list_copy(const struct mrsh_and_or_list *and_or_list);
+struct mrsh_and_or_list *mrsh_and_or_list_copy(
+	const struct mrsh_and_or_list *and_or_list);
 struct mrsh_command_list *mrsh_command_list_copy(
 	const struct mrsh_command_list *l);
 struct mrsh_program *mrsh_program_copy(const struct mrsh_program *prog);

@@ -368,7 +368,7 @@ static struct mrsh_command_list *term(struct mrsh_parser *state) {
 		return NULL;
 	}
 
-	struct mrsh_command_list *cmd = calloc(1, sizeof(struct mrsh_command_list));
+	struct mrsh_command_list *cmd = mrsh_command_list_create();
 	cmd->and_or_list = and_or_list;
 
 	struct mrsh_position separator_pos = state->pos;
@@ -990,7 +990,7 @@ static struct mrsh_command_list *list(struct mrsh_parser *state) {
 		return NULL;
 	}
 
-	struct mrsh_command_list *cmd = calloc(1, sizeof(struct mrsh_command_list));
+	struct mrsh_command_list *cmd = mrsh_command_list_create();
 	cmd->and_or_list = and_or_list;
 
 	struct mrsh_position separator_pos = state->pos;
@@ -1200,7 +1200,7 @@ static bool expect_complete_command(struct mrsh_parser *state,
 }
 
 static struct mrsh_program *program(struct mrsh_parser *state) {
-	struct mrsh_program *prog = calloc(1, sizeof(struct mrsh_program));
+	struct mrsh_program *prog = mrsh_program_create();
 	if (prog == NULL) {
 		return NULL;
 	}
@@ -1237,7 +1237,7 @@ struct mrsh_program *mrsh_parse_line(struct mrsh_parser *state) {
 		return NULL;
 	}
 
-	struct mrsh_program *prog = calloc(1, sizeof(struct mrsh_program));
+	struct mrsh_program *prog = mrsh_program_create();
 	if (prog == NULL) {
 		return NULL;
 	}

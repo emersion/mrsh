@@ -158,6 +158,8 @@ pid_t subshell_fork(struct context *ctx, struct process **process_ptr) {
 			*process_ptr = NULL;
 		}
 
+		ctx->state->child = true;
+
 		if (ctx->state->options & MRSH_OPT_MONITOR) {
 			// Create a job for all children processes
 			pid_t pgid = create_process_group(getpid());

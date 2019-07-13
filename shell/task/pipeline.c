@@ -5,10 +5,25 @@
 #include <unistd.h>
 #include "shell/task.h"
 
+/**
+ * Put the process into its job's process group. This has to be done both in the
+ * parent and the child because of potential race conditions.
+ */
+static struct mrsh_job *put_into_process_group(struct context *ctx, pid_t pid) {
+	if (ctx->job == NULL) {
+		ctx->job = job_create(ctx->state, pid);
+	}
+	setpgid(pid, ctx->job->pgid);
+	return ctx->job;
+}
+
 int run_pipeline(struct context *ctx, struct mrsh_pipeline *pl) {
+	// Create a new sub-context, because we want one job per pipeline.
+	struct context child_ctx = *ctx;
+
 	assert(pl->commands.len > 0);
 	if (pl->commands.len == 1) {
-		return run_command(ctx, pl->commands.data[0]);
+		return run_command(&child_ctx, pl->commands.data[0]);
 	}
 
 	struct mrsh_array procs = {0};
@@ -31,11 +46,20 @@ int run_pipeline(struct context *ctx, struct mrsh_pipeline *pl) {
 			cur_stdout = fds[1];
 		}
 
-		struct process *proc;
-		pid_t pid = subshell_fork(ctx, &proc);
+		pid_t pid = fork();
 		if (pid < 0) {
 			return TASK_STATUS_ERROR;
 		} else if (pid == 0) {
+			child_ctx.state->child = true;
+
+			if (ctx->state->options & MRSH_OPT_MONITOR) {
+				struct mrsh_job *job = put_into_process_group(&child_ctx, getpid());
+				if (ctx->state->interactive && !ctx->background) {
+					job_set_foreground(job, true, false);
+				}
+				init_job_child_process(ctx->state);
+			}
+
 			if (i > 0) {
 				if (dup2(cur_stdin, STDIN_FILENO) < 0) {
 					fprintf(stderr, "failed to duplicate stdin: %s\n",
@@ -54,12 +78,21 @@ int run_pipeline(struct context *ctx, struct mrsh_pipeline *pl) {
 				close(cur_stdout);
 			}
 
-			int ret = run_command(ctx, cmd);
+			int ret = run_command(&child_ctx, cmd);
 			if (ret < 0) {
 				exit(127);
 			}
 
 			exit(ret);
+		}
+
+		struct process *proc = process_create(ctx->state, pid);
+		if (ctx->state->options & MRSH_OPT_MONITOR) {
+			struct mrsh_job *job = put_into_process_group(&child_ctx, pid);
+			if (ctx->state->interactive && !ctx->background) {
+				job_set_foreground(job, true, false);
+			}
+			job_add_process(job, proc);
 		}
 
 		mrsh_array_add(&procs, proc);

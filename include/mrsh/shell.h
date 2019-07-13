@@ -110,6 +110,7 @@ struct mrsh_state {
 	// TODO: move this to context
 	enum mrsh_branch_control branch_control;
 	int nloops;
+	bool child; // true if we're not the main shell process
 };
 
 void mrsh_function_destroy(struct mrsh_function *fn);

@@ -114,7 +114,7 @@ int run_pipeline(struct context *ctx, struct mrsh_pipeline *pl) {
 		next_stdin = -1;
 	}
 
-	assert(next_stdin == -1 && cur_stdout == -1 && next_stdin == -1);
+	assert(next_stdin == -1 && cur_stdout == -1 && cur_stdin == -1);
 
 	int ret = 0;
 	for (size_t i = 0; i < procs.len; ++i) {

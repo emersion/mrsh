@@ -99,12 +99,15 @@ int builtin_wait(struct mrsh_state *state, int argc, char *argv[]) {
 		}
 	}
 
-	free(pids);
+	int status;
 	if (argc == 1) {
-		return EXIT_SUCCESS;
+		status = EXIT_SUCCESS;
 	} else {
-		return pids[npids - 1].status;
+		status = pids[npids - 1].status;
 	}
+
+	free(pids);
+	return status;
 
 failure:
 	free(pids);

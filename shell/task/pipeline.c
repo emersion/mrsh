@@ -23,7 +23,11 @@ int run_pipeline(struct context *ctx, struct mrsh_pipeline *pl) {
 
 	assert(pl->commands.len > 0);
 	if (pl->commands.len == 1) {
-		return run_command(&child_ctx, pl->commands.data[0]);
+		int ret = run_command(&child_ctx, pl->commands.data[0]);
+		if (pl->bang && ret >= 0) {
+			ret = !ret;
+		}
+		return ret;
 	}
 
 	struct mrsh_array procs = {0};

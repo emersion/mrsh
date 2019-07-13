@@ -10,8 +10,8 @@ echo >&2 "Pipeline with 3 commands"
 echo "a b c d" | sed s/b/B/ | sed s/c/C/
 
 #echo >&2 "Pipeline with bang"
-#! false
-#echo $?
+! false
+echo $?
 
 # https://github.com/emersion/mrsh/issues/100
 #echo >&2 "Pipeline with subshell"

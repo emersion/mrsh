@@ -10,7 +10,7 @@ wait $!
 echo >&2 "Run two asynchronous lists in parallel and wait"
 echo a &
 p1=$!
-echo b &
+echo a &
 wait $p1
 echo Job 1 exited with status $?
 wait $!

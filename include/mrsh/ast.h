@@ -399,6 +399,9 @@ struct mrsh_program {
 	struct mrsh_array body; // struct mrsh_command_list *
 };
 
+typedef void (*mrsh_node_iterator_func)(struct mrsh_node *node,
+	void *user_data);
+
 bool mrsh_position_valid(const struct mrsh_position *pos);
 bool mrsh_range_valid(const struct mrsh_range *range);
 
@@ -477,6 +480,9 @@ struct mrsh_pipeline *mrsh_and_or_list_get_pipeline(
 	const struct mrsh_and_or_list *and_or_list);
 struct mrsh_binop *mrsh_and_or_list_get_binop(
 	const struct mrsh_and_or_list *and_or_list);
+
+void mrsh_node_for_each(struct mrsh_node *node,
+	mrsh_node_iterator_func iterator, void *user_data);
 
 void mrsh_word_range(struct mrsh_word *word, struct mrsh_position *begin,
 	struct mrsh_position *end);

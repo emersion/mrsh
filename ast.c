@@ -504,6 +504,123 @@ struct mrsh_binop *mrsh_and_or_list_get_binop(
 	return (struct mrsh_binop *)and_or_list;
 }
 
+static void node_array_for_each(struct mrsh_array *nodes,
+		mrsh_node_iterator_func iterator, void *user_data) {
+	for (size_t i = 0; i < nodes->len; ++i) {
+		struct mrsh_node *node = nodes->data[i];
+		mrsh_node_for_each(node, iterator, user_data);
+	}
+}
+
+void mrsh_node_for_each(struct mrsh_node *node,
+		mrsh_node_iterator_func iterator, void *user_data) {
+	iterator(node, user_data);
+
+	switch (node->type) {
+	case MRSH_NODE_PROGRAM:;
+		struct mrsh_program *program = mrsh_node_get_program(node);
+		node_array_for_each(&program->body, iterator, user_data);
+		return;
+	case MRSH_NODE_COMMAND_LIST:;
+		struct mrsh_command_list *list = mrsh_node_get_command_list(node);
+		mrsh_node_for_each(&list->and_or_list->node, iterator, user_data);
+		return;
+	case MRSH_NODE_AND_OR_LIST:;
+		struct mrsh_and_or_list *and_or_list = mrsh_node_get_and_or_list(node);
+		switch (and_or_list->type) {
+		case MRSH_AND_OR_LIST_BINOP:;
+			struct mrsh_binop *binop = mrsh_and_or_list_get_binop(and_or_list);
+			mrsh_node_for_each(&binop->left->node, iterator, user_data);
+			mrsh_node_for_each(&binop->right->node, iterator, user_data);
+			return;
+		case MRSH_AND_OR_LIST_PIPELINE:;
+			struct mrsh_pipeline *pipeline =
+				mrsh_and_or_list_get_pipeline(and_or_list);
+			node_array_for_each(&pipeline->commands, iterator, user_data);
+			return;
+		}
+		assert(false);
+	case MRSH_NODE_COMMAND:;
+		struct mrsh_command *cmd = mrsh_node_get_command(node);
+		switch (cmd->type) {
+		case MRSH_SIMPLE_COMMAND:;
+			struct mrsh_simple_command *sc =
+				mrsh_command_get_simple_command(cmd);
+			if (sc->name != NULL) {
+				mrsh_node_for_each(&sc->name->node, iterator, user_data);
+			}
+			node_array_for_each(&sc->arguments, iterator, user_data);
+			// TODO: io_redirects, assignments
+			return;
+		case MRSH_BRACE_GROUP:;
+			struct mrsh_brace_group *bg = mrsh_command_get_brace_group(cmd);
+			node_array_for_each(&bg->body, iterator, user_data);
+			return;
+		case MRSH_SUBSHELL:;
+			struct mrsh_subshell *ss = mrsh_command_get_subshell(cmd);
+			node_array_for_each(&ss->body, iterator, user_data);
+			return;
+		case MRSH_IF_CLAUSE:;
+			struct mrsh_if_clause *ic = mrsh_command_get_if_clause(cmd);
+			node_array_for_each(&ic->condition, iterator, user_data);
+			node_array_for_each(&ic->body, iterator, user_data);
+			if (ic->else_part != NULL) {
+				mrsh_node_for_each(&ic->else_part->node, iterator, user_data);
+			}
+			return;
+		case MRSH_FOR_CLAUSE:;
+			struct mrsh_for_clause *fc = mrsh_command_get_for_clause(cmd);
+			node_array_for_each(&fc->word_list, iterator, user_data);
+			node_array_for_each(&fc->body, iterator, user_data);
+			return;
+		case MRSH_LOOP_CLAUSE:;
+			struct mrsh_loop_clause *lc = mrsh_command_get_loop_clause(cmd);
+			node_array_for_each(&lc->condition, iterator, user_data);
+			node_array_for_each(&lc->body, iterator, user_data);
+			return;
+		case MRSH_CASE_CLAUSE:;
+			struct mrsh_case_clause *cc = mrsh_command_get_case_clause(cmd);
+			mrsh_node_for_each(&cc->word->node, iterator, user_data);
+			// TODO: items
+			return;
+		case MRSH_FUNCTION_DEFINITION:;
+			struct mrsh_function_definition *fn =
+				mrsh_command_get_function_definition(cmd);
+			mrsh_node_for_each(&fn->body->node, iterator, user_data);
+			return;
+		}
+		assert(false);
+	case MRSH_NODE_WORD:;
+		struct mrsh_word *word = mrsh_node_get_word(node);
+		switch (word->type) {
+		case MRSH_WORD_STRING:
+			return;
+		case MRSH_WORD_PARAMETER:;
+			struct mrsh_word_parameter *wp = mrsh_word_get_parameter(word);
+			if (wp->arg != NULL) {
+				mrsh_node_for_each(&wp->arg->node, iterator, user_data);
+			}
+			return;
+		case MRSH_WORD_COMMAND:;
+			struct mrsh_word_command *wc =	mrsh_word_get_command(word);
+			if (wc->program != NULL) {
+				mrsh_node_for_each(&wc->program->node, iterator, user_data);
+			}
+			return;
+		case MRSH_WORD_ARITHMETIC:;
+			struct mrsh_word_arithmetic *wa = mrsh_word_get_arithmetic(word);
+			mrsh_node_for_each(&wa->body->node, iterator, user_data);
+			return;
+		case MRSH_WORD_LIST:;
+			struct mrsh_word_list *wl = mrsh_word_get_list(word);
+			node_array_for_each(&wl->children, iterator, user_data);
+			return;
+		}
+		assert(false);
+	}
+	assert(false);
+}
+
 static void position_next(struct mrsh_position *dst,
 		const struct mrsh_position *src) {
 	*dst = *src;

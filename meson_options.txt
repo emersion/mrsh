@@ -12,3 +12,10 @@ option(
 	value: 'readline',
 	description: 'Provider of the readline library',
 )
+
+option(
+	'examples',
+	type: 'boolean',
+	value: true,
+	description: 'Build example programs',
+)

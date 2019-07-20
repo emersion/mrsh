@@ -147,14 +147,7 @@ mrsh_exe = executable(
 	install: true,
 )
 
-executable(
-	'highlight',
-	files([
-		'highlight.c',
-	]),
-	dependencies: [mrsh],
-)
-
+subdir('example')
 subdir('test')
 
 pkgconfig = import('pkgconfig')
@@ -170,5 +163,6 @@ status = [
 	'',
 	'Features:',
 	'  readline: @0@'.format(readline.found()),
+	'  examples: @0@'.format(get_option('examples')),
 ]
 message('\n'.join(status))

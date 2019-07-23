@@ -1,0 +1,286 @@
+#!/bin/sh -e
+SOVERSION=0.0.0
+
+pkg_config=${PKG_CONFIG:-pkg-config}
+outdir=${OUTDIR:-.build}
+srcdir=${SRCDIR:-$(dirname "$0")}
+CC=${CC:-cc}
+LIBS=
+
+use_readline=-1
+readline=readline
+
+for arg
+do
+	case "$arg" in
+		--prefix=*)
+			PREFIX=${arg#*=}
+			;;
+		--without-readline)
+			use_readline=0
+			;;
+		--with-readline=*)
+			use_readline=1
+			readline=${arg#*=}
+			;;
+	esac
+done
+
+libmrsh() {
+	genrules libmrsh \
+		'arithm.c' \
+		'array.c' \
+		'ast_print.c' \
+		'ast.c' \
+		'buffer.c' \
+		'builtin/alias.c' \
+		'builtin/bg.c' \
+		'builtin/break.c' \
+		'builtin/builtin.c' \
+		'builtin/cd.c' \
+		'builtin/colon.c' \
+		'builtin/command.c' \
+		'builtin/dot.c' \
+		'builtin/eval.c' \
+		'builtin/exit.c' \
+		'builtin/export.c' \
+		'builtin/false.c' \
+		'builtin/fg.c' \
+		'builtin/getopts.c' \
+		'builtin/pwd.c' \
+		'builtin/read.c' \
+		'builtin/set.c' \
+		'builtin/shift.c' \
+		'builtin/times.c' \
+		'builtin/true.c' \
+		'builtin/type.c' \
+		'builtin/ulimit.c' \
+		'builtin/umask.c' \
+		'builtin/unalias.c' \
+		'builtin/unset.c' \
+		'builtin/unspecified.c' \
+		'builtin/wait.c' \
+		'getopt.c' \
+		'hashtable.c' \
+		'parser/arithm.c' \
+		'parser/parser.c' \
+		'parser/program.c' \
+		'parser/word.c' \
+		'shell/arithm.c' \
+		'shell/entry.c' \
+		'shell/job.c' \
+		'shell/path.c' \
+		'shell/process.c' \
+		'shell/redir.c' \
+		'shell/shell.c' \
+		'shell/task/pipeline.c' \
+		'shell/task/simple_command.c' \
+		'shell/task/task.c' \
+		'shell/task/word.c' \
+		'shell/word.c'
+}
+
+mrsh() {
+	if [ $use_readline -eq 1 ]
+	then
+		genrules mrsh \
+			'main.c' \
+			'frontend/readline.c'
+	else
+		genrules mrsh \
+			'main.c' \
+			'frontend/basic.c'
+	fi
+}
+
+highlight() {
+	genrules highlight example/highlight.c
+}
+
+genrules() {
+	target="$1"
+	shift
+	printf '# Begin generated rules for %s\n' "$target"
+	for file in "$@"
+	do
+		file="${file%.*}"
+		printf '%s.o: %s.c\n' "$file" "$file"
+	done
+	printf '%s_objects=\\\n' "$target"
+	n=0
+	for file in "$@"
+	do
+		file="${file%.*}"
+		n=$((n+1))
+		if [ $n -eq $# ]
+		then
+			printf '\t%s.o\n' "$file"
+		else
+			printf '\t%s.o \\\n' "$file"
+		fi
+	done
+	printf '# End generated rules for %s\n' "$target"
+}
+
+append_cflags() {
+	for flag
+	do
+		CFLAGS="$(printf '%s \\\n\t%s' "$CFLAGS" "$flag")"
+	done
+}
+
+append_ldflags() {
+	for flag
+	do
+		LDFLAGS="$(printf '%s \\\n\t%s' "$LDFLAGS" "$flag")"
+	done
+}
+
+append_libs() {
+	for flag
+	do
+		LIBS="$(printf '%s \\\n\t%s' "$LIBS" "$flag")"
+	done
+}
+
+test_cflags() {
+	[ ! -e "$outdir"/check.c ] && cat <<-EOF > "$outdir"/check.c
+	int main(void) { return 0; }
+	EOF
+	werror=""
+	case "$CFLAGS" in
+		*-Werror*)
+			werror="-Werror"
+			;;
+	esac
+	if $CC $werror "$@" -o /dev/null "$outdir"/check.c >/dev/null 2>&1
+	then
+		append_cflags "$@"
+	else
+		return 1
+	fi
+}
+
+test_ldflags() {
+	[ ! -e "$outdir"/check.c ] && cat <<-EOF > "$outdir"/check.c
+	int main(void) { return 0; }
+	EOF
+	if $CC "$@" -o /dev/null "$outdir"/check.c >/dev/null 2>&1
+	then
+		append_ldflags "$@"
+	else
+		return 1
+	fi
+}
+
+mkdir -p $outdir
+
+for flag in \
+	-g -std=c99 -pedantic -Werror -Wundef -Wlogical-op \
+	-Wmissing-include-dirs -Wold-style-definition -Wpointer-arith -Winit-self \
+	-Wfloat-equal -Wstrict-prototypes -Wredundant-decls \
+	-Wimplicit-fallthrough=2 -Wendif-labels -Wstrict-aliasing=2 -Woverflow \
+	-Wformat=2 -Wno-missing-braces -Wno-missing-field-initializers \
+	-Wno-unused-parameter
+do
+	printf "Checking for $flag... "
+	if test_cflags "$flag"
+	then
+		echo yes
+	else
+		echo no
+	fi
+done
+
+for flag in -fPIC -Wl,--no-undefined -Wl,--as-needed
+do
+	test_ldflags "$flag"
+done
+
+soname=libmrsh.so.$(echo "$SOVERSION" | cut -d. -f1)
+printf "Checking for specifying soname for shared lib... "
+if ! \
+	test_ldflags -Wl,-soname,$soname || \
+	test_ldflags -Wl,-install_name,$soname
+then
+	echo no
+	echo "Unable to specify soname (is $(uname) supported?)" >&2
+	exit 1
+else
+	echo yes
+fi
+
+printf "Checking for exported symbol restrictions... "
+if ! \
+	test_ldflags -Wl,--version-script="libmrsh.gnu.sym" || \
+	test_ldflags -Wl,-exported_symbols_list,"libmrsh.darwin.sym"
+then
+	echo no
+	echo "Unable to specify exported symbols (is $(uname) supported?)" >&2
+	exit 1
+else
+	echo yes
+fi
+
+if [ $use_readline -eq -1 ]
+then
+	printf "Checking for readline... "
+	if $pkg_config readline
+	then
+		readline=readline
+		use_readline=1
+		append_cflags -DHAVE_READLINE
+		echo yes
+	else
+		echo no
+	fi
+fi
+if [ $use_readline -eq -1 ]
+then
+	printf "Checking for libedit... "
+	if $pkg_config libedit
+	then
+		echo yes
+		readline=libedit
+		use_readline=1
+		append_cflags -DHAVE_EDITLINE
+	else
+		echo no
+	fi
+fi
+
+if [ $use_readline -eq 1 ]
+then
+	append_cflags $($pkg_config --cflags $readline)
+	append_libs $($pkg_config --libs $readline)
+	if [ "$readline" = "readline" ]
+	then
+		# Undo GNU_SOURCE
+		append_cflags -U_GNU_SOURCE
+	fi
+fi
+
+printf "Creating $outdir/config.mk... "
+cat <<EOF > "$outdir"/config.mk
+SOVERSION=$SOVERSION
+CC=$CC
+PREFIX=${PREFIX:-/usr/local}
+_INSTDIR=\$(DESTDIR)\$(PREFIX)
+BINDIR?=${BINDIR:-\$(_INSTDIR)/bin}
+LIBDIR?=${LIBDIR:-\$(_INSTDIR)/lib}
+INCDIR?=${INCDIR:-\$(_INSTDIR)/include}
+MANDIR?=${MANDIR:-\$(_INSTDIR)/share/man}
+PCDIR?=${PCDIR:-\$(_INSTDIR)/lib/pkgconfig}
+CFLAGS=${CFLAGS}
+LDFLAGS=${LDFLAGS}
+LIBS=${LIBS}
+SRCDIR=${srcdir}
+
+all: mrsh highlight libmrsh.so.\$(SOVERSION) \$(OUTDIR)/mrsh.pc
+EOF
+libmrsh >>"$outdir"/config.mk
+mrsh >>"$outdir"/config.mk
+highlight >>"$outdir"/config.mk
+echo done
+
+touch $outdir/cppcache

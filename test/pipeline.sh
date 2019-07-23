@@ -1,12 +1,12 @@
 #!/bin/sh
 
-echo >&2 "Pipeline with 1 command"
+echo "Pipeline with 1 command"
 echo "a b c d"
 
-echo >&2 "Pipeline with 2 commands"
+echo "Pipeline with 2 commands"
 echo "a b c d" | sed s/b/B/
 
-echo >&2 "Pipeline with 3 commands"
+echo "Pipeline with 3 commands"
 echo "a b c d" | sed s/b/B/ | sed s/c/C/
 
 echo >&2 "Pipeline with bang"

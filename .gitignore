@@ -53,3 +53,7 @@ dkms.conf
 
 /build
 /build-*
+
+.build
+highlight
+mrsh

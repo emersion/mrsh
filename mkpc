@@ -1,0 +1,12 @@
+#!/bin/sh
+cat <<EOF > $1
+prefix=$PREFIX
+libdir=\${prefix}/lib
+includedir=\${prefix}/include
+
+Name: mrsh
+Description: POSIX shell library
+Version: 0.0.0
+Libs: -L\${libdir} -lmrsh
+Cflags: -I\${includedir}
+EOF

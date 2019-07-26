@@ -36,7 +36,7 @@ static struct mrsh_job *put_into_process_group(struct context *ctx, pid_t pid) {
 
 static int run_process(struct context *ctx, struct mrsh_simple_command *sc,
 		char **argv) {
-	const char *path = expand_path(ctx->state, argv[0], true);
+	const char *path = expand_exec_path(ctx->state, argv[0]);
 	if (!path) {
 		fprintf(stderr, "%s: not found\n", argv[0]);
 		return -1;

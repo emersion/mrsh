@@ -75,6 +75,11 @@ struct mrsh_function {
 	struct mrsh_command *body;
 };
 
+struct mrsh_cached_command_path {
+	unsigned int hits;
+	char *command;
+};
+
 struct mrsh_call_frame {
 	char **argv;
 	int argc;
@@ -98,6 +103,7 @@ struct mrsh_state {
 	struct mrsh_hashtable variables; // struct mrsh_variable *
 	struct mrsh_hashtable aliases; // char *
 	struct mrsh_hashtable functions; // struct mrsh_function *
+	struct mrsh_hashtable cached_command_paths;
 	struct mrsh_array processes;
 	int last_status;
 

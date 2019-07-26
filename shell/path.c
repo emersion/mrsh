@@ -43,3 +43,57 @@ next:
 	free(pathe);
 	return NULL;
 }
+
+static struct mrsh_cached_command_path *cache_exec_path(struct mrsh_state *state, 
+		const char *command, const char *path) {
+	const char* key = strdup(command);
+
+	struct mrsh_hashtable *paths = &state->cached_command_paths;
+	struct mrsh_cached_command_path *entry = 
+		calloc(1, sizeof(struct mrsh_cached_command_path));
+
+	entry->command = strdup(path);
+	mrsh_hashtable_set(paths, key, entry);
+
+	return entry;
+}
+
+const char *expand_exec_path(struct mrsh_state *state, const char *command) {
+	if (strlen(command) == 0) {
+		return NULL;
+	}
+
+	struct mrsh_cached_command_path *entry;
+
+	if (command[0] != '/') {
+		struct mrsh_hashtable *paths = &state->cached_command_paths;
+		entry = (struct mrsh_cached_command_path *)mrsh_hashtable_get(paths, command);
+
+		if (entry != NULL) {
+			entry->hits ++;
+			return entry->command;
+		}
+	}
+
+	const char* path = expand_path(state, command, true);
+
+	if (path == NULL) {
+		return NULL;
+	}
+
+	entry = cache_exec_path(state, command, path);
+	entry->hits ++;
+
+	return entry->command;
+}
+
+static void free_entry(const char *key, void *value, void *user_data) {
+	struct mrsh_cached_command_path *entry = value;
+	free(entry->command);
+	mrsh_hashtable_del((struct mrsh_hashtable *)user_data, key);
+}
+
+void clear_exec_path_cache(struct mrsh_state *state) {
+	mrsh_hashtable_for_each(&state->cached_command_paths, free_entry,
+		&state->cached_command_paths);
+}

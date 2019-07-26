@@ -28,6 +28,7 @@ static const struct builtin builtins[] = {
 	{ "false", builtin_false, false },
 	{ "fg", builtin_fg, false },
 	{ "getopts", builtin_getopts, false },
+	{ "hash", builtin_hash, false },
 	{ "pwd", builtin_pwd, false },
 	{ "read", builtin_read, false },
 	{ "readonly", builtin_export, true },

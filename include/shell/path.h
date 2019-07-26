@@ -9,4 +9,7 @@
  * match. Fully qualified paths are returned as-is. */
 const char *expand_path(struct mrsh_state *state, const char *file, bool exec);
 
+const char *expand_exec_path(struct mrsh_state *state, const char *command);
+void clear_exec_path_cache(struct mrsh_state *state);
+
 #endif

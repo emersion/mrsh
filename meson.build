@@ -86,6 +86,7 @@ lib_mrsh = library(
 		'builtin/false.c',
 		'builtin/fg.c',
 		'builtin/getopts.c',
+		'builtin/hash.c',
 		'builtin/pwd.c',
 		'builtin/read.c',
 		'builtin/set.c',

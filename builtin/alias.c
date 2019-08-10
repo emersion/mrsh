@@ -20,7 +20,7 @@ int builtin_alias(struct mrsh_state *state, int argc, char *argv[]) {
 	mrsh_optind = 0;
 	if (mrsh_getopt(argc, argv, ":") != -1) {
 		fprintf(stderr, "alias: unknown option -- %c\n", mrsh_optopt);
-		fprintf(stderr, alias_usage);
+		fprintf(stderr, "%s", alias_usage);
 		return 1;
 	}
 

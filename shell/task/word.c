@@ -151,11 +151,11 @@ int run_word(struct context *ctx, struct mrsh_word **word_ptr,
 	case MRSH_WORD_PARAMETER:;
 		struct mrsh_word_parameter *wp = mrsh_word_get_parameter(word);
 		const char *value = parameter_get_value(ctx->state, wp->name);
+		char lineno[16];
 		if (value == NULL && strcmp(wp->name, "LINENO") == 0) {
 			struct mrsh_position pos;
 			mrsh_word_range(word, &pos, NULL);
 
-			char lineno[16];
 			snprintf(lineno, sizeof(lineno), "%d", pos.line);
 
 			value = lineno;

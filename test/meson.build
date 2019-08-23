@@ -19,12 +19,12 @@ test_files = [
 
 foreach test_file : test_files
 	test(
-		join_paths(meson.current_source_dir(), test_file),
+		test_file,
 		harness,
 		env: [
 			'MRSH=@0@'.format(mrsh_exe.full_path()),
 			'REF_SH=@0@'.format(ref_sh.path()),
 		],
-		args: [test_file],
+		args: [join_paths(meson.current_source_dir(), test_file)],
 	)
 endforeach

@@ -12,8 +12,8 @@ echo a &
 p1=$!
 echo a &
 wait $p1
-echo Job 1 exited with status $?
 wait $!
+echo Job 1 exited with status $?
 echo Job 2 exited with status $?
 
 #echo >&2 "Run asynchronous list, kill it and wait"

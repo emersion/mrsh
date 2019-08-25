@@ -26,12 +26,19 @@ static void populate_env_iterator(const char *key, void *_var, void *_) {
  * Put the process into its job's process group. This has to be done both in the
  * parent and the child because of potential race conditions.
  */
-static struct mrsh_job *put_into_process_group(struct context *ctx, pid_t pid) {
-	if (ctx->job == NULL) {
-		ctx->job = job_create(ctx->state, pid);
+static struct process *init_child(struct context *ctx, pid_t pid) {
+	struct process *proc = process_create(ctx->state, pid);
+	if (ctx->state->options & MRSH_OPT_MONITOR) {
+		if (ctx->job == NULL) {
+			ctx->job = job_create(ctx->state);
+		}
+		job_add_process(ctx->job, proc);
+
+		if (ctx->state->interactive && !ctx->background) {
+			job_set_foreground(ctx->job, true, false);
+		}
 	}
-	setpgid(pid, ctx->job->pgid);
-	return ctx->job;
+	return proc;
 }
 
 static int run_process(struct context *ctx, struct mrsh_simple_command *sc,
@@ -47,11 +54,8 @@ static int run_process(struct context *ctx, struct mrsh_simple_command *sc,
 		fprintf(stderr, "failed to fork(): %s\n", strerror(errno));
 		return -1;
 	} else if (pid == 0) {
+		init_child(ctx, getpid());
 		if (ctx->state->options & MRSH_OPT_MONITOR) {
-			struct mrsh_job *job = put_into_process_group(ctx, getpid());
-			if (ctx->state->interactive && !ctx->background) {
-				job_set_foreground(job, true, false);
-			}
 			init_job_child_process(ctx->state);
 		}
 
@@ -101,17 +105,7 @@ static int run_process(struct context *ctx, struct mrsh_simple_command *sc,
 		exit(127);
 	}
 
-	struct process *process = process_create(ctx->state, pid);
-
-	if (ctx->state->options & MRSH_OPT_MONITOR) {
-		struct mrsh_job *job = put_into_process_group(ctx, pid);
-		if (ctx->state->interactive && !ctx->background) {
-			job_set_foreground(job, true, false);
-		}
-
-		job_add_process(job, process);
-	}
-
+	struct process *process = init_child(ctx, pid);
 	return job_wait_process(process);
 }
 

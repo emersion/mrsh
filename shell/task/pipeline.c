@@ -9,12 +9,19 @@
  * Put the process into its job's process group. This has to be done both in the
  * parent and the child because of potential race conditions.
  */
-static struct mrsh_job *put_into_process_group(struct context *ctx, pid_t pid) {
-	if (ctx->job == NULL) {
-		ctx->job = job_create(ctx->state, pid);
+static struct process *init_child(struct context *ctx, pid_t pid) {
+	struct process *proc = process_create(ctx->state, pid);
+	if (ctx->state->options & MRSH_OPT_MONITOR) {
+		if (ctx->job == NULL) {
+			ctx->job = job_create(ctx->state);
+		}
+		job_add_process(ctx->job, proc);
+
+		if (ctx->state->interactive && !ctx->background) {
+			job_set_foreground(ctx->job, true, false);
+		}
 	}
-	setpgid(pid, ctx->job->pgid);
-	return ctx->job;
+	return proc;
 }
 
 int run_pipeline(struct context *ctx, struct mrsh_pipeline *pl) {
@@ -56,11 +63,8 @@ int run_pipeline(struct context *ctx, struct mrsh_pipeline *pl) {
 		} else if (pid == 0) {
 			child_ctx.state->child = true;
 
+			init_child(&child_ctx, getpid());
 			if (ctx->state->options & MRSH_OPT_MONITOR) {
-				struct mrsh_job *job = put_into_process_group(&child_ctx, getpid());
-				if (ctx->state->interactive && !ctx->background) {
-					job_set_foreground(job, true, false);
-				}
 				init_job_child_process(ctx->state);
 			}
 
@@ -90,15 +94,7 @@ int run_pipeline(struct context *ctx, struct mrsh_pipeline *pl) {
 			exit(ret);
 		}
 
-		struct process *proc = process_create(ctx->state, pid);
-		if (ctx->state->options & MRSH_OPT_MONITOR) {
-			struct mrsh_job *job = put_into_process_group(&child_ctx, pid);
-			if (ctx->state->interactive && !ctx->background) {
-				job_set_foreground(job, true, false);
-			}
-			job_add_process(job, proc);
-		}
-
+		struct process *proc = init_child(&child_ctx, pid);
 		mrsh_array_add(&procs, proc);
 
 		if (cur_stdin >= 0) {

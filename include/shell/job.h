@@ -29,10 +29,18 @@ struct mrsh_job {
 };
 
 /**
- * Create a new job with the provided process group ID.
+ * Create a new job. It will start in the background by default.
  */
-struct mrsh_job *job_create(struct mrsh_state *state, pid_t pgid);
+struct mrsh_job *job_create(struct mrsh_state *state);
 void job_destroy(struct mrsh_job *job);
+/**
+ * Add a process to the job. This puts the process into the job's process
+ * group. This has to be done both in the parent and in the child to prevent
+ * race conditions.
+ *
+ * If the job doesn't have a process group (because it's empty), then a new
+ * process group is created.
+ */
 void job_add_process(struct mrsh_job *job, struct process *proc);
 /**
  * Polls the job's current status without blocking. Returns:

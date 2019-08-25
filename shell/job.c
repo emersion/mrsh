@@ -82,7 +82,7 @@ static void array_remove(struct mrsh_array *array, size_t i) {
 	--array->len;
 }
 
-struct mrsh_job *job_create(struct mrsh_state *state, pid_t pgid) {
+struct mrsh_job *job_create(struct mrsh_state *state) {
 	int id = 1;
 	for (size_t i = 0; i < state->jobs.len; ++i) {
 		struct mrsh_job *job = state->jobs.data[i];
@@ -93,7 +93,7 @@ struct mrsh_job *job_create(struct mrsh_state *state, pid_t pgid) {
 
 	struct mrsh_job *job = calloc(1, sizeof(struct mrsh_job));
 	job->state = state;
-	job->pgid = pgid;
+	job->pgid = -1;
 	job->job_id = id;
 	mrsh_array_add(&state->jobs, job);
 	return job;
@@ -124,11 +124,19 @@ void job_destroy(struct mrsh_job *job) {
 }
 
 void job_add_process(struct mrsh_job *job, struct process *proc) {
+	if (job->pgid <= 0) {
+		job->pgid = proc->pid;
+	}
+	if (setpgid(proc->pid, job->pgid) != 0) {
+		fprintf(stderr, "setpgid failed: %s\n", strerror(errno));
+		return;
+	}
 	mrsh_array_add(&job->processes, proc);
 }
 
 bool job_set_foreground(struct mrsh_job *job, bool foreground, bool cont) {
 	struct mrsh_state *state = job->state;
+	assert(job->pgid > 0);
 
 	// Don't try to continue the job if it's not stopped
 	if (job_poll(job) != TASK_STATUS_STOPPED) {
@@ -194,6 +202,7 @@ int job_poll(struct mrsh_job *job) {
 }
 
 static bool _job_wait(struct mrsh_state *state, pid_t pid) {
+	assert(pid > 0 && pid != getpid());
 	while (true) {
 		// We only want to be notified about stopped processes in the main
 		// shell. Child processes want to block until their own children have

@@ -317,7 +317,7 @@ static struct mrsh_arithm_expr *binop(struct mrsh_parser *state,
 	consume_whitespace(state);
 
 	struct mrsh_arithm_expr *right = binop(state, type, str, term);
-	if (left == NULL) {
+	if (right == NULL) {
 		mrsh_arithm_expr_destroy(left);
 		parser_set_error(state, "expected a term");
 		return NULL;

@@ -268,7 +268,7 @@ static struct mrsh_arithm_expr *comp(struct mrsh_parser *state) {
 	consume_whitespace(state);
 
 	struct mrsh_arithm_expr *right = comp(state);
-	if (left == NULL) {
+	if (right == NULL) {
 		mrsh_arithm_expr_destroy(left);
 		parser_set_error(state, "expected a term");
 		return NULL;
@@ -294,7 +294,7 @@ static struct mrsh_arithm_expr *equal(struct mrsh_parser *state) {
 	}
 
 	struct mrsh_arithm_expr *right = equal(state);
-	if (left == NULL) {
+	if (right == NULL) {
 		mrsh_arithm_expr_destroy(left);
 		parser_set_error(state, "expected a term");
 		return NULL;

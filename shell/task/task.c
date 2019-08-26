@@ -12,11 +12,13 @@
 #include "shell/task.h"
 
 static int run_subshell(struct context *ctx, struct mrsh_array *array) {
-	struct process *process;
-	pid_t pid = subshell_fork(ctx, &process);
+	pid_t pid = fork();
 	if (pid < 0) {
+		fprintf(stderr, "fork failed: %s\n", strerror(errno));
 		return TASK_STATUS_ERROR;
 	} else if (pid == 0) {
+		ctx->state->child = true;
+
 		if (!(ctx->state->options & MRSH_OPT_MONITOR)) {
 			// If job control is disabled, stdin is /dev/null
 			int fd = open("/dev/null", O_CLOEXEC | O_RDONLY);
@@ -40,7 +42,8 @@ static int run_subshell(struct context *ctx, struct mrsh_array *array) {
 		exit(ret);
 	}
 
-	return job_wait_process(process);
+	struct process *proc = process_create(ctx->state, pid);
+	return job_wait_process(proc);
 }
 
 static int run_if_clause(struct context *ctx, struct mrsh_if_clause *ic) {

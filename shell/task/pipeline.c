@@ -12,9 +12,6 @@
 static struct process *init_child(struct context *ctx, pid_t pid) {
 	struct process *proc = process_create(ctx->state, pid);
 	if (ctx->state->options & MRSH_OPT_MONITOR) {
-		if (ctx->job == NULL) {
-			ctx->job = job_create(ctx->state);
-		}
 		job_add_process(ctx->job, proc);
 
 		if (ctx->state->interactive && !ctx->background) {
@@ -27,6 +24,9 @@ static struct process *init_child(struct context *ctx, pid_t pid) {
 int run_pipeline(struct context *ctx, struct mrsh_pipeline *pl) {
 	// Create a new sub-context, because we want one job per pipeline.
 	struct context child_ctx = *ctx;
+	if (child_ctx.job == NULL) {
+		child_ctx.job = job_create(ctx->state);
+	}
 
 	assert(pl->commands.len > 0);
 	if (pl->commands.len == 1) {

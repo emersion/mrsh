@@ -287,43 +287,43 @@ int run_and_or_list(struct context *ctx, struct mrsh_and_or_list *and_or_list) {
  * Put the process into its job's process group. This has to be done both in the
  * parent and the child because of potential race conditions.
  */
-static struct process *init_child(struct context *ctx, pid_t pid) {
+static struct process *init_async_child(struct context *ctx, pid_t pid) {
 	struct process *proc = process_create(ctx->state, pid);
 
 	if (ctx->state->options & MRSH_OPT_MONITOR) {
-		// Create a job for all children processes
-		struct mrsh_job *job = job_create(ctx->state);
-		job_add_process(job, proc);
-
-		if (ctx->state->interactive && !ctx->background) {
-			job_set_foreground(job, true, false);
-		}
+		job_add_process(ctx->job, proc);
 	}
 
 	return proc;
 }
 
 int run_command_list_array(struct context *ctx, struct mrsh_array *array) {
+	struct mrsh_state *state = ctx->state;
+
 	int ret = 0;
 	for (size_t i = 0; i < array->len; ++i) {
 		struct mrsh_command_list *list = array->data[i];
 		if (list->ampersand) {
 			struct context child_ctx = *ctx;
 			child_ctx.background = true;
+			if (child_ctx.job == NULL) {
+				child_ctx.job = job_create(state);
+			}
 
 			pid_t pid = fork();
 			if (pid < 0) {
 				fprintf(stderr, "fork failed: %s\n", strerror(errno));
 				return TASK_STATUS_ERROR;
 			} else if (pid == 0) {
-				ctx->state->child = true;
+				ctx = NULL; // Use child_ctx instead
+				state->child = true;
 
-				init_child(&child_ctx, getpid());
-				if (ctx->state->options & MRSH_OPT_MONITOR) {
-					init_job_child_process(ctx->state);
+				init_async_child(&child_ctx, getpid());
+				if (state->options & MRSH_OPT_MONITOR) {
+					init_job_child_process(state);
 				}
 
-				if (!(child_ctx.state->options & MRSH_OPT_MONITOR)) {
+				if (!(state->options & MRSH_OPT_MONITOR)) {
 					// If job control is disabled, stdin is /dev/null
 					int fd = open("/dev/null", O_CLOEXEC | O_RDONLY);
 					if (fd < 0) {
@@ -343,7 +343,7 @@ int run_command_list_array(struct context *ctx, struct mrsh_array *array) {
 			}
 
 			ret = 0;
-			init_child(&child_ctx, pid);
+			init_async_child(&child_ctx, pid);
 		} else {
 			ret = run_and_or_list(ctx, list->and_or_list);
 			if (ret < 0) {
@@ -352,7 +352,7 @@ int run_command_list_array(struct context *ctx, struct mrsh_array *array) {
 		}
 
 		if (ret >= 0) {
-			ctx->state->last_status = ret;
+			state->last_status = ret;
 		}
 	}
 	return ret;

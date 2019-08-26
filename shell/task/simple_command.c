@@ -29,9 +29,6 @@ static void populate_env_iterator(const char *key, void *_var, void *_) {
 static struct process *init_child(struct context *ctx, pid_t pid) {
 	struct process *proc = process_create(ctx->state, pid);
 	if (ctx->state->options & MRSH_OPT_MONITOR) {
-		if (ctx->job == NULL) {
-			ctx->job = job_create(ctx->state);
-		}
 		job_add_process(ctx->job, proc);
 
 		if (ctx->state->interactive && !ctx->background) {
@@ -43,6 +40,9 @@ static struct process *init_child(struct context *ctx, pid_t pid) {
 
 static int run_process(struct context *ctx, struct mrsh_simple_command *sc,
 		char **argv) {
+	// The pipeline is responsible for creating the job
+	assert(ctx->job != NULL);
+
 	const char *path = expand_path(ctx->state, argv[0], true);
 	if (!path) {
 		fprintf(stderr, "%s: not found\n", argv[0]);

@@ -287,7 +287,7 @@ void update_job(struct mrsh_state *state, pid_t pid, int stat) {
 	if (!state->child) {
 		for (size_t i = 0; i < state->jobs.len; ++i) {
 			struct mrsh_job *job = state->jobs.data[i];
-			if (job_poll(job) != TASK_STATUS_WAIT) {
+			if (job_poll(job) != TASK_STATUS_WAIT && job->pgid > 0) {
 				job_set_foreground(job, false, false);
 			}
 		}

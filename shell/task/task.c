@@ -283,6 +283,26 @@ int run_and_or_list(struct context *ctx, struct mrsh_and_or_list *and_or_list) {
 	assert(false);
 }
 
+/**
+ * Put the process into its job's process group. This has to be done both in the
+ * parent and the child because of potential race conditions.
+ */
+static struct process *init_child(struct context *ctx, pid_t pid) {
+	struct process *proc = process_create(ctx->state, pid);
+
+	if (ctx->state->options & MRSH_OPT_MONITOR) {
+		// Create a job for all children processes
+		struct mrsh_job *job = job_create(ctx->state);
+		job_add_process(job, proc);
+
+		if (ctx->state->interactive && !ctx->background) {
+			job_set_foreground(job, true, false);
+		}
+	}
+
+	return proc;
+}
+
 int run_command_list_array(struct context *ctx, struct mrsh_array *array) {
 	int ret = 0;
 	for (size_t i = 0; i < array->len; ++i) {
@@ -291,10 +311,18 @@ int run_command_list_array(struct context *ctx, struct mrsh_array *array) {
 			struct context child_ctx = *ctx;
 			child_ctx.background = true;
 
-			pid_t pid = subshell_fork(&child_ctx, NULL);
+			pid_t pid = fork();
 			if (pid < 0) {
+				fprintf(stderr, "fork failed: %s\n", strerror(errno));
 				return TASK_STATUS_ERROR;
 			} else if (pid == 0) {
+				ctx->state->child = true;
+
+				init_child(&child_ctx, getpid());
+				if (ctx->state->options & MRSH_OPT_MONITOR) {
+					init_job_child_process(ctx->state);
+				}
+
 				if (!(child_ctx.state->options & MRSH_OPT_MONITOR)) {
 					// If job control is disabled, stdin is /dev/null
 					int fd = open("/dev/null", O_CLOEXEC | O_RDONLY);
@@ -313,7 +341,9 @@ int run_command_list_array(struct context *ctx, struct mrsh_array *array) {
 				}
 				exit(ret);
 			}
+
 			ret = 0;
+			init_child(&child_ctx, pid);
 		} else {
 			ret = run_and_or_list(ctx, list->and_or_list);
 			if (ret < 0) {

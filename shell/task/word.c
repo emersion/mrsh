@@ -121,6 +121,9 @@ static const char *parameter_get_value(struct mrsh_state *state, char *name) {
 			return "";
 		}
 		struct mrsh_job *job = state->jobs.data[state->jobs.len - 1];
+		if (job->processes.len == 0) {
+			return "";
+		}
 		struct process *process =
 			job->processes.data[job->processes.len - 1];
 		sprintf(value, "%d", process->pid);

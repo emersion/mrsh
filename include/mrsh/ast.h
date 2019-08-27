@@ -437,6 +437,7 @@ struct mrsh_binop *mrsh_binop_create(enum mrsh_binop_type type,
 struct mrsh_command_list *mrsh_command_list_create(void);
 struct mrsh_program *mrsh_program_create(void);
 
+void mrsh_node_destroy(struct mrsh_node *node);
 void mrsh_word_destroy(struct mrsh_word *word);
 void mrsh_io_redirect_destroy(struct mrsh_io_redirect *redir);
 void mrsh_assignment_destroy(struct mrsh_assignment *assign);

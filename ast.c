@@ -16,6 +16,32 @@ bool mrsh_range_valid(const struct mrsh_range *range) {
 		mrsh_position_valid(&range->end);
 }
 
+void mrsh_node_destroy(struct mrsh_node *node) {
+	switch (node->type) {
+	case MRSH_NODE_PROGRAM:;
+		struct mrsh_program *prog = mrsh_node_get_program(node);
+		mrsh_program_destroy(prog);
+		return;
+	case MRSH_NODE_COMMAND_LIST:;
+		struct mrsh_command_list *cl = mrsh_node_get_command_list(node);
+		mrsh_command_list_destroy(cl);
+		return;
+	case MRSH_NODE_AND_OR_LIST:;
+		struct mrsh_and_or_list *aol = mrsh_node_get_and_or_list(node);
+		mrsh_and_or_list_destroy(aol);
+		return;
+	case MRSH_NODE_COMMAND:;
+		struct mrsh_command *cmd = mrsh_node_get_command(node);
+		mrsh_command_destroy(cmd);
+		return;
+	case MRSH_NODE_WORD:;
+		struct mrsh_word *word = mrsh_node_get_word(node);
+		mrsh_word_destroy(word);
+		return;
+	}
+	assert(0);
+}
+
 void mrsh_word_destroy(struct mrsh_word *word) {
 	if (word == NULL) {
 		return;

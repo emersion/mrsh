@@ -304,18 +304,23 @@ struct mrsh_job *job_by_id(struct mrsh_state *state, const char *id) {
 		switch (id[1]) {
 		case '%':
 		case '+':
+			// Current job
 			for (ssize_t i = state->jobs.len - 1; i >= 0; --i) {
 				struct mrsh_job *job = state->jobs.data[i];
 				if (job_poll(job) == TASK_STATUS_STOPPED) {
 					return job;
 				}
 			}
-			if (state->jobs.len < 1) {
-				fprintf(stderr, "No current job\n");
-				return NULL;
+			for (ssize_t i = state->jobs.len - 1; i >= 0; --i) {
+				struct mrsh_job *job = state->jobs.data[i];
+				if (job_poll(job) == TASK_STATUS_WAIT) {
+					return job;
+				}
 			}
-			return state->jobs.data[state->jobs.len - 1];
+			fprintf(stderr, "No current job\n");
+			return NULL;
 		case '-':
+			// Previous job
 			for (ssize_t i = state->jobs.len - 1, n = 0; i >= 0; --i) {
 				struct mrsh_job *job = state->jobs.data[i];
 				if (job_poll(job) == TASK_STATUS_STOPPED) {
@@ -324,11 +329,19 @@ struct mrsh_job *job_by_id(struct mrsh_state *state, const char *id) {
 					}
 				}
 			}
-			if (state->jobs.len < 2) {
-				fprintf(stderr, "No previous job\n");
-				return NULL;
+			bool first = true;
+			for (ssize_t i = state->jobs.len - 1; i >= 0; --i) {
+				struct mrsh_job *job = state->jobs.data[i];
+				if (job_poll(job) == TASK_STATUS_WAIT) {
+					if (first) {
+						first = false;
+						continue;
+					}
+					return job;
+				}
 			}
-			return state->jobs.data[state->jobs.len - 2];
+			fprintf(stderr, "No previous job\n");
+			return NULL;
 		}
 	}
 

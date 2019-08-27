@@ -82,7 +82,8 @@ static void array_remove(struct mrsh_array *array, size_t i) {
 	--array->len;
 }
 
-struct mrsh_job *job_create(struct mrsh_state *state) {
+struct mrsh_job *job_create(struct mrsh_state *state,
+		const struct mrsh_node *node) {
 	int id = 1;
 	for (size_t i = 0; i < state->jobs.len; ++i) {
 		struct mrsh_job *job = state->jobs.data[i];
@@ -93,6 +94,7 @@ struct mrsh_job *job_create(struct mrsh_state *state) {
 
 	struct mrsh_job *job = calloc(1, sizeof(struct mrsh_job));
 	job->state = state;
+	job->node = mrsh_node_copy(node);
 	job->pgid = -1;
 	job->job_id = id;
 	mrsh_array_add(&state->jobs, job);
@@ -120,6 +122,7 @@ void job_destroy(struct mrsh_job *job) {
 		process_destroy(job->processes.data[j]);
 	}
 	mrsh_array_finish(&job->processes);
+	mrsh_node_destroy(job->node);
 	free(job);
 }
 

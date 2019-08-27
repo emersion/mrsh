@@ -307,7 +307,7 @@ int run_command_list_array(struct context *ctx, struct mrsh_array *array) {
 			struct context child_ctx = *ctx;
 			child_ctx.background = true;
 			if (child_ctx.job == NULL) {
-				child_ctx.job = job_create(state);
+				child_ctx.job = job_create(state, &list->node);
 			}
 
 			pid_t pid = fork();

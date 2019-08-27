@@ -25,7 +25,7 @@ int run_pipeline(struct context *ctx, struct mrsh_pipeline *pl) {
 	// Create a new sub-context, because we want one job per pipeline.
 	struct context child_ctx = *ctx;
 	if (child_ctx.job == NULL) {
-		child_ctx.job = job_create(ctx->state);
+		child_ctx.job = job_create(ctx->state, &pl->and_or_list.node);
 	}
 
 	assert(pl->commands.len > 0);

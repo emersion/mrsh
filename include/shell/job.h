@@ -6,6 +6,7 @@
 #include <sys/types.h>
 #include <termios.h>
 
+struct mrsh_node;
 struct mrsh_state;
 struct process;
 
@@ -21,6 +22,7 @@ struct process;
  * - The shell is destroyed
  */
 struct mrsh_job {
+	struct mrsh_node *node;
 	pid_t pgid;
 	int job_id;
 	struct termios term_modes; // only valid if stopped
@@ -31,7 +33,8 @@ struct mrsh_job {
 /**
  * Create a new job. It will start in the background by default.
  */
-struct mrsh_job *job_create(struct mrsh_state *state);
+struct mrsh_job *job_create(struct mrsh_state *state,
+	const struct mrsh_node *node);
 void job_destroy(struct mrsh_job *job);
 /**
  * Add a process to the job. This puts the process into the job's process

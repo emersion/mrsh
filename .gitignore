@@ -54,6 +54,6 @@ dkms.conf
 /build
 /build-*
 
-.build
-highlight
-mrsh
+/.build
+/highlight
+/mrsh

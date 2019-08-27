@@ -232,27 +232,29 @@ void mrsh_program_destroy(struct mrsh_program *prog) {
 	free(prog);
 }
 
-struct mrsh_word *mrsh_node_get_word(struct mrsh_node *node) {
+struct mrsh_word *mrsh_node_get_word(const struct mrsh_node *node) {
 	assert(node->type == MRSH_NODE_WORD);
 	return (struct mrsh_word *)node;
 }
 
-struct mrsh_command *mrsh_node_get_command(struct mrsh_node *node) {
+struct mrsh_command *mrsh_node_get_command(const struct mrsh_node *node) {
 	assert(node->type == MRSH_NODE_COMMAND);
 	return (struct mrsh_command *)node;
 }
 
-struct mrsh_and_or_list *mrsh_node_get_and_or_list(struct mrsh_node *node) {
+struct mrsh_and_or_list *mrsh_node_get_and_or_list(
+		const struct mrsh_node *node) {
 	assert(node->type == MRSH_NODE_AND_OR_LIST);
 	return (struct mrsh_and_or_list *)node;
 }
 
-struct mrsh_command_list *mrsh_node_get_command_list(struct mrsh_node *node) {
+struct mrsh_command_list *mrsh_node_get_command_list(
+		const struct mrsh_node *node) {
 	assert(node->type == MRSH_NODE_COMMAND_LIST);
 	return (struct mrsh_command_list *)node;
 }
 
-struct mrsh_program *mrsh_node_get_program(struct mrsh_node *node) {
+struct mrsh_program *mrsh_node_get_program(const struct mrsh_node *node) {
 	assert(node->type == MRSH_NODE_PROGRAM);
 	return (struct mrsh_program *)node;
 }
@@ -794,6 +796,32 @@ char *mrsh_word_str(struct mrsh_word *word) {
 	word_str(word, &buf);
 	mrsh_buffer_append_char(&buf, '\0');
 	return mrsh_buffer_steal(&buf);
+}
+
+struct mrsh_node *mrsh_node_copy(const struct mrsh_node *node) {
+	switch (node->type) {
+	case MRSH_NODE_PROGRAM:;
+		struct mrsh_program *prog = mrsh_node_get_program(node);
+		struct mrsh_program *prog_copy = mrsh_program_copy(prog);
+		return &prog_copy->node;
+	case MRSH_NODE_COMMAND_LIST:;
+		struct mrsh_command_list *cl = mrsh_node_get_command_list(node);
+		struct mrsh_command_list *cl_copy = mrsh_command_list_copy(cl);
+		return &cl_copy->node;
+	case MRSH_NODE_AND_OR_LIST:;
+		struct mrsh_and_or_list *aol = mrsh_node_get_and_or_list(node);
+		struct mrsh_and_or_list *aol_copy = mrsh_and_or_list_copy(aol);
+		return &aol_copy->node;
+	case MRSH_NODE_COMMAND:;
+		struct mrsh_command *cmd = mrsh_node_get_command(node);
+		struct mrsh_command *cmd_copy = mrsh_command_copy(cmd);
+		return &cmd_copy->node;
+	case MRSH_NODE_WORD:;
+		struct mrsh_word *word = mrsh_node_get_word(node);
+		struct mrsh_word *word_copy = mrsh_word_copy(word);
+		return &word_copy->node;
+	}
+	assert(0);
 }
 
 struct mrsh_word *mrsh_word_copy(const struct mrsh_word *word) {

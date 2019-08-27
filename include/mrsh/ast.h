@@ -445,11 +445,13 @@ void mrsh_and_or_list_destroy(struct mrsh_and_or_list *and_or_list);
 void mrsh_command_list_destroy(struct mrsh_command_list *l);
 void mrsh_program_destroy(struct mrsh_program *prog);
 
-struct mrsh_word *mrsh_node_get_word(struct mrsh_node *node);
-struct mrsh_command *mrsh_node_get_command(struct mrsh_node *node);
-struct mrsh_and_or_list *mrsh_node_get_and_or_list(struct mrsh_node *node);
-struct mrsh_command_list *mrsh_node_get_command_list(struct mrsh_node *node);
-struct mrsh_program *mrsh_node_get_program(struct mrsh_node *node);
+struct mrsh_word *mrsh_node_get_word(const struct mrsh_node *node);
+struct mrsh_command *mrsh_node_get_command(const struct mrsh_node *node);
+struct mrsh_and_or_list *mrsh_node_get_and_or_list(
+	const struct mrsh_node *node);
+struct mrsh_command_list *mrsh_node_get_command_list(
+	const struct mrsh_node *node);
+struct mrsh_program *mrsh_node_get_program(const struct mrsh_node *node);
 
 struct mrsh_word_string *mrsh_word_get_string(const struct mrsh_word *word);
 struct mrsh_word_parameter *mrsh_word_get_parameter(
@@ -491,6 +493,7 @@ void mrsh_command_range(struct mrsh_command *cmd, struct mrsh_position *begin,
 char *mrsh_word_str(struct mrsh_word *word);
 void mrsh_program_print(struct mrsh_program *prog);
 
+struct mrsh_node *mrsh_node_copy(const struct mrsh_node *node);
 struct mrsh_word *mrsh_word_copy(const struct mrsh_word *word);
 struct mrsh_io_redirect *mrsh_io_redirect_copy(
 	const struct mrsh_io_redirect *redir);

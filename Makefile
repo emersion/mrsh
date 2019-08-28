@@ -85,4 +85,7 @@ clean:
 		$(highlight_objects) \
 		mrsh highlight libmrsh.so.$(SOVERSION) $(OUTDIR)/mrsh.pc
 
+mrproper: clean
+	rm -rf $(OUTDIR)
+
 .PHONY: all install clean check

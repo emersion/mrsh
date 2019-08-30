@@ -21,6 +21,7 @@ int builtin_export(struct mrsh_state *state, int argc, char *argv[]);
 int builtin_false(struct mrsh_state *state, int argc, char *argv[]);
 int builtin_fg(struct mrsh_state *state, int argc, char *argv[]);
 int builtin_getopts(struct mrsh_state *state, int argc, char *argv[]);
+int builtin_jobs(struct mrsh_state *state, int argc, char *argv[]);
 int builtin_pwd(struct mrsh_state *state, int argc, char *argv[]);
 int builtin_read(struct mrsh_state *state, int argc, char *argv[]);
 int builtin_set(struct mrsh_state *state, int argc, char *argv[]);

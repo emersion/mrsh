@@ -492,6 +492,7 @@ void mrsh_word_range(struct mrsh_word *word, struct mrsh_position *begin,
 void mrsh_command_range(struct mrsh_command *cmd, struct mrsh_position *begin,
 	struct mrsh_position *end);
 char *mrsh_word_str(struct mrsh_word *word);
+char *mrsh_node_format(struct mrsh_node *node);
 void mrsh_program_print(struct mrsh_program *prog);
 
 struct mrsh_node *mrsh_node_copy(const struct mrsh_node *node);

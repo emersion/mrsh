@@ -796,11 +796,15 @@ void mrsh_command_range(struct mrsh_command *cmd, struct mrsh_position *begin,
 	assert(false);
 }
 
+static void buffer_append_str(struct mrsh_buffer *buf, const char *str) {
+	mrsh_buffer_append(buf, str, strlen(str));
+}
+
 static void word_str(struct mrsh_word *word, struct mrsh_buffer *buf) {
 	switch (word->type) {
 	case MRSH_WORD_STRING:;
 		struct mrsh_word_string *ws = mrsh_word_get_string(word);
-		mrsh_buffer_append(buf, ws->str, strlen(ws->str));
+		buffer_append_str(buf, ws->str);
 		return;
 	case MRSH_WORD_PARAMETER:
 	case MRSH_WORD_COMMAND:
@@ -820,6 +824,183 @@ static void word_str(struct mrsh_word *word, struct mrsh_buffer *buf) {
 char *mrsh_word_str(struct mrsh_word *word) {
 	struct mrsh_buffer buf = {0};
 	word_str(word, &buf);
+	mrsh_buffer_append_char(&buf, '\0');
+	return mrsh_buffer_steal(&buf);
+}
+
+static const char *binop_type_str(enum mrsh_binop_type t) {
+	switch (t) {
+	case MRSH_BINOP_AND:
+		return "&&";
+	case MRSH_BINOP_OR:
+		return "||";
+	}
+	assert(0);
+}
+
+static void node_format(struct mrsh_node *node, struct mrsh_buffer *buf);
+
+static void node_array_format(struct mrsh_array *array, const char *sep,
+		struct mrsh_buffer *buf) {
+	for (size_t i = 0; i < array->len; i++) {
+		struct mrsh_node *node = array->data[i];
+		if (i > 0) {
+			buffer_append_str(buf, sep);
+		}
+		node_format(node, buf);
+	}
+}
+
+static void node_format(struct mrsh_node *node, struct mrsh_buffer *buf) {
+	switch (node->type) {
+	case MRSH_NODE_PROGRAM:;
+		struct mrsh_program *program = mrsh_node_get_program(node);
+		node_array_format(&program->body, " ", buf);
+		return;
+	case MRSH_NODE_COMMAND_LIST:;
+		struct mrsh_command_list *list = mrsh_node_get_command_list(node);
+		node_format(&list->and_or_list->node, buf);
+		buffer_append_str(buf, list->ampersand ? " &" : ";");
+		return;
+	case MRSH_NODE_AND_OR_LIST:;
+		struct mrsh_and_or_list *and_or_list = mrsh_node_get_and_or_list(node);
+		switch (and_or_list->type) {
+		case MRSH_AND_OR_LIST_BINOP:;
+			struct mrsh_binop *binop = mrsh_and_or_list_get_binop(and_or_list);
+			node_format(&binop->left->node, buf);
+			mrsh_buffer_append_char(buf, ' ');
+			buffer_append_str(buf, binop_type_str(binop->type));
+			mrsh_buffer_append_char(buf, ' ');
+			node_format(&binop->right->node, buf);
+			return;
+		case MRSH_AND_OR_LIST_PIPELINE:;
+			struct mrsh_pipeline *pipeline =
+				mrsh_and_or_list_get_pipeline(and_or_list);
+			if (pipeline->bang) {
+				buffer_append_str(buf, "! ");
+			}
+			node_array_format(&pipeline->commands, " | ", buf);
+			return;
+		}
+		assert(false);
+	case MRSH_NODE_COMMAND:;
+		struct mrsh_command *cmd = mrsh_node_get_command(node);
+		switch (cmd->type) {
+		case MRSH_SIMPLE_COMMAND:;
+			struct mrsh_simple_command *sc =
+				mrsh_command_get_simple_command(cmd);
+			if (sc->name != NULL) {
+				node_format(&sc->name->node, buf);
+				mrsh_buffer_append_char(buf, ' ');
+			}
+			node_array_format(&sc->arguments, " ", buf);
+			// TODO: io_redirects, assignments
+			return;
+		case MRSH_BRACE_GROUP:;
+			struct mrsh_brace_group *bg = mrsh_command_get_brace_group(cmd);
+			buffer_append_str(buf, "{ ");
+			node_array_format(&bg->body, " ", buf);
+			buffer_append_str(buf, "; }");
+			return;
+		case MRSH_SUBSHELL:;
+			struct mrsh_subshell *ss = mrsh_command_get_subshell(cmd);
+			mrsh_buffer_append_char(buf, '(');
+			node_array_format(&ss->body, " ", buf);
+			mrsh_buffer_append_char(buf, ')');
+			return;
+		case MRSH_IF_CLAUSE:;
+			struct mrsh_if_clause *ic = mrsh_command_get_if_clause(cmd);
+			buffer_append_str(buf, "if ");
+			node_array_format(&ic->condition, " ", buf);
+			buffer_append_str(buf, "then ");
+			node_array_format(&ic->body, " ", buf);
+			if (ic->else_part != NULL) {
+				// TODO: elif
+				buffer_append_str(buf, "else ");
+				node_format(&ic->else_part->node, buf);
+			}
+			buffer_append_str(buf, "fi");
+			return;
+		case MRSH_FOR_CLAUSE:;
+			//struct mrsh_for_clause *fc = mrsh_command_get_for_clause(cmd);
+			// TODO
+			return;
+		case MRSH_LOOP_CLAUSE:;
+			struct mrsh_loop_clause *lc = mrsh_command_get_loop_clause(cmd);
+			buffer_append_str(buf,
+				lc->type == MRSH_LOOP_WHILE ? "while " : "until ");
+			node_array_format(&lc->condition, " ", buf);
+			buffer_append_str(buf, "do ");
+			node_array_format(&lc->body, " ", buf);
+			buffer_append_str(buf, "done");
+			return;
+		case MRSH_CASE_CLAUSE:;
+			//struct mrsh_case_clause *cc = mrsh_command_get_case_clause(cmd);
+			// TODO
+			return;
+		case MRSH_FUNCTION_DEFINITION:;
+			struct mrsh_function_definition *fn =
+				mrsh_command_get_function_definition(cmd);
+			buffer_append_str(buf, fn->name);
+			buffer_append_str(buf, "()");
+			node_format(&fn->body->node, buf);
+			// TODO: io-redirect
+			return;
+		}
+		assert(false);
+	case MRSH_NODE_WORD:;
+		// TODO: quoting
+		struct mrsh_word *word = mrsh_node_get_word(node);
+		switch (word->type) {
+		case MRSH_WORD_STRING:;
+			struct mrsh_word_string *ws = mrsh_word_get_string(word);
+			if (ws->single_quoted) {
+				mrsh_buffer_append_char(buf, '\'');
+			}
+			buffer_append_str(buf, ws->str);
+			if (ws->single_quoted) {
+				mrsh_buffer_append_char(buf, '\'');
+			}
+			return;
+		case MRSH_WORD_PARAMETER:;
+			struct mrsh_word_parameter *wp = mrsh_word_get_parameter(word);
+			buffer_append_str(buf, "${");
+			if (wp->arg != NULL) {
+				node_format(&wp->arg->node, buf);
+			}
+			buffer_append_str(buf, "}");
+			return;
+		case MRSH_WORD_COMMAND:;
+			struct mrsh_word_command *wc =	mrsh_word_get_command(word);
+			buffer_append_str(buf, wc->back_quoted ? "`" : "$(");
+			if (wc->program != NULL) {
+				node_format(&wc->program->node, buf);
+			}
+			buffer_append_str(buf, wc->back_quoted ? "`" : ")");
+			return;
+		case MRSH_WORD_ARITHMETIC:;
+			struct mrsh_word_arithmetic *wa = mrsh_word_get_arithmetic(word);
+			node_format(&wa->body->node, buf);
+			return;
+		case MRSH_WORD_LIST:;
+			struct mrsh_word_list *wl = mrsh_word_get_list(word);
+			if (wl->double_quoted) {
+				mrsh_buffer_append_char(buf, '"');
+			}
+			node_array_format(&wl->children, "", buf);
+			if (wl->double_quoted) {
+				mrsh_buffer_append_char(buf, '"');
+			}
+			return;
+		}
+		assert(false);
+	}
+	assert(false);
+}
+
+char *mrsh_node_format(struct mrsh_node *node) {
+	struct mrsh_buffer buf = {0};
+	node_format(node, &buf);
 	mrsh_buffer_append_char(&buf, '\0');
 	return mrsh_buffer_steal(&buf);
 }

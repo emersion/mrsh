@@ -87,7 +87,7 @@ struct mrsh_job *job_create(struct mrsh_state *state,
 	int id = 1;
 	for (size_t i = 0; i < state->jobs.len; ++i) {
 		struct mrsh_job *job = state->jobs.data[i];
-		if (id < job->job_id) {
+		if (id < job->job_id + 1) {
 			id = job->job_id + 1;
 		}
 	}

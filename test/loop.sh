@@ -31,7 +31,7 @@ while true; do
 done
 echo stop
 
-# Should exit immediately
+echo "exit in infinite loop should exit immediately"
 while true
 do
 	exit

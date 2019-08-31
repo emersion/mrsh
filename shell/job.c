@@ -298,9 +298,12 @@ void update_job(struct mrsh_state *state, pid_t pid, int stat) {
 }
 
 // https://pubs.opengroup.org/onlinepubs/9699919799/basedefs/V1_chap03.html#tag_03_204
-struct mrsh_job *job_by_id(struct mrsh_state *state, const char *id) {
+struct mrsh_job *job_by_id(struct mrsh_state *state,
+		const char *id, bool interactive) {
 	if (id[0] != '%' || id[1] == '\0') {
-		fprintf(stderr, "Invalid job ID specifier\n");
+		if (interactive) {
+			fprintf(stderr, "Invalid job ID specifier\n");
+		}
 		return NULL;
 	}
 
@@ -321,7 +324,9 @@ struct mrsh_job *job_by_id(struct mrsh_state *state, const char *id) {
 					return job;
 				}
 			}
-			fprintf(stderr, "No current job\n");
+			if (interactive) {
+				fprintf(stderr, "No current job\n");
+			}
 			return NULL;
 		case '-':
 			// Previous job
@@ -344,7 +349,9 @@ struct mrsh_job *job_by_id(struct mrsh_state *state, const char *id) {
 					return job;
 				}
 			}
-			fprintf(stderr, "No previous job\n");
+			if (interactive) {
+				fprintf(stderr, "No previous job\n");
+			}
 			return NULL;
 		}
 	}
@@ -353,7 +360,9 @@ struct mrsh_job *job_by_id(struct mrsh_state *state, const char *id) {
 		char *endptr;
 		int n = strtol(&id[1], &endptr, 10);
 		if (endptr[0] != '\0') {
-			fprintf(stderr, "Invalid job number '%s'\n", id);
+			if (interactive) {
+				fprintf(stderr, "Invalid job number '%s'\n", id);
+			}
 			return NULL;
 		}
 		for (size_t i = 0; i < state->jobs.len; ++i) {
@@ -362,7 +371,9 @@ struct mrsh_job *job_by_id(struct mrsh_state *state, const char *id) {
 				return job;
 			}
 		}
-		fprintf(stderr, "No such job '%s' (%d)\n", id, n);
+		if (interactive) {
+			fprintf(stderr, "No such job '%s' (%d)\n", id, n);
+		}
 		return NULL;
 	}
 
@@ -384,5 +395,8 @@ struct mrsh_job *job_by_id(struct mrsh_state *state, const char *id) {
 		}
 	}
 
+	if (interactive) {
+		fprintf(stderr, "No such job '%s'\n", id);
+	}
 	return NULL;
 }

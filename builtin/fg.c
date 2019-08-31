@@ -21,9 +21,9 @@ int builtin_fg(struct mrsh_state *state, int argc, char *argv[]) {
 
 	struct mrsh_job *job;
 	if (mrsh_optind == argc) {
-		job = job_by_id(state, "%%");
+		job = job_by_id(state, "%%", true);
 	} else if (mrsh_optind == argc - 1) {
-		job = job_by_id(state, argv[mrsh_optind]);
+		job = job_by_id(state, argv[mrsh_optind], true);
 	} else {
 		fprintf(stderr, fg_usage);
 		return EXIT_FAILURE;

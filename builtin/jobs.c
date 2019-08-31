@@ -38,15 +38,18 @@ int builtin_jobs(struct mrsh_state *state, int argc, char *argv[]) {
 		}
 	}
 
+	struct mrsh_job *current = job_by_id(state, "%+", false);
+
 	for (size_t i = 0; i < state->jobs.len; i++) {
 		struct mrsh_job *job = state->jobs.data[i];
 		if (job_poll(job) >= 0) {
 			continue;
 		}
-		// TODO: <current>
 		char *cmd = mrsh_node_format(job->node);
-		printf("[%d] %c %s %s\n", job->job_id, ' ', job_state_str(job), cmd);
+		printf("[%d] %c %s %s\n", job->job_id, job == current ? '+' : ' ',
+				job_state_str(job), cmd);
 		free(cmd);
 	}
+
 	return EXIT_SUCCESS;
 }

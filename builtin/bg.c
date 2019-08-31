@@ -20,7 +20,7 @@ int builtin_bg(struct mrsh_state *state, int argc, char *argv[]) {
 		}
 	}
 	if (mrsh_optind == argc) {
-		struct mrsh_job *job = job_by_id(state, "%%");
+		struct mrsh_job *job = job_by_id(state, "%%", true);
 		if (!job) {
 			return EXIT_FAILURE;
 		}
@@ -31,7 +31,7 @@ int builtin_bg(struct mrsh_state *state, int argc, char *argv[]) {
 	}
 
 	for (int i = mrsh_optind; i < argc; ++i) {
-		struct mrsh_job *job = job_by_id(state, argv[i]);
+		struct mrsh_job *job = job_by_id(state, argv[i], true);
 		if (!job) {
 			return EXIT_FAILURE;
 		}

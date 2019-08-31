@@ -41,7 +41,7 @@ int builtin_wait(struct mrsh_state *state, int argc, char *argv[]) {
 	} else {
 		for (int i = 1; i < argc; ++i) {
 			if (argv[i][0] == '%') {
-				struct mrsh_job *job = job_by_id(state, argv[i]);
+				struct mrsh_job *job = job_by_id(state, argv[i], true);
 				if (!job) {
 					goto failure;
 				}

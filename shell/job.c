@@ -297,6 +297,7 @@ void update_job(struct mrsh_state *state, pid_t pid, int stat) {
 	}
 }
 
+// https://pubs.opengroup.org/onlinepubs/9699919799/basedefs/V1_chap03.html#tag_03_204
 struct mrsh_job *job_by_id(struct mrsh_state *state, const char *id) {
 	if (id[0] != '%' || id[1] == '\0') {
 		fprintf(stderr, "Invalid job ID specifier\n");
@@ -365,12 +366,23 @@ struct mrsh_job *job_by_id(struct mrsh_state *state, const char *id) {
 		return NULL;
 	}
 
-	if (id[1] == '?') {
-		// TODO
-		fprintf(stderr, "Job lookup by command string is unimplemented\n");
-		return NULL;
+	for (size_t i = 0; i < state->jobs.len; i++) {
+		struct mrsh_job *job = state->jobs.data[i];
+		char *cmd = mrsh_node_format(job->node);
+		bool match = false;
+		switch (id[1]) {
+		case '?':
+			match = strstr(cmd, &id[2]) != NULL;
+			break;
+		default:
+			match = strstr(cmd, &id[1]) == cmd;
+			break;
+		}
+		free(cmd);
+		if (match) {
+			return job;
+		}
 	}
 
-	fprintf(stderr, "Job lookup by command string is unimplemented\n");
 	return NULL;
 }

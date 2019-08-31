@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "builtin.h"
+#include "shell/task.h"
 
 static const char exit_usage[] = "usage: exit [n]\n";
 
@@ -26,5 +27,6 @@ int builtin_exit(struct mrsh_state *state, int argc, char *argv[]) {
 	}
 
 	state->exit = status;
-	return 0;
+	state->branch_control = MRSH_BRANCH_EXIT;
+	return TASK_STATUS_INTERRUPTED;
 }

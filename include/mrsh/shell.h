@@ -87,6 +87,7 @@ enum mrsh_branch_control {
 	MRSH_BRANCH_BREAK,
 	MRSH_BRANCH_CONTINUE,
 	MRSH_BRANCH_RETURN,
+	MRSH_BRANCH_EXIT,
 };
 
 struct mrsh_state {

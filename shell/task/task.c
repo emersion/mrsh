@@ -103,13 +103,13 @@ interrupt:
 		}
 		switch (ctx->state->branch_control) {
 		case MRSH_BRANCH_BREAK:
+		case MRSH_BRANCH_RETURN:
+		case MRSH_BRANCH_EXIT:
 			break_loop = true;
 			loop_ret = 0;
 			break;
 		case MRSH_BRANCH_CONTINUE:
 			break;
-		case MRSH_BRANCH_RETURN:
-			assert(false);
 		}
 		if (break_loop) {
 			break;
@@ -159,13 +159,13 @@ interrupt:
 		bool break_loop = false;
 		switch (ctx->state->branch_control) {
 		case MRSH_BRANCH_BREAK:
+		case MRSH_BRANCH_RETURN:
+		case MRSH_BRANCH_EXIT:
 			break_loop = true;
 			loop_ret = 0;
 			break;
 		case MRSH_BRANCH_CONTINUE:
 			break;
-		case MRSH_BRANCH_RETURN:
-			assert(false);
 		}
 		if (break_loop) {
 			break;

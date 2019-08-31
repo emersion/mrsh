@@ -35,4 +35,6 @@ echo stop
 while true
 do
 	exit
+	# https://github.com/emersion/mrsh/issues/37
+	echo bad
 done

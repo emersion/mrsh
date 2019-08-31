@@ -10,7 +10,7 @@
 #include "shell/shell.h"
 #include "shell/task.h"
 
-static const char jobs_usage[] = "usage: jobs\n";
+static const char jobs_usage[] = "usage: jobs [-l|-p] [job_id...]\n";
 
 static char *job_state_str(struct mrsh_job *job, bool r) {
 	int status = job_poll(job);
@@ -46,28 +46,72 @@ static char *job_state_str(struct mrsh_job *job, bool r) {
 	}
 }
 
+struct jobs_context {
+	struct mrsh_job *current, *previous;
+	bool pids;
+	bool pgids;
+	int r;
+};
+
+static void show_job(struct mrsh_job *job, const struct jobs_context *ctx) {
+	if (job_poll(job) >= 0) {
+		return;
+	}
+	char curprev = ' ';
+	if (job == ctx->current) {
+		curprev = '+';
+	} else if (job == ctx->previous) {
+		curprev = '-';
+	}
+	if (ctx->pids) {
+		for (size_t i = 0; i < job->processes.len; ++i) {
+			struct process *proc = job->processes.data[i];
+			printf("%d\n", proc->pid);
+		}
+	} else if (ctx->pgids) {
+		char *cmd = mrsh_node_format(job->node);
+		printf("[%d] %c %d %s %s\n", job->job_id, curprev, job->pgid,
+				job_state_str(job, ctx->r), cmd);
+		free(cmd);
+	} else {
+		char *cmd = mrsh_node_format(job->node);
+		printf("[%d] %c %s %s\n", job->job_id, curprev,
+				job_state_str(job, ctx->r), cmd);
+		free(cmd);
+	}
+}
+
 int builtin_jobs(struct mrsh_state *state, int argc, char *argv[]) {
-	bool pids = false, pgids = false;
+	struct mrsh_job *current = job_by_id(state, "%+", false),
+		*previous = job_by_id(state, "%-", false);
+
+	struct jobs_context ctx = {
+		.current = current,
+		.previous = previous,
+		.pids = false,
+		.pgids = false,
+		.r = rand() % 2 == 0,
+	};
 
 	mrsh_optind = 0;
 	int opt;
 	while ((opt = mrsh_getopt(argc, argv, ":lp")) != -1) {
 		switch (opt) {
 		case 'l':
-			if (pids) {
+			if (ctx.pids) {
 				fprintf(stderr, "jobs: the -p and -l options are "
 						"mutually exclusive\n");
 				return EXIT_FAILURE;
 			}
-			pgids = true;
+			ctx.pgids = true;
 			break;
 		case 'p':
-			if (pgids) {
+			if (ctx.pgids) {
 				fprintf(stderr, "jobs: the -p and -l options are "
 						"mutually exclusive\n");
 				return EXIT_FAILURE;
 			}
-			pids = true;
+			ctx.pids = true;
 			break;
 		default:
 			fprintf(stderr, "jobs: unknown option -- %c\n", mrsh_optopt);
@@ -76,30 +120,18 @@ int builtin_jobs(struct mrsh_state *state, int argc, char *argv[]) {
 		}
 	}
 
-	struct mrsh_job *current = job_by_id(state, "%+", false);
-	bool r = rand() % 2 == 0;
-
-	for (size_t i = 0; i < state->jobs.len; i++) {
-		struct mrsh_job *job = state->jobs.data[i];
-		if (job_poll(job) >= 0) {
-			continue;
+	if (mrsh_optind == argc) {
+		for (size_t i = 0; i < state->jobs.len; i++) {
+			struct mrsh_job *job = state->jobs.data[i];
+			show_job(job, &ctx);
 		}
-		if (pids) {
-			for (size_t j = 0; j < job->processes.len; ++j) {
-				struct process *proc = job->processes.data[j];
-				printf("%d\n", proc->pid);
+	} else {
+		for (int i = mrsh_optind; i < argc; i++) {
+			struct mrsh_job *job = job_by_id(state, argv[i], true);
+			if (!job) {
+				return 1;
 			}
-		} else if (pgids) {
-			char *cmd = mrsh_node_format(job->node);
-			printf("[%d] %c %d %s %s\n", job->job_id,
-					job == current ? '+' : ' ', job->pgid,
-					job_state_str(job, r), cmd);
-			free(cmd);
-		} else {
-			char *cmd = mrsh_node_format(job->node);
-			printf("[%d] %c %s %s\n", job->job_id, job == current ? '+' : ' ',
-					job_state_str(job, r), cmd);
-			free(cmd);
+			show_job(job, &ctx);
 		}
 	}
 

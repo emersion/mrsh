@@ -3,6 +3,7 @@
 #include <mrsh/getopt.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <signal.h>
 #include "builtin.h"
 #include "shell/job.h"
 #include "shell/process.h"
@@ -13,15 +14,33 @@ static const char jobs_usage[] = "usage: jobs\n";
 
 static char *job_state_str(struct mrsh_job *job) {
 	int status = job_poll(job);
-	// TODO code in parentheses for Done and Stopped
 	switch (status) {
 	case TASK_STATUS_WAIT:
 		return "Running";
 	case TASK_STATUS_ERROR:
 		return "Error";
 	case TASK_STATUS_STOPPED:
+		if (job->processes.len > 0) {
+			struct process *proc = job->processes.data[0];
+			switch (proc->signal) {
+			case SIGSTOP:
+				return "Stopped (SIGSTOP)";
+			case SIGTTIN:
+				return "Stopped (SIGTTIN)";
+			case SIGTTOU:
+				return "Stopped (SIGTTOU)";
+			}
+		}
 		return "Stopped";
 	default:
+		if (job->processes.len > 0) {
+			struct process *proc = job->processes.data[0];
+			if (proc->stat != 0) {
+				static char stat[128];
+				snprintf(stat, sizeof(stat), "Done(%d)", proc->stat);
+				return stat;
+			}
+		}
 		assert(status >= 0);
 		return "Done";
 	}

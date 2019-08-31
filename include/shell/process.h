@@ -18,6 +18,7 @@ struct process {
 	bool stopped;
 	bool terminated;
 	int stat; // only valid if terminated
+	int signal; // only valid if stopped is true
 };
 
 /**

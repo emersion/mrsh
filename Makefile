@@ -19,6 +19,8 @@ public_includes=\
 
 tests=\
 		test/conformance/if.sh \
+		test/arithm.sh \
+		test/async.sh \
 		test/case.sh \
 		test/command.sh \
 		test/for.sh \

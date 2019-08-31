@@ -12,7 +12,7 @@
 
 static const char jobs_usage[] = "usage: jobs\n";
 
-static char *job_state_str(struct mrsh_job *job) {
+static char *job_state_str(struct mrsh_job *job, bool r) {
 	int status = job_poll(job);
 	switch (status) {
 	case TASK_STATUS_WAIT:
@@ -24,14 +24,14 @@ static char *job_state_str(struct mrsh_job *job) {
 			struct process *proc = job->processes.data[0];
 			switch (proc->signal) {
 			case SIGSTOP:
-				return "Stopped (SIGSTOP)";
+				return r ? "Stopped (SIGSTOP)" : "Suspended (SIGSTOP)";
 			case SIGTTIN:
-				return "Stopped (SIGTTIN)";
+				return r ? "Stopped (SIGTTIN)" : "Suspended (SIGTTIN)";
 			case SIGTTOU:
-				return "Stopped (SIGTTOU)";
+				return r ? "Stopped (SIGTTOU)" : "Suspended (SIGTTOU)";
 			}
 		}
-		return "Stopped";
+		return r ? "Stopped" : "Suspended";
 	default:
 		if (job->processes.len > 0) {
 			struct process *proc = job->processes.data[0];
@@ -77,6 +77,7 @@ int builtin_jobs(struct mrsh_state *state, int argc, char *argv[]) {
 	}
 
 	struct mrsh_job *current = job_by_id(state, "%+", false);
+	bool r = rand() % 2 == 0;
 
 	for (size_t i = 0; i < state->jobs.len; i++) {
 		struct mrsh_job *job = state->jobs.data[i];
@@ -92,12 +93,12 @@ int builtin_jobs(struct mrsh_state *state, int argc, char *argv[]) {
 			char *cmd = mrsh_node_format(job->node);
 			printf("[%d] %c %d %s %s\n", job->job_id,
 					job == current ? '+' : ' ', job->pgid,
-					job_state_str(job), cmd);
+					job_state_str(job, r), cmd);
 			free(cmd);
 		} else {
 			char *cmd = mrsh_node_format(job->node);
 			printf("[%d] %c %s %s\n", job->job_id, job == current ? '+' : ' ',
-					job_state_str(job), cmd);
+					job_state_str(job, r), cmd);
 			free(cmd);
 		}
 	}

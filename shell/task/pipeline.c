@@ -68,6 +68,10 @@ int run_pipeline(struct context *ctx, struct mrsh_pipeline *pl) {
 				init_job_child_process(ctx->state);
 			}
 
+			if (next_stdin >= 0) {
+				close(next_stdin);
+			}
+
 			if (i > 0) {
 				if (dup2(cur_stdin, STDIN_FILENO) < 0) {
 					fprintf(stderr, "failed to duplicate stdin: %s\n",

@@ -12,9 +12,11 @@ echo a &
 p1=$!
 echo a &
 wait $p1
+s1=$?
 wait $!
-echo Job 1 exited with status $?
-echo Job 2 exited with status $?
+s2=$?
+echo Job 1 exited with status $s1
+echo Job 2 exited with status $s2
 
 #echo >&2 "Run asynchronous list, kill it and wait"
 #sleep 1000 &

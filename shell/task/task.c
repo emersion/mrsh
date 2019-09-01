@@ -123,24 +123,39 @@ interrupt:
 static int run_for_clause(struct context *ctx, struct mrsh_for_clause *fc) {
 	int loop_num = ++ctx->state->nloops;
 
-	int loop_ret = 0;
-	size_t word_index = 0;
-	while (ctx->state->exit == -1) {
-		if (word_index == fc->word_list.len) {
-			break;
-		}
-
+	struct mrsh_array word_fields = {0};
+	for (size_t i = 0; i < fc->word_list.len; i++) {
 		// TODO: this mutates the AST
 		struct mrsh_word **word_ptr =
-			(struct mrsh_word **)&fc->word_list.data[word_index++];
+			(struct mrsh_word **)&fc->word_list.data[i];
 		int ret = run_word(ctx, word_ptr, TILDE_EXPANSION_NAME);
-		if (ret == TASK_STATUS_INTERRUPTED) {
-			goto interrupt;
-		} else if (ret < 0) {
+		if (ret < 0) {
 			return ret;
 		}
 		struct mrsh_word_string *ws = mrsh_word_get_string(*word_ptr);
-		mrsh_env_set(ctx->state, fc->name, ws->str, MRSH_VAR_ATTRIB_NONE);
+
+		mrsh_array_add(&word_fields, strdup(ws->str));
+	}
+
+	struct mrsh_array expanded_fields = {0};
+	if (!expand_pathnames(&expanded_fields, &word_fields)) {
+		return TASK_STATUS_ERROR;
+	}
+	for (size_t i = 0; i < word_fields.len; i++) {
+		free(word_fields.data[i]);
+	}
+	mrsh_array_finish(&word_fields);
+
+	int loop_ret = 0;
+	size_t word_index = 0;
+	while (ctx->state->exit == -1) {
+		if (word_index == expanded_fields.len) {
+			break;
+		}
+
+		mrsh_env_set(ctx->state, fc->name, expanded_fields.data[word_index],
+			MRSH_VAR_ATTRIB_NONE);
+		word_index++;
 
 		loop_ret = run_command_list_array(ctx, &fc->body);
 		if (loop_ret == TASK_STATUS_INTERRUPTED) {
@@ -171,6 +186,11 @@ interrupt:
 			break;
 		}
 	}
+
+	for (size_t i = 0; i < expanded_fields.len; i++) {
+		free(expanded_fields.data[i]);
+	}
+	mrsh_array_finish(&expanded_fields);
 
 	--ctx->state->nloops;
 	return loop_ret;

@@ -200,10 +200,9 @@ static int run_case_clause(struct context *ctx, struct mrsh_case_clause *cc) {
 				return ret;
 			}
 			char *pattern_str = mrsh_word_str(*word_ptr);
-			bool matched = fnmatch(pattern_str, word_str, 0) == 0;
+			selected = fnmatch(pattern_str, word_str, 0) == 0;
 			free(pattern_str);
-			if (matched) {
-				selected = true;
+			if (selected) {
 				break;
 			}
 		}

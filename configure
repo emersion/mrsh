@@ -252,13 +252,8 @@ fi
 
 if [ $use_readline -eq 1 ]
 then
-	append_cflags $($pkg_config --cflags $readline)
+	append_cflags $($pkg_config --cflags-only-I $readline)
 	append_libs $($pkg_config --libs $readline)
-	if [ "$readline" = "readline" ]
-	then
-		# Undo GNU_SOURCE
-		append_cflags -U_GNU_SOURCE
-	fi
 fi
 
 printf "Creating $outdir/config.mk... "

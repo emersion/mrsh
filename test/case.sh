@@ -74,6 +74,16 @@ case "$x" in
 		;;
 esac
 
+echo "quoted strings in patterns"
+case "$x" in
+	"$y"'')
+		echo pass
+		;;
+	*)
+		echo fail
+		;;
+esac
+
 echo ";; optional for last item"
 case hello in
 	*)

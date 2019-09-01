@@ -1,4 +1,4 @@
-#define _POSIX_C_SOURCE 1
+#define _POSIX_C_SOURCE 200809L
 #include <assert.h>
 #include <errno.h>
 #include <mrsh/array.h>
@@ -51,11 +51,14 @@ bool mrsh_set_job_control(struct mrsh_state *state, bool enabled) {
 			}
 		}
 
-		// Put ourselves in our own process group
+		// Put ourselves in our own process group, if we aren't the session
+		// leader
 		state->pgid = getpid();
-		if (setpgid(state->pgid, state->pgid) != 0) {
-			fprintf(stderr, "setpgid failed: %s\n", strerror(errno));
-			return false;
+		if (getsid(0) != state->pgid) {
+			if (setpgid(state->pgid, state->pgid) != 0) {
+				fprintf(stderr, "setpgid failed: %s\n", strerror(errno));
+				return false;
+			}
 		}
 
 		// Grab control of the terminal

@@ -46,7 +46,7 @@ int run_pipeline(struct context *ctx, struct mrsh_pipeline *pl) {
 		if (i < pl->commands.len - 1) {
 			int fds[2];
 			if (pipe(fds) != 0) {
-				fprintf(stderr, "failed to pipe(): %s\n", strerror(errno));
+				perror("pipe");
 				return TASK_STATUS_ERROR;
 			}
 

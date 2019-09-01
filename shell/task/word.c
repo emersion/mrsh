@@ -23,7 +23,7 @@ static bool buffer_read_from(struct mrsh_buffer *buf, int fd) {
 		if (n < 0 && errno == EINTR) {
 			continue;
 		} else if (n < 0) {
-			fprintf(stderr, "read() failed: %s\n", strerror(errno));
+			perror("read");
 			return false;
 		} else if (n == 0) {
 			break;
@@ -45,15 +45,15 @@ static int run_word_command(struct context *ctx, struct mrsh_word **word_ptr) {
 
 	int fds[2];
 	if (pipe(fds) != 0) {
-		fprintf(stderr, "pipe() failed: %s\n", strerror(errno));
+		perror("pipe");
 		return TASK_STATUS_ERROR;
 	}
 
 	pid_t pid = fork();
 	if (pid < 0) {
+		perror("fork");
 		close(fds[0]);
 		close(fds[1]);
-		fprintf(stderr, "failed to fork(): %s\n", strerror(errno));
 		return TASK_STATUS_ERROR;
 	} else if (pid == 0) {
 		close(fds[0]);

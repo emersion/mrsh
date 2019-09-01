@@ -46,13 +46,13 @@ static int run_process(struct context *ctx, struct mrsh_simple_command *sc,
 	const char *path = expand_path(ctx->state, argv[0], true);
 	if (!path) {
 		fprintf(stderr, "%s: not found\n", argv[0]);
-		return -1;
+		return TASK_STATUS_ERROR;
 	}
 
 	pid_t pid = fork();
 	if (pid < 0) {
-		fprintf(stderr, "failed to fork(): %s\n", strerror(errno));
-		return -1;
+		perror("fork");
+		return TASK_STATUS_ERROR;
 	} else if (pid == 0) {
 		init_child(ctx, getpid());
 		if (ctx->state->options & MRSH_OPT_MONITOR) {

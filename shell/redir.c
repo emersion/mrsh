@@ -40,7 +40,7 @@ err_write:
 static int create_here_document_fd(const struct mrsh_array *lines) {
 	int fds[2];
 	if (pipe(fds) != 0) {
-		fprintf(stderr, "pipe() failed: %s\n", strerror(errno));
+		perror("pipe");
 		return -1;
 	}
 
@@ -70,9 +70,9 @@ static int create_here_document_fd(const struct mrsh_array *lines) {
 
 	pid_t pid = fork();
 	if (pid < 0) {
+		perror("fork");
 		close(fds[0]);
 		close(fds[1]);
-		fprintf(stderr, "fork() failed: %s\n", strerror(errno));
 		return -1;
 	} else if (pid == 0) {
 		close(fds[0]);

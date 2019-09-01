@@ -84,14 +84,14 @@ int builtin_wait(struct mrsh_state *state, int argc, char *argv[]) {
 		int stat;
 		pid_t waited = waitpid(pids[i].pid, &stat, 0);
 		// TODO: update jobs internal state?
-		update_process(state, waited, stat);
 		if (waited == -1) {
 			if (errno == ECHILD) {
 				continue;
 			}
-			fprintf(stderr, "wait: %s\n", strerror(errno));
+			perror("wait");
 			goto failure;
 		}
+		update_process(state, waited, stat);
 		if (WIFEXITED(stat)) {
 			pids[i].status = WEXITSTATUS(stat);
 		} else {

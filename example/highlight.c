@@ -299,7 +299,7 @@ int main(int argc, char *argv[]) {
 		char *dst = mrsh_buffer_reserve(&buf, READ_SIZE);
 		ssize_t n_read = read(STDIN_FILENO, dst, READ_SIZE);
 		if (n_read < 0) {
-			fprintf(stderr, "read() failed: %s\n", strerror(errno));
+			perror("read");
 			return 1;
 		} else if (n_read == 0) {
 			break;

@@ -18,12 +18,12 @@ int builtin_times(struct mrsh_state *state, int argc, char *argv[]) {
 	struct tms buf;
 	long clk_tck = sysconf(_SC_CLK_TCK);
 	if (clk_tck == -1) {
-		fprintf(stderr, "sysconf error: %s", strerror(errno));
+		perror("sysconf");
 		return 1;
 	}
 
 	if (times(&buf) == (clock_t)-1) {
-		fprintf(stderr, "times error: %s", strerror(errno));
+		perror("times");
 		return 1;
 	}
 

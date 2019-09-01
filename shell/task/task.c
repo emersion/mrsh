@@ -14,7 +14,7 @@
 static int run_subshell(struct context *ctx, struct mrsh_array *array) {
 	pid_t pid = fork();
 	if (pid < 0) {
-		fprintf(stderr, "fork failed: %s\n", strerror(errno));
+		perror("fork");
 		return TASK_STATUS_ERROR;
 	} else if (pid == 0) {
 		ctx->state->child = true;
@@ -333,7 +333,7 @@ int run_command_list_array(struct context *ctx, struct mrsh_array *array) {
 
 			pid_t pid = fork();
 			if (pid < 0) {
-				fprintf(stderr, "fork failed: %s\n", strerror(errno));
+				perror("fork");
 				return TASK_STATUS_ERROR;
 			} else if (pid == 0) {
 				ctx = NULL; // Use child_ctx instead

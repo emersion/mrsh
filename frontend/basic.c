@@ -22,7 +22,7 @@ size_t interactive_next(struct mrsh_state *state,
 	if (n_read < 0) {
 		free(_line);
 		if (errno != 0) {
-			fprintf(stderr, "getline() failed: %s\n", strerror(errno));
+			perror("getline");
 		}
 		return 0;
 	}

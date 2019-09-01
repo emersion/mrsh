@@ -46,7 +46,7 @@ bool mrsh_set_job_control(struct mrsh_state *state, bool enabled) {
 		sigemptyset(&sa.sa_mask);
 		for (size_t i = 0; i < IGNORED_SIGNALS_LEN; ++i) {
 			if (sigaction(ignored_signals[i], &sa, NULL) != 0) {
-				fprintf(stderr, "sigaction failed: %s\n", strerror(errno));
+				perror("sigaction");
 				return false;
 			}
 		}
@@ -56,19 +56,19 @@ bool mrsh_set_job_control(struct mrsh_state *state, bool enabled) {
 		state->pgid = getpid();
 		if (getsid(0) != state->pgid) {
 			if (setpgid(state->pgid, state->pgid) != 0) {
-				fprintf(stderr, "setpgid failed: %s\n", strerror(errno));
+				perror("setpgid");
 				return false;
 			}
 		}
 
 		// Grab control of the terminal
 		if (tcsetpgrp(state->fd, state->pgid) != 0) {
-			fprintf(stderr, "tcsetpgrp failed: %s\n", strerror(errno));
+			perror("tcsetpgrp");
 			return false;
 		}
 		// Save default terminal attributes for the shell
 		if (tcgetattr(state->fd, &state->term_modes) != 0) {
-			fprintf(stderr, "tcgetattr failed: %s\n", strerror(errno));
+			perror("tcgetattr");
 			return false;
 		}
 	} else {
@@ -134,7 +134,7 @@ void job_add_process(struct mrsh_job *job, struct process *proc) {
 		job->pgid = proc->pid;
 	}
 	if (setpgid(proc->pid, job->pgid) != 0) {
-		fprintf(stderr, "setpgid failed: %s\n", strerror(errno));
+		perror("setpgid");
 		return;
 	}
 	mrsh_array_add(&job->processes, proc);
@@ -173,7 +173,7 @@ bool job_set_foreground(struct mrsh_job *job, bool foreground, bool cont) {
 
 	if (cont) {
 		if (kill(-job->pgid, SIGCONT) != 0) {
-			fprintf(stderr, "kill failed: %s\n", strerror(errno));
+			perror("kill");
 			return false;
 		}
 
@@ -222,7 +222,7 @@ static bool _job_wait(struct mrsh_state *state, pid_t pid) {
 			if (errno == EINTR) {
 				continue;
 			}
-			fprintf(stderr, "waitpid failed: %s\n", strerror(errno));
+			perror("waitpid");
 			return false;
 		}
 		assert(ret > 0);
@@ -276,7 +276,7 @@ bool init_job_child_process(struct mrsh_state *state) {
 	sigemptyset(&sa.sa_mask);
 	for (size_t i = 0; i < IGNORED_SIGNALS_LEN; ++i) {
 		if (sigaction(ignored_signals[i], &sa, NULL) != 0) {
-			fprintf(stderr, "sigaction failed: %s\n", strerror(errno));
+			perror("sigaction");
 			return false;
 		}
 	}

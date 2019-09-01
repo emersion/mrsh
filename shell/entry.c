@@ -76,7 +76,7 @@ bool mrsh_populate_env(struct mrsh_state *state, char **environ) {
 	if (pwd == NULL || strlen(pwd) >= PATH_MAX) {
 		char cwd[PATH_MAX];
 		if (getcwd(cwd, PATH_MAX) == NULL) {
-			fprintf(stderr, "getcwd failed: %s\n", strerror(errno));
+			perror("getcwd");
 			return false;
 		}
 		mrsh_env_set(state, "PWD", cwd,

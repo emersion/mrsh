@@ -26,17 +26,11 @@ int builtin_ulimit(struct mrsh_state *state, int argc, char *argv[]) {
 	}
 
 	if (mrsh_optind == argc - 1) {
-		errno = 0;
 		char *arg = argv[mrsh_optind];
-		char *endptr;
-		long int new_limit = strtol(arg, &endptr, 10);
-		if (errno != 0) {
-			fprintf(stderr, "strtol error: %s\n", strerror(errno));
-			return 1;
-		}
-		if ((endptr == arg) || (endptr[0] != '\0')) {
-			fprintf(stderr, "ulimit error: Invalid argument: %s\n",
-				arg);
+		char *end;
+		long int new_limit = strtol(arg, &end, 10);
+		if (end == arg || end[0] != '\0') {
+			fprintf(stderr, "ulimit: invalid argument: %s\n", arg);
 			return 1;
 		}
 		struct rlimit new = {
@@ -44,13 +38,13 @@ int builtin_ulimit(struct mrsh_state *state, int argc, char *argv[]) {
 			.rlim_max = new_limit * 512
 		};
 		if (setrlimit(RLIMIT_FSIZE, &new) != 0) {
-			fprintf(stderr, "setrlimit error: %s\n", strerror(errno));
+			perror("setrlimit");
 			return 1;
 		}
 	} else if (mrsh_optind == argc) {
 		struct rlimit old = { 0 };
 		if (getrlimit(RLIMIT_FSIZE, &old) != 0) {
-			fprintf(stderr, "getrlimit error: %s\n", strerror(errno));
+			perror("getrlimit");
 			return 1;
 		}
 		if (old.rlim_max == RLIM_INFINITY) {

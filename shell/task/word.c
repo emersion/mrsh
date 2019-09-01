@@ -111,7 +111,7 @@ static const char *parameter_get_value(struct mrsh_state *state, char *name) {
 		sprintf(value, "%d", state->last_status);
 		return value;
 	} else if (strcmp(name, "-") == 0) {
-		return print_options(state);
+		return state_get_options(state);
 	} else if (strcmp(name, "$") == 0) {
 		sprintf(value, "%d", (int)getpid());
 		return value;

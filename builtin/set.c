@@ -9,7 +9,11 @@
 #include "builtin.h"
 
 static const char set_usage[] =
-	"usage: set [(-|+)abCefhmnuvx] [-o option] [args...]\n";
+	"usage: set [(-|+)abCefhmnuvx] [-o option] [args...]\n"
+	"       set [(-|+)abCefhmnuvx] [+o option] [args...]\n"
+	"       set -- [args...]\n"
+	"       set -o\n"
+	"       set +o\n";
 
 struct option_map {
 	const char *name;
@@ -34,16 +38,27 @@ static const struct option_map options[] = {
 	{ "xtrace", 'x', MRSH_OPT_XTRACE },
 };
 
-const char *print_options(struct mrsh_state *state) {
+const char *state_get_options(struct mrsh_state *state) {
 	static char opts[sizeof(options) / sizeof(options[0]) + 1];
 	int i = 0;
 	for (size_t j = 0; j < sizeof(options) / sizeof(options[0]); ++j) {
-		if (options[j].short_name && (state->options & options[j].value)) {
+		if (options[j].short_name != '\0' &&
+				(state->options & options[j].value)) {
 			opts[i++] = options[j].short_name;
 		}
 	}
-	opts[i] = 0;
+	opts[i] = '\0';
 	return opts;
+}
+
+static void print_options(struct mrsh_state *state) {
+	for (size_t j = 0; j < sizeof(options) / sizeof(options[0]); ++j) {
+		if (options[j].name != NULL) {
+			printf("set %co %s\n",
+				(state->options & options[j].value) ? '-' : '+',
+				options[j].name);
+		}
+	}
 }
 
 static const struct option_map *find_option(char opt) {
@@ -117,8 +132,8 @@ static int set(struct mrsh_state *state, struct mrsh_init_args *init_args,
 		switch (argv[i][1]) {
 		case 'o':
 			if (i + 1 == argc) {
-				fprintf(stderr, set_usage);
-				return 1;
+				print_options(state);
+				return 0;
 			}
 			option = find_long_option(argv[i + 1]);
 			if (!option) {

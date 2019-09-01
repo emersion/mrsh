@@ -37,6 +37,6 @@ int builtin_wait(struct mrsh_state *state, int argc, char *argv[]);
 
 int builtin_unspecified(struct mrsh_state *state, int argc, char *argv[]);
 
-const char *print_options(struct mrsh_state *state);
+const char *state_get_options(struct mrsh_state *state);
 
 #endif

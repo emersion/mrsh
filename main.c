@@ -71,7 +71,9 @@ int main(int argc, char *argv[]) {
 	mrsh_state_set_parser_alias_func(&state, parser);
 
 	if (state.interactive) {
-		mrsh_set_job_control(&state, true);
+		if (!mrsh_set_job_control(&state, true)) {
+			fprintf(stderr, "failed to enable job control\n");
+		}
 	}
 
 	struct mrsh_buffer read_buffer = {0};

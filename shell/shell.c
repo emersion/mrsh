@@ -24,7 +24,7 @@ void mrsh_state_init(struct mrsh_state *state) {
 	state->nloops = 0;
 	state->interactive = isatty(STDIN_FILENO);
 	state->options = state->interactive ? MRSH_OPT_INTERACTIVE : 0;
-	state->args = calloc(1, sizeof(struct mrsh_call_frame));
+	state->frame = calloc(1, sizeof(struct mrsh_call_frame));
 }
 
 static const char *get_alias(const char *name, void *data) {
@@ -59,12 +59,12 @@ static void state_fn_finish_iterator(const char *key, void *value, void *_) {
 	mrsh_function_destroy((struct mrsh_function *)value);
 }
 
-static void call_frame_destroy(struct mrsh_call_frame *args) {
-	for (int i = 0; i < args->argc; ++i) {
-		free(args->argv[i]);
+static void call_frame_destroy(struct mrsh_call_frame *frame) {
+	for (int i = 0; i < frame->argc; ++i) {
+		free(frame->argv[i]);
 	}
-	free(args->argv);
-	free(args);
+	free(frame->argv);
+	free(frame);
 }
 
 void mrsh_state_finish(struct mrsh_state *state) {
@@ -83,11 +83,11 @@ void mrsh_state_finish(struct mrsh_state *state) {
 		process_destroy(state->processes.data[state->processes.len - 1]);
 	}
 	mrsh_array_finish(&state->processes);
-	struct mrsh_call_frame *args = state->args;
-	while (args) {
-		struct mrsh_call_frame *prev = args->prev;
-		call_frame_destroy(args);
-		args = prev;
+	struct mrsh_call_frame *frame = state->frame;
+	while (frame) {
+		struct mrsh_call_frame *prev = frame->prev;
+		call_frame_destroy(frame);
+		frame = prev;
 	}
 }
 
@@ -117,20 +117,20 @@ const char *mrsh_env_get(struct mrsh_state *state,
 	return var ? var->value : NULL;
 }
 
-void mrsh_push_args(struct mrsh_state *state, int argc, const char *argv[]) {
+void mrsh_push_frame(struct mrsh_state *state, int argc, const char *argv[]) {
 	struct mrsh_call_frame *next = calloc(1, sizeof(struct mrsh_call_frame));
 	next->argc = argc;
 	next->argv = malloc(sizeof(char *) * argc);
 	for (int i = 0; i < argc; ++i) {
 		next->argv[i] = strdup(argv[i]);
 	}
-	next->prev = state->args;
-	state->args = next;
+	next->prev = state->frame;
+	state->frame = next;
 }
 
-void mrsh_pop_args(struct mrsh_state *state) {
-	struct mrsh_call_frame *args = state->args;
-	assert(args->prev != NULL);
-	state->args = args->prev;
-	call_frame_destroy(args);
+void mrsh_pop_frame(struct mrsh_state *state) {
+	struct mrsh_call_frame *frame = state->frame;
+	assert(frame->prev != NULL);
+	state->frame = frame->prev;
+	call_frame_destroy(frame);
 }

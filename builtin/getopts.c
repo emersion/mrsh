@@ -29,8 +29,8 @@ int builtin_getopts(struct mrsh_state *state, int argc, char *argv[]) {
 		optc = argc - mrsh_optind - 2;
 		optv = &argv[mrsh_optind + 2];
 	} else {
-		optc = state->args->argc;
-		optv = state->args->argv;
+		optc = state->frame->argc;
+		optv = state->frame->argv;
 	}
 	char *optstring = argv[mrsh_optind];
 	char *name = argv[mrsh_optind + 1];

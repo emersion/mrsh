@@ -94,7 +94,7 @@ struct mrsh_state {
 	int exit;
 	int fd;
 	uint32_t options; // enum mrsh_option
-	struct mrsh_call_frame *args;
+	struct mrsh_call_frame *frame;
 	bool interactive;
 	struct mrsh_hashtable variables; // struct mrsh_variable *
 	struct mrsh_hashtable aliases; // char *
@@ -127,8 +127,8 @@ void mrsh_env_set(struct mrsh_state *state,
 void mrsh_env_unset(struct mrsh_state *state, const char *key);
 const char *mrsh_env_get(struct mrsh_state *state,
 	const char *key, uint32_t *attribs);
-void mrsh_push_args(struct mrsh_state *state, int argc, const char *argv[]);
-void mrsh_pop_args(struct mrsh_state *state);
+void mrsh_push_frame(struct mrsh_state *state, int argc, const char *argv[]);
+void mrsh_pop_frame(struct mrsh_state *state);
 int mrsh_run_program(struct mrsh_state *state, struct mrsh_program *prog);
 int mrsh_run_word(struct mrsh_state *state, struct mrsh_word **word);
 bool mrsh_run_arithm_expr(struct mrsh_arithm_expr *expr, long *result);

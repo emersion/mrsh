@@ -105,7 +105,7 @@ static const char *parameter_get_value(struct mrsh_state *state, char *name) {
 	} else if (strcmp(name, "*") == 0) {
 		// TODO
 	} else if (strcmp(name, "#") == 0) {
-		sprintf(value, "%d", state->args->argc - 1);
+		sprintf(value, "%d", state->frame->argc - 1);
 		return value;
 	} else if (strcmp(name, "?") == 0) {
 		sprintf(value, "%d", state->last_status);
@@ -129,10 +129,10 @@ static const char *parameter_get_value(struct mrsh_state *state, char *name) {
 		/* Standard is unclear on what to do in this case, mimic dash */
 		return "";
 	} else if (end[0] == '\0') {
-		if (lvalue >= state->args->argc) {
+		if (lvalue >= state->frame->argc) {
 			return NULL;
 		}
-		return state->args->argv[lvalue];
+		return state->frame->argv[lvalue];
 	}
 	// User-set cases
 	return mrsh_env_get(state, name, NULL);
@@ -166,7 +166,7 @@ int run_word(struct context *ctx, struct mrsh_word **word_ptr,
 		if (value == NULL) {
 			if ((ctx->state->options & MRSH_OPT_NOUNSET)) {
 				fprintf(stderr, "%s: %s: unbound variable\n",
-						ctx->state->args->argv[0], wp->name);
+						ctx->state->frame->argv[0], wp->name);
 				return TASK_STATUS_ERROR;
 			}
 			value = "";
@@ -197,7 +197,7 @@ int run_word(struct context *ctx, struct mrsh_word **word_ptr,
 			if (err_msg != NULL) {
 				// TODO: improve error line/column
 				fprintf(stderr, "%s (arithmetic %d:%d): %s\n",
-					ctx->state->args->argv[0], err_pos.line,
+					ctx->state->frame->argv[0], err_pos.line,
 					err_pos.column, err_msg);
 			} else {
 				fprintf(stderr, "expected an arithmetic expression\n");

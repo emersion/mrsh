@@ -32,7 +32,7 @@ int main(int argc, char *argv[]) {
 
 	if (!(state.options & MRSH_OPT_NOEXEC)) {
 		// If argv[0] begins with `-`, it's a login shell
-		if (state.args->argv[0][0] == '-') {
+		if (state.frame->argv[0][0] == '-') {
 			mrsh_source_profile(&state);
 		}
 		if (state.interactive) {
@@ -112,7 +112,7 @@ int main(int argc, char *argv[]) {
 			if (err_msg != NULL) {
 				mrsh_buffer_finish(&read_buffer);
 				fprintf(stderr, "%s:%d:%d: syntax error: %s\n",
-					state.args->argv[0], err_pos.line, err_pos.column, err_msg);
+					state.frame->argv[0], err_pos.line, err_pos.column, err_msg);
 				if (state.interactive) {
 					continue;
 				} else {

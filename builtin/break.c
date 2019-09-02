@@ -25,12 +25,12 @@ int builtin_break(struct mrsh_state *state, int argc, char *argv[]) {
 		}
 	}
 
-	if (n > state->nloops) {
-		n = state->nloops;
+	if (n > state->frame->nloops) {
+		n = state->frame->nloops;
 	}
 
-	state->nloops -= n - 1;
-	state->branch_control =
+	state->frame->nloops -= n - 1;
+	state->frame->branch_control =
 		strcmp(argv[0], "break") == 0 ? MRSH_BRANCH_BREAK : MRSH_BRANCH_CONTINUE;
 	return TASK_STATUS_INTERRUPTED;
 }

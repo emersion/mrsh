@@ -75,12 +75,6 @@ struct mrsh_function {
 	struct mrsh_command *body;
 };
 
-struct mrsh_call_frame {
-	char **argv;
-	int argc;
-	struct mrsh_call_frame *prev;
-};
-
 struct mrsh_job;
 
 enum mrsh_branch_control {
@@ -88,6 +82,15 @@ enum mrsh_branch_control {
 	MRSH_BRANCH_CONTINUE,
 	MRSH_BRANCH_RETURN,
 	MRSH_BRANCH_EXIT,
+};
+
+struct mrsh_call_frame {
+	char **argv;
+	int argc;
+	struct mrsh_call_frame *prev;
+
+	enum mrsh_branch_control branch_control;
+	int nloops;
 };
 
 struct mrsh_state {
@@ -109,8 +112,6 @@ struct mrsh_state {
 	struct mrsh_job *foreground_job;
 
 	// TODO: move this to context
-	enum mrsh_branch_control branch_control;
-	int nloops;
 	bool child; // true if we're not the main shell process
 };
 

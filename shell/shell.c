@@ -21,7 +21,6 @@ void mrsh_function_destroy(struct mrsh_function *fn) {
 void mrsh_state_init(struct mrsh_state *state) {
 	state->exit = -1;
 	state->fd = -1;
-	state->nloops = 0;
 	state->interactive = isatty(STDIN_FILENO);
 	state->options = state->interactive ? MRSH_OPT_INTERACTIVE : 0;
 	state->frame = calloc(1, sizeof(struct mrsh_call_frame));
@@ -124,6 +123,7 @@ void mrsh_push_frame(struct mrsh_state *state, int argc, const char *argv[]) {
 	for (int i = 0; i < argc; ++i) {
 		next->argv[i] = strdup(argv[i]);
 	}
+	next->nloops = 0;
 	next->prev = state->frame;
 	state->frame = next;
 }

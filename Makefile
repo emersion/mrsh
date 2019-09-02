@@ -27,6 +27,7 @@ tests=\
 		test/function.sh \
 		test/loop.sh \
 		test/pipeline.sh \
+		test/return.sh \
 		test/subshell.sh \
 		test/syntax.sh \
 		test/ulimit.sh \

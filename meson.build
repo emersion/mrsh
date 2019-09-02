@@ -89,6 +89,7 @@ lib_mrsh = library(
 		'builtin/jobs.c',
 		'builtin/pwd.c',
 		'builtin/read.c',
+		'builtin/return.c',
 		'builtin/set.c',
 		'builtin/shift.c',
 		'builtin/times.c',

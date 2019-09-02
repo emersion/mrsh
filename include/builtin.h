@@ -24,6 +24,7 @@ int builtin_getopts(struct mrsh_state *state, int argc, char *argv[]);
 int builtin_jobs(struct mrsh_state *state, int argc, char *argv[]);
 int builtin_pwd(struct mrsh_state *state, int argc, char *argv[]);
 int builtin_read(struct mrsh_state *state, int argc, char *argv[]);
+int builtin_return(struct mrsh_state *state, int argc, char *argv[]);
 int builtin_set(struct mrsh_state *state, int argc, char *argv[]);
 int builtin_shift(struct mrsh_state *state, int argc, char *argv[]);
 int builtin_times(struct mrsh_state *state, int argc, char *argv[]);

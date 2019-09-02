@@ -6,6 +6,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <signal.h>
+#include <unistd.h>
 #if defined(HAVE_READLINE)
 #include <readline/history.h>
 #include <readline/readline.h>
@@ -14,6 +16,17 @@
 #include <histedit.h>
 #endif
 #include "frontend.h"
+
+static void sigint_handler(int n) {
+	/* Signal safety is done here on a best-effort basis. rl_redisplay is not
+	 * signal safe, but under these circumstances it's very likely that the
+	 * interrupted function will not be affected. */
+	char newline = '\n';
+	write(STDOUT_FILENO, &newline, 1);
+	rl_on_new_line();
+	rl_replace_line("", 0);
+	rl_redisplay();
+}
 
 static const char *get_history_path(void) {
 	static char history_path[PATH_MAX + 1];
@@ -29,7 +42,11 @@ void interactive_init(struct mrsh_state *state) {
 
 size_t interactive_next(struct mrsh_state *state,
 		char **line, const char *prompt) {
+	struct sigaction sa = { .sa_handler = sigint_handler }, old;
+	sigaction(SIGINT, &sa, &old);
 	char *rline = readline(prompt);
+	sigaction(SIGINT, &old, NULL);
+
 	if (!rline) {
 		return 0;
 	}

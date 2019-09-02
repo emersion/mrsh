@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "builtin.h"
+#include "shell/word.h"
 
 static const char export_usage[] = "usage: %s -p|name[=word]...\n";
 
@@ -52,8 +53,11 @@ int builtin_export(struct mrsh_state *state, int argc, char *argv[]) {
 			free(key);
 			return 1;
 		}
-		mrsh_env_set(state, key, val, attrib | prev_attribs);
+		char *new_val = strdup(val);
+		expand_tilde(state, &new_val);
+		mrsh_env_set(state, key, new_val, attrib | prev_attribs);
 		free(key);
+		free(new_val);
 	}
 
 	return 0;

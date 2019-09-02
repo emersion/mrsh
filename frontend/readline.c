@@ -17,6 +17,7 @@
 #endif
 #include "frontend.h"
 
+#if defined(HAVE_READLINE)
 static void sigint_handler(int n) {
 	/* Signal safety is done here on a best-effort basis. rl_redisplay is not
 	 * signal safe, but under these circumstances it's very likely that the
@@ -27,6 +28,7 @@ static void sigint_handler(int n) {
 	rl_replace_line("", 0);
 	rl_redisplay();
 }
+#endif
 
 static const char *get_history_path(void) {
 	static char history_path[PATH_MAX + 1];
@@ -42,10 +44,15 @@ void interactive_init(struct mrsh_state *state) {
 
 size_t interactive_next(struct mrsh_state *state,
 		char **line, const char *prompt) {
+	/* TODO: make SIGINT handling work with editline */
+#if defined(HAVE_READLINE)
 	struct sigaction sa = { .sa_handler = sigint_handler }, old;
 	sigaction(SIGINT, &sa, &old);
+#endif
 	char *rline = readline(prompt);
+#if defined(HAVE_READLINE)
 	sigaction(SIGINT, &old, NULL);
+#endif
 
 	if (!rline) {
 		return 0;

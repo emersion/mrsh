@@ -1,7 +1,7 @@
 #include <assert.h>
 #include <mrsh/shell.h>
 
-static bool mrsh_run_arithm_binop(struct mrsh_state *state,
+static bool run_arithm_binop(struct mrsh_state *state,
 		struct mrsh_arithm_binop *binop, long *result) {
 	long left, right;
 	if (!mrsh_run_arithm_expr(state, binop->left, &left)) {
@@ -69,7 +69,7 @@ static bool mrsh_run_arithm_binop(struct mrsh_state *state,
 	assert(false); // Unknown binary arithmetic operation
 }
 
-static bool mrsh_run_arithm_unop(struct mrsh_state *state,
+static bool run_arithm_unop(struct mrsh_state *state,
 		struct mrsh_arithm_unop *unop, long *result) {
 	long val;
 	if (!mrsh_run_arithm_expr(state, unop->body, &val)) {
@@ -92,7 +92,7 @@ static bool mrsh_run_arithm_unop(struct mrsh_state *state,
 	assert(false); // Unknown unary arithmetic operation
 }
 
-static bool mrsh_run_arithm_cond(struct mrsh_state *state,
+static bool run_arithm_cond(struct mrsh_state *state,
 		struct mrsh_arithm_cond *cond, long *result) {
 	long condition;
 	if (!mrsh_run_arithm_expr(state, cond->condition, &condition)) {
@@ -121,15 +121,15 @@ bool mrsh_run_arithm_expr(struct mrsh_state *state,
 	case MRSH_ARITHM_BINOP:;
 		struct mrsh_arithm_binop *binop =
 			(struct mrsh_arithm_binop *)expr;
-		return mrsh_run_arithm_binop(state, binop, result);
+		return run_arithm_binop(state, binop, result);
 	case MRSH_ARITHM_UNOP:;
 		struct mrsh_arithm_unop *unop =
 			(struct mrsh_arithm_unop *)expr;
-		return mrsh_run_arithm_unop(state, unop, result);
+		return run_arithm_unop(state, unop, result);
 	case MRSH_ARITHM_COND:;
 		struct mrsh_arithm_cond *cond =
 			(struct mrsh_arithm_cond *)expr;
-		return mrsh_run_arithm_cond(state, cond, result);
+		return run_arithm_cond(state, cond, result);
 	default:
 		// TODO
 		*result = 42;

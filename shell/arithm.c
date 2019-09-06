@@ -1,5 +1,6 @@
 #include <assert.h>
 #include <mrsh/shell.h>
+#include <stdlib.h>
 
 static bool run_arithm_binop(struct mrsh_state *state,
 		struct mrsh_arithm_binop *binop, long *result) {
@@ -110,6 +111,71 @@ static bool run_arithm_cond(struct mrsh_state *state,
 	return true;
 }
 
+static long run_arithm_assign_op(enum mrsh_arithm_assign_op op,
+		long cur, long val) {
+	switch (op) {
+	case MRSH_ARITHM_ASSIGN_NONE:
+		return val;
+	case MRSH_ARITHM_ASSIGN_ASTERISK:
+		return cur * val;
+	case MRSH_ARITHM_ASSIGN_SLASH:
+		return cur / val;
+	case MRSH_ARITHM_ASSIGN_PERCENT:
+		return cur % val;
+	case MRSH_ARITHM_ASSIGN_PLUS:
+		return cur + val;
+	case MRSH_ARITHM_ASSIGN_MINUS:
+		return cur - val;
+	case MRSH_ARITHM_ASSIGN_DLESS:
+		return cur << val;
+	case MRSH_ARITHM_ASSIGN_DGREAT:
+		return cur >> val;
+	case MRSH_ARITHM_ASSIGN_AND:
+		return cur & val;
+	case MRSH_ARITHM_ASSIGN_CIRC:
+		return cur ^ val;
+	case MRSH_ARITHM_ASSIGN_OR:
+		return cur | val;
+	}
+	assert(false);
+}
+
+static bool run_arithm_assign(struct mrsh_state *state,
+		struct mrsh_arithm_assign *assign, long *result) {
+	long val;
+	if (!mrsh_run_arithm_expr(state, assign->value, &val)) {
+		return false;
+	}
+	long cur = 0;
+	uint32_t attribs = MRSH_VAR_ATTRIB_NONE;
+	if (assign->op != MRSH_ARITHM_ASSIGN_NONE) {
+		const char *cur_str = mrsh_env_get(state, assign->name, &attribs);
+		if (cur_str == NULL) {
+			if ((state->options & MRSH_OPT_NOUNSET)) {
+				fprintf(stderr, "%s: %s: unbound variable\n",
+						state->frame->argv[0], assign->name);
+				return false;
+			}
+			cur = 0; // POSIX is not clear what to do in this case
+		} else {
+			char *end;
+			cur = strtod(cur_str, &end);
+			if (end == cur_str || end[0] != '\0') {
+				fprintf(stderr, "%s: %s: not a number: %s\n",
+						state->frame->argv[0], assign->name, cur_str);
+				return false;
+			}
+		}
+	}
+	*result = run_arithm_assign_op(assign->op, cur, val);
+
+	char buf[32];
+	snprintf(buf, sizeof(buf), "%ld", val);
+	mrsh_env_set(state, assign->name, buf, attribs);
+
+	return true;
+}
+
 bool mrsh_run_arithm_expr(struct mrsh_state *state,
 		struct mrsh_arithm_expr *expr, long *result) {
 	switch (expr->type) {
@@ -130,10 +196,10 @@ bool mrsh_run_arithm_expr(struct mrsh_state *state,
 		struct mrsh_arithm_cond *cond =
 			(struct mrsh_arithm_cond *)expr;
 		return run_arithm_cond(state, cond, result);
-	default:
-		// TODO
-		*result = 42;
-		break;
+	case MRSH_ARITHM_ASSIGN:;
+		struct mrsh_arithm_assign *assign =
+			(struct mrsh_arithm_assign *)expr;
+		return run_arithm_assign(state, assign, result);
 	}
 	return true;
 }

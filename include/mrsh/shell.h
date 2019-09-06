@@ -132,7 +132,8 @@ void mrsh_push_frame(struct mrsh_state *state, int argc, const char *argv[]);
 void mrsh_pop_frame(struct mrsh_state *state);
 int mrsh_run_program(struct mrsh_state *state, struct mrsh_program *prog);
 int mrsh_run_word(struct mrsh_state *state, struct mrsh_word **word);
-bool mrsh_run_arithm_expr(struct mrsh_arithm_expr *expr, long *result);
+bool mrsh_run_arithm_expr(struct mrsh_state *state,
+	struct mrsh_arithm_expr *expr, long *result);
 /**
  * Enable or disable job control. This will setup signal handlers, process
  * groups and the terminal accordingly.

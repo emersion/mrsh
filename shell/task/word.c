@@ -205,7 +205,7 @@ int run_word(struct context *ctx, struct mrsh_word **word_ptr,
 			ret = TASK_STATUS_ERROR;
 		} else {
 			long result;
-			if (!mrsh_run_arithm_expr(expr, &result)) {
+			if (!mrsh_run_arithm_expr(ctx->state, expr, &result)) {
 				ret = TASK_STATUS_ERROR;
 			} else {
 				char buf[32];

@@ -1,4 +1,5 @@
 #define _POSIX_C_SOURCE 200809L
+#include <assert.h>
 #include <mrsh/getopt.h>
 #include <mrsh/shell.h>
 #include <stdio.h>
@@ -14,25 +15,23 @@ int builtin_pwd(struct mrsh_state *state, int argc, char *argv[]) {
 		switch (opt) {
 		case 'L':
 		case 'P':
-			// TODO implement `-L` and `-P`
-			fprintf(stderr, "pwd: `-L` and `-P` not yet implemented\n");
-			return 1;
+			/* This space deliberately left blank */
+			break;
 		default:
 			fprintf(stderr, "pwd: unknown option -- %c\n", mrsh_optopt);
 			fprintf(stderr, pwd_usage);
 			return 1;
 		}
 	}
+
 	if (mrsh_optind < argc) {
 		fprintf(stderr, pwd_usage);
 		return 1;
 	}
 
 	const char *pwd = mrsh_env_get(state, "PWD", NULL);
-	if (pwd == NULL) {
-		fprintf(stderr, "pwd: Cannot return current directory as PWD was unset\n");
-		return 1;
-	}
+	assert(pwd != NULL);
 	puts(pwd);
+
 	return 0;
 }

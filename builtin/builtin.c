@@ -28,6 +28,7 @@ static const struct builtin builtins[] = {
 	{ "false", builtin_false, false },
 	{ "fg", builtin_fg, false },
 	{ "getopts", builtin_getopts, false },
+	{ "hash", builtin_hash, false },
 	{ "jobs", builtin_jobs, false },
 	{ "pwd", builtin_pwd, false },
 	{ "read", builtin_read, false },
@@ -69,7 +70,7 @@ static int builtin_compare(const void *_a, const void *_b) {
 
 static int unspecified_compare(const void *_a, const void *_b) {
 	const char *a = _a;
-	const char * const *b = _b;
+	const char *const *b = _b;
 	return strcmp(a, *b);
 }
 

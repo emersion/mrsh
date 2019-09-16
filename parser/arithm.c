@@ -420,45 +420,62 @@ error_body:
 	return NULL;
 }
 
+static bool peek_assign_op(struct mrsh_parser *state, size_t *offset,
+		const char *str) {
+	size_t len = strlen(str);
+
+	for (size_t i = 0; i < len; ++i) {
+		parser_peek(state, NULL, *offset + i + 1);
+
+		if (state->buf.data[*offset + i] != str[i]) {
+			return false;
+		}
+	}
+
+	*offset += len;
+	return true;
+}
+
 static struct mrsh_arithm_expr *assignment(struct mrsh_parser *state) {
 	size_t name_len = peek_name(state, false);
 	if (name_len == 0) {
 		return NULL;
 	}
 
-	parser_peek(state, NULL, name_len + 1);
-	if (state->buf.data[name_len] != '=') {
+	enum mrsh_arithm_assign_op op;
+	size_t offset = name_len;
+	if (peek_assign_op(state, &offset, "=")) {
+		op = MRSH_ARITHM_ASSIGN_NONE;
+	} else if (peek_assign_op(state, &offset, "*=")) {
+		op = MRSH_ARITHM_ASSIGN_ASTERISK;
+	} else if (peek_assign_op(state, &offset, "/=")) {
+		op = MRSH_ARITHM_ASSIGN_SLASH;
+	} else if (peek_assign_op(state, &offset, "%=")) {
+		op = MRSH_ARITHM_ASSIGN_PERCENT;
+	} else if (peek_assign_op(state, &offset, "+=")) {
+		op = MRSH_ARITHM_ASSIGN_PLUS;
+	} else if (peek_assign_op(state, &offset, "-=")) {
+		op = MRSH_ARITHM_ASSIGN_MINUS;
+	} else if (peek_assign_op(state, &offset, "<<=")) {
+		op = MRSH_ARITHM_ASSIGN_DLESS;
+	} else if (peek_assign_op(state, &offset, ">>=")) {
+		op = MRSH_ARITHM_ASSIGN_DGREAT;
+	} else if (peek_assign_op(state, &offset, "&=")) {
+		op = MRSH_ARITHM_ASSIGN_AND;
+	} else if (peek_assign_op(state, &offset, "^=")) {
+		op = MRSH_ARITHM_ASSIGN_CIRC;
+	} else if (peek_assign_op(state, &offset, "|=")) {
+		op = MRSH_ARITHM_ASSIGN_OR;
+	} else {
 		return NULL;
 	}
+	// offset is now the offset till the end of the operator
 
 	char *name = malloc(name_len + 1);
 	parser_read(state, name, name_len);
 	name[name_len] = '\0';
 
-	parser_read(state, NULL, 1); // equal sign
-
-	enum mrsh_arithm_assign_op op = MRSH_ARITHM_ASSIGN_NONE;
-	if (parse_char(state, '*')) {
-		op = MRSH_ARITHM_ASSIGN_ASTERISK;
-	} else if (parse_char(state, '/')) {
-		op = MRSH_ARITHM_ASSIGN_SLASH;
-	} else if (parse_char(state, '%')) {
-		op = MRSH_ARITHM_ASSIGN_PERCENT;
-	} else if (parse_char(state, '+')) {
-		op = MRSH_ARITHM_ASSIGN_PLUS;
-	} else if (parse_char(state, '-')) {
-		op = MRSH_ARITHM_ASSIGN_MINUS;
-	} else if (parse_str(state, "<<")) {
-		op = MRSH_ARITHM_ASSIGN_DLESS;
-	} else if (parse_str(state, ">>")) {
-		op = MRSH_ARITHM_ASSIGN_DGREAT;
-	} else if (parse_char(state, '&')) {
-		op = MRSH_ARITHM_ASSIGN_AND;
-	} else if (parse_char(state, '^')) {
-		op = MRSH_ARITHM_ASSIGN_CIRC;
-	} else if (parse_char(state, '|')) {
-		op = MRSH_ARITHM_ASSIGN_OR;
-	}
+	parser_read(state, NULL, offset - name_len); // operator
 
 	struct mrsh_arithm_expr *value = arithm_expr(state);
 	if (value == NULL) {

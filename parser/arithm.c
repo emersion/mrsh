@@ -162,60 +162,72 @@ static struct mrsh_arithm_expr *term(struct mrsh_parser *state) {
 }
 
 static struct mrsh_arithm_expr *factor(struct mrsh_parser *state) {
-	struct mrsh_arithm_expr *left = term(state);
-	if (left == NULL) {
+	struct mrsh_arithm_expr *expr = term(state);
+	if (expr == NULL) {
 		return NULL;
 	}
 
-	consume_whitespace(state);
-	enum mrsh_arithm_binop_type type;
-	if (parse_char(state, '*')) {
-		type = MRSH_ARITHM_BINOP_ASTERISK;
-	} else if (parse_char(state, '/')) {
-		type = MRSH_ARITHM_BINOP_SLASH;
-	} else if (parse_char(state, '%')) {
-		type = MRSH_ARITHM_BINOP_PERCENT;
-	} else {
-		return left;
-	}
-	consume_whitespace(state);
+	/* This loop ensures we parse factors as left-assossiative */
+	while (true) {
+		consume_whitespace(state);
+		enum mrsh_arithm_binop_type type;
+		if (parse_char(state, '*')) {
+			type = MRSH_ARITHM_BINOP_ASTERISK;
+		} else if (parse_char(state, '/')) {
+			type = MRSH_ARITHM_BINOP_SLASH;
+		} else if (parse_char(state, '%')) {
+			type = MRSH_ARITHM_BINOP_PERCENT;
+		} else {
+			return expr;
+		}
+		consume_whitespace(state);
 
-	struct mrsh_arithm_expr *right = factor(state);
-	if (right == NULL) {
-		parser_set_error(state, "expected a term after *, / or % operator");
-		return NULL;
-	}
+		/* Instead of calling ourselves recursively, we call term for
+		 * left-associativity */
+		struct mrsh_arithm_expr *right = term(state);
+		if (right == NULL) {
+			parser_set_error(state, "expected a term after *, / or % operator");
+			return NULL;
+		}
 
-	struct mrsh_arithm_binop *bo = mrsh_arithm_binop_create(type, left, right);
-	return &bo->expr;
+		struct mrsh_arithm_binop *bo =
+			mrsh_arithm_binop_create(type, expr, right);
+		expr = &bo->expr;
+	}
 }
 
 static struct mrsh_arithm_expr *addend(struct mrsh_parser *state) {
-	struct mrsh_arithm_expr *left = factor(state);
-	if (left == NULL) {
+	struct mrsh_arithm_expr *expr = factor(state);
+	if (expr == NULL) {
 		return NULL;
 	}
 
-	// consume_whitespace() is not needed here, since the call to factor()
-	// consumes trailing whitespace.
-	enum mrsh_arithm_binop_type type;
-	if (parse_char(state, '+')) {
-		type = MRSH_ARITHM_BINOP_PLUS;
-	} else if (parse_char(state, '-')) {
-		type = MRSH_ARITHM_BINOP_MINUS;
-	} else {
-		return left;
-	}
-	consume_whitespace(state);
+	/* This loop ensures we parse addends as left-assossiative */
+	while (true) {
+		// consume_whitespace() is not needed here, since the call to factor()
+		// consumes trailing whitespace.
+		enum mrsh_arithm_binop_type type;
+		if (parse_char(state, '+')) {
+			type = MRSH_ARITHM_BINOP_PLUS;
+		} else if (parse_char(state, '-')) {
+			type = MRSH_ARITHM_BINOP_MINUS;
+		} else {
+			return expr;
+		}
+		consume_whitespace(state);
 
-	struct mrsh_arithm_expr *right = addend(state);
-	if (right == NULL) {
-		parser_set_error(state, "expected a factor after + or - operator");
-		return NULL;
-	}
+		/* Instead of calling ourselves recursively, we call factor for
+		 * left-associativity */
+		struct mrsh_arithm_expr *right = factor(state);
+		if (right == NULL) {
+			parser_set_error(state, "expected a factor after + or - operator");
+			return NULL;
+		}
 
-	struct mrsh_arithm_binop *bo = mrsh_arithm_binop_create(type, left, right);
-	return &bo->expr;
+		struct mrsh_arithm_binop *bo =
+			mrsh_arithm_binop_create(type, expr, right);
+		expr = &bo->expr;
+	}
 }
 
 static struct mrsh_arithm_expr *shift(struct mrsh_parser *state) {

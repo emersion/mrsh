@@ -2,6 +2,28 @@
 #include <mrsh/shell.h>
 #include <stdlib.h>
 
+static bool run_variable(struct mrsh_state *state, const char *name, long *val,
+		uint32_t *attribs) {
+	const char *str = mrsh_env_get(state, name, attribs);
+	if (str == NULL) {
+		if ((state->options & MRSH_OPT_NOUNSET)) {
+			fprintf(stderr, "%s: %s: unbound variable\n",
+					state->frame->argv[0], name);
+			return false;
+		}
+		*val = 0; // POSIX is not clear what to do in this case
+	} else {
+		char *end;
+		*val = strtod(str, &end);
+		if (end == str || end[0] != '\0') {
+			fprintf(stderr, "%s: %s: not a number: %s\n",
+					state->frame->argv[0], name, str);
+			return false;
+		}
+	}
+	return true;
+}
+
 static bool run_arithm_binop(struct mrsh_state *state,
 		struct mrsh_arithm_binop *binop, long *result) {
 	long left, right;
@@ -149,22 +171,8 @@ static bool run_arithm_assign(struct mrsh_state *state,
 	long cur = 0;
 	uint32_t attribs = MRSH_VAR_ATTRIB_NONE;
 	if (assign->op != MRSH_ARITHM_ASSIGN_NONE) {
-		const char *cur_str = mrsh_env_get(state, assign->name, &attribs);
-		if (cur_str == NULL) {
-			if ((state->options & MRSH_OPT_NOUNSET)) {
-				fprintf(stderr, "%s: %s: unbound variable\n",
-						state->frame->argv[0], assign->name);
-				return false;
-			}
-			cur = 0; // POSIX is not clear what to do in this case
-		} else {
-			char *end;
-			cur = strtod(cur_str, &end);
-			if (end == cur_str || end[0] != '\0') {
-				fprintf(stderr, "%s: %s: not a number: %s\n",
-						state->frame->argv[0], assign->name, cur_str);
-				return false;
-			}
+		if (!run_variable(state, assign->name, &cur, &attribs)) {
+			return false;
 		}
 	}
 	*result = run_arithm_assign_op(assign->op, cur, val);
@@ -185,9 +193,9 @@ bool mrsh_run_arithm_expr(struct mrsh_state *state,
 		*result = literal->value;
 		return true;
 	case MRSH_ARITHM_VARIABLE:;
-		//struct mrsh_arithm_variable *variable =
-		//	(struct mrsh_arithm_variable *)expr;
-		assert(false); // TODO
+		struct mrsh_arithm_variable *variable =
+			(struct mrsh_arithm_variable *)expr;
+		return run_variable(state, variable->name, result, NULL);
 	case MRSH_ARITHM_BINOP:;
 		struct mrsh_arithm_binop *binop =
 			(struct mrsh_arithm_binop *)expr;

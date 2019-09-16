@@ -183,7 +183,11 @@ bool mrsh_run_arithm_expr(struct mrsh_state *state,
 		struct mrsh_arithm_literal *literal =
 			(struct mrsh_arithm_literal *)expr;
 		*result = literal->value;
-		break;
+		return true;
+	case MRSH_ARITHM_VARIABLE:;
+		//struct mrsh_arithm_variable *variable =
+		//	(struct mrsh_arithm_variable *)expr;
+		assert(false); // TODO
 	case MRSH_ARITHM_BINOP:;
 		struct mrsh_arithm_binop *binop =
 			(struct mrsh_arithm_binop *)expr;
@@ -201,5 +205,5 @@ bool mrsh_run_arithm_expr(struct mrsh_state *state,
 			(struct mrsh_arithm_assign *)expr;
 		return run_arithm_assign(state, assign, result);
 	}
-	return true;
+	assert(false);
 }

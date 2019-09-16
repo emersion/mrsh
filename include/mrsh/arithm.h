@@ -3,6 +3,7 @@
 
 enum mrsh_arithm_expr_type {
 	MRSH_ARITHM_LITERAL,
+	MRSH_ARITHM_VARIABLE,
 	MRSH_ARITHM_UNOP,
 	MRSH_ARITHM_BINOP,
 	MRSH_ARITHM_COND,
@@ -12,6 +13,7 @@ enum mrsh_arithm_expr_type {
 /**
  * An aritmetic expression. One of:
  * - A literal
+ * - A variable
  * - An unary operation
  * - A binary operation
  * - A condition
@@ -24,6 +26,11 @@ struct mrsh_arithm_expr {
 struct mrsh_arithm_literal {
 	struct mrsh_arithm_expr expr;
 	long value;
+};
+
+struct mrsh_arithm_variable {
+	struct mrsh_arithm_expr expr;
+	char *name;
 };
 
 enum mrsh_arithm_unop_type {
@@ -94,6 +101,7 @@ struct mrsh_arithm_assign {
 
 void mrsh_arithm_expr_destroy(struct mrsh_arithm_expr *expr);
 struct mrsh_arithm_literal *mrsh_arithm_literal_create(long value);
+struct mrsh_arithm_variable *mrsh_arithm_variable_create(char *name);
 struct mrsh_arithm_unop *mrsh_arithm_unop_create(
 	enum mrsh_arithm_unop_type type, struct mrsh_arithm_expr *body);
 struct mrsh_arithm_binop *mrsh_arithm_binop_create(
@@ -106,6 +114,8 @@ struct mrsh_arithm_assign *mrsh_arithm_assign_create(
 	enum mrsh_arithm_assign_op op, char *name,
 	struct mrsh_arithm_expr *value);
 struct mrsh_arithm_literal *mrsh_arithm_expr_get_literal(
+	const struct mrsh_arithm_expr *expr);
+struct mrsh_arithm_variable *mrsh_arithm_expr_get_variable(
 	const struct mrsh_arithm_expr *expr);
 struct mrsh_arithm_unop *mrsh_arithm_expr_get_unop(
 	const struct mrsh_arithm_expr *expr);

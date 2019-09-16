@@ -304,6 +304,29 @@ static struct mrsh_arithm_expr *equal(struct mrsh_parser *state) {
 	return &bo->expr;
 }
 
+static bool parse_binop(struct mrsh_parser *state, const char *str) {
+	size_t len = strlen(str);
+
+	for (size_t i = 0; i < len; ++i) {
+		parser_peek(state, NULL, i + 1);
+
+		if (state->buf.data[i] != str[i]) {
+			return false;
+		}
+	}
+
+	// Make sure we don't parse "&&" as "&"
+	parser_peek(state, NULL, len + 1);
+	switch (state->buf.data[len]) {
+	case '|':
+	case '&':
+		return false;
+	}
+
+	parser_read(state, NULL, len);
+	return true;
+}
+
 static struct mrsh_arithm_expr *binop(struct mrsh_parser *state,
 		enum mrsh_arithm_binop_type type, const char *str,
 		struct mrsh_arithm_expr *(*term)(struct mrsh_parser *state)) {
@@ -311,7 +334,7 @@ static struct mrsh_arithm_expr *binop(struct mrsh_parser *state,
 	if (left == NULL) {
 		return NULL;
 	}
-	if (!parse_str(state, str)) {
+	if (!parse_binop(state, str)) {
 		return left;
 	}
 	consume_whitespace(state);

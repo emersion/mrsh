@@ -92,6 +92,19 @@ static struct mrsh_arithm_literal *literal(struct mrsh_parser *state) {
 	return mrsh_arithm_literal_create(value);
 }
 
+static struct mrsh_arithm_variable *variable(struct mrsh_parser *state) {
+	size_t name_len = peek_name(state, false);
+	if (name_len == 0) {
+		return NULL;
+	}
+
+	char *name = malloc(name_len + 1);
+	parser_read(state, name, name_len);
+	name[name_len] = '\0';
+
+	return mrsh_arithm_variable_create(name);
+}
+
 static struct mrsh_arithm_expr *arithm_expr(struct mrsh_parser *state);
 
 static struct mrsh_arithm_unop *unop(struct mrsh_parser *state) {
@@ -156,6 +169,11 @@ static struct mrsh_arithm_expr *term(struct mrsh_parser *state) {
 	struct mrsh_arithm_literal *al = literal(state);
 	if (al != NULL) {
 		return &al->expr;
+	}
+
+	struct mrsh_arithm_variable *av = variable(state);
+	if (av != NULL) {
+		return &av->expr;
 	}
 
 	return NULL;

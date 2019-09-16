@@ -170,7 +170,7 @@ static bool run_arithm_assign(struct mrsh_state *state,
 	*result = run_arithm_assign_op(assign->op, cur, val);
 
 	char buf[32];
-	snprintf(buf, sizeof(buf), "%ld", val);
+	snprintf(buf, sizeof(buf), "%ld", *result);
 	mrsh_env_set(state, assign->name, buf, attribs);
 
 	return true;

@@ -254,14 +254,14 @@ static struct mrsh_arithm_expr *comp(struct mrsh_parser *state) {
 	}
 
 	enum mrsh_arithm_binop_type type;
-	if (parse_char(state, '<')) {
-		type = MRSH_ARITHM_BINOP_LESS;
-	} else if (parse_str(state, "<=")) {
+	if (parse_str(state, "<=")) {
 		type = MRSH_ARITHM_BINOP_LESSEQ;
-	} else if (parse_char(state, '>')) {
-		type = MRSH_ARITHM_BINOP_GREAT;
+	} else if (parse_char(state, '<')) {
+		type = MRSH_ARITHM_BINOP_LESS;
 	} else if (parse_str(state, ">=")) {
 		type = MRSH_ARITHM_BINOP_GREATEQ;
+	} else if (parse_char(state, '>')) {
+		type = MRSH_ARITHM_BINOP_GREAT;
 	} else {
 		return left;
 	}

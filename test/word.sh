@@ -15,8 +15,8 @@ hello=hello
 null=""
 echo $a ${b} ">$a<"
 echo \$a '$a'
-echo ${a:-BAD} ${idontexist:-GOOD} ${null:-GOOD}
-echo ${a-BAD} ${idontexist-GOOD} ${null-BAD}
+echo ${a:-BAD} ${idontexist:-GOOD} ${null:-GOOD} ${idontexist:-}
+echo ${a-BAD} ${idontexist-GOOD} ${null-BAD} ${null-}
 #echo ${#hello}
 
 echo ""

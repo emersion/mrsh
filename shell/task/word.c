@@ -138,6 +138,15 @@ static const char *parameter_get_value(struct mrsh_state *state, char *name) {
 	return mrsh_env_get(state, name, NULL);
 }
 
+static void assign_word_or_null(struct mrsh_word *word,
+		char **result_str, struct mrsh_word **result_word) {
+	if (word != NULL) {
+		*result_word = word;
+	} else {
+		*result_str = strdup("");
+	}
+}
+
 /* Fill either result_str or result_word */
 static int apply_parameter_op(struct mrsh_word_parameter *wp, const char *str,
 		char **result_str, struct mrsh_word **result_word) {
@@ -147,7 +156,7 @@ static int apply_parameter_op(struct mrsh_word_parameter *wp, const char *str,
 		return 0;
 	case MRSH_PARAM_MINUS: // Use Default Values
 		if (str == NULL || (str[0] == '\0' && wp->colon)) {
-			*result_word = wp->arg;
+			assign_word_or_null(wp->arg, result_str, result_word);
 		} else {
 			*result_str = strdup(str);
 		}

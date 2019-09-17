@@ -162,8 +162,16 @@ static int apply_parameter_op(struct mrsh_word_parameter *wp, const char *str,
 		}
 		return 0;
 	case MRSH_PARAM_EQUAL: // Assign Default Values
+		assert(false); // TODO
 	case MRSH_PARAM_QMARK: // Indicate Error if Null or Unset
+		assert(false); // TODO
 	case MRSH_PARAM_PLUS: // Use Alternative Value
+		if (str == NULL || (str[0] == '\0' && wp->colon)) {
+			*result_str = strdup("");
+		} else {
+			assign_word_or_null(wp->arg, result_str, result_word);
+		}
+		return 0;
 	case MRSH_PARAM_LEADING_HASH: // String Length
 	case MRSH_PARAM_PERCENT: // Remove Smallest Suffix Pattern
 	case MRSH_PARAM_DPERCENT: // Remove Largest Suffix Pattern

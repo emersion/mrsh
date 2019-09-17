@@ -148,7 +148,8 @@ static void assign_word_or_null(struct mrsh_word *word,
 }
 
 /* Fill either result_str or result_word */
-static int apply_parameter_op(struct mrsh_word_parameter *wp, const char *str,
+static int apply_parameter_op(struct context *ctx,
+		struct mrsh_word_parameter *wp, const char *str,
 		char **result_str, struct mrsh_word **result_word) {
 	switch (wp->op) {
 	case MRSH_PARAM_NONE:
@@ -173,6 +174,24 @@ static int apply_parameter_op(struct mrsh_word_parameter *wp, const char *str,
 		}
 		return 0;
 	case MRSH_PARAM_LEADING_HASH: // String Length
+		if (str == NULL && (ctx->state->options & MRSH_OPT_NOUNSET)) {
+			return 0;
+		}
+		if (strcmp(wp->name, "*") == 0 || strcmp(wp->name, "@") == 0) {
+			fprintf(stderr, "%s: using the string length operator on $%s "
+				"is undefined behaviour\n",
+				ctx->state->frame->argv[0], wp->name);
+			return TASK_STATUS_ERROR;
+		}
+
+		int len = 0;
+		if (str != NULL) {
+			len = strlen(str);
+		}
+		char len_str[32];
+		snprintf(len_str, sizeof(len_str), "%d", len);
+		*result_str = strdup(len_str);
+		return 0;
 	case MRSH_PARAM_PERCENT: // Remove Smallest Suffix Pattern
 	case MRSH_PARAM_DPERCENT: // Remove Largest Suffix Pattern
 	case MRSH_PARAM_HASH: // Remove Smallest Prefix Pattern
@@ -209,7 +228,7 @@ int run_word(struct context *ctx, struct mrsh_word **word_ptr,
 		}
 		char *result_str = NULL;
 		struct mrsh_word *result_word = NULL;
-		ret = apply_parameter_op(wp, value, &result_str, &result_word);
+		ret = apply_parameter_op(ctx, wp, value, &result_str, &result_word);
 		if (ret < 0) {
 			return ret;
 		}

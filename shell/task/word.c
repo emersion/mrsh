@@ -95,7 +95,8 @@ static int run_word_command(struct context *ctx, struct mrsh_word **word_ptr) {
 	return job_wait_process(process);
 }
 
-static const char *parameter_get_value(struct mrsh_state *state, char *name) {
+static const char *parameter_get_value(struct mrsh_state *state,
+		const char *name) {
 	static char value[16];
 	char *end;
 	long lvalue = strtol(name, &end, 10);
@@ -128,7 +129,7 @@ static const char *parameter_get_value(struct mrsh_state *state, char *name) {
 		}
 		/* Standard is unclear on what to do in this case, mimic dash */
 		return "";
-	} else if (end[0] == '\0') {
+	} else if (end[0] == '\0' && end != name) {
 		if (lvalue >= state->frame->argc) {
 			return NULL;
 		}

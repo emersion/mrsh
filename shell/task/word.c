@@ -138,6 +138,33 @@ static const char *parameter_get_value(struct mrsh_state *state, char *name) {
 	return mrsh_env_get(state, name, NULL);
 }
 
+/* Fill either result_str or result_word */
+static int apply_parameter_op(struct mrsh_word_parameter *wp, const char *str,
+		char **result_str, struct mrsh_word **result_word) {
+	switch (wp->op) {
+	case MRSH_PARAM_NONE:
+		*result_str = str != NULL ? strdup(str) : NULL;
+		return 0;
+	case MRSH_PARAM_MINUS: // Use Default Values
+		if (str == NULL || (str[0] == '\0' && wp->colon)) {
+			*result_word = wp->arg;
+		} else {
+			*result_str = strdup(str);
+		}
+		return 0;
+	case MRSH_PARAM_EQUAL: // Assign Default Values
+	case MRSH_PARAM_QMARK: // Indicate Error if Null or Unset
+	case MRSH_PARAM_PLUS: // Use Alternative Value
+	case MRSH_PARAM_LEADING_HASH: // String Length
+	case MRSH_PARAM_PERCENT: // Remove Smallest Suffix Pattern
+	case MRSH_PARAM_DPERCENT: // Remove Largest Suffix Pattern
+	case MRSH_PARAM_HASH: // Remove Smallest Prefix Pattern
+	case MRSH_PARAM_DHASH: // Remove Largest Prefix Pattern
+		assert(false); // TODO
+	}
+	assert(false);
+}
+
 int run_word(struct context *ctx, struct mrsh_word **word_ptr,
 		enum tilde_expansion tilde_expansion) {
 	struct mrsh_word *word = *word_ptr;
@@ -163,17 +190,33 @@ int run_word(struct context *ctx, struct mrsh_word **word_ptr,
 
 			value = lineno;
 		}
-		if (value == NULL) {
+		char *result_str = NULL;
+		struct mrsh_word *result_word = NULL;
+		ret = apply_parameter_op(wp, value, &result_str, &result_word);
+		if (ret < 0) {
+			return ret;
+		}
+		assert(result_str == NULL || result_word == NULL);
+		if (result_str == NULL && result_word == NULL) {
 			if ((ctx->state->options & MRSH_OPT_NOUNSET)) {
 				fprintf(stderr, "%s: %s: unbound variable\n",
 						ctx->state->frame->argv[0], wp->name);
 				return TASK_STATUS_ERROR;
 			}
-			value = "";
+			result_str = strdup("");
 		}
-		struct mrsh_word_string *replacement =
-			mrsh_word_string_create(strdup(value), false);
-		swap_words(word_ptr, &replacement->word);
+		if (result_word != NULL) {
+			result_word = mrsh_word_copy(result_word);
+			ret = run_word(ctx, &result_word, tilde_expansion);
+			if (ret < 0) {
+				return ret;
+			}
+		} else if (result_str != NULL) {
+			struct mrsh_word_string *ws =
+				mrsh_word_string_create(result_str, false);
+			result_word = &ws->word;
+		}
+		swap_words(word_ptr, result_word);
 		return 0;
 	case MRSH_WORD_COMMAND:
 		return run_word_command(ctx, word_ptr);

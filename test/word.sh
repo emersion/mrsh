@@ -12,9 +12,11 @@ echo "Parameter Expansion"
 a=a
 b=B
 hello=hello
+null=""
 echo $a ${b} ">$a<"
 echo \$a '$a'
-#echo ${a:-BAD} ${idontexist:-GOOD}
+echo ${a:-BAD} ${idontexist:-GOOD} ${null:-GOOD}
+echo ${a-BAD} ${idontexist-GOOD} ${null-BAD}
 #echo ${#hello}
 
 echo ""

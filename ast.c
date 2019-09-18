@@ -334,7 +334,9 @@ struct mrsh_word_list *mrsh_word_list_create(struct mrsh_array *children,
 	struct mrsh_word_list *wl = calloc(1, sizeof(struct mrsh_word_list));
 	wl->word.node.type = MRSH_NODE_WORD;
 	wl->word.type = MRSH_WORD_LIST;
-	wl->children = *children;
+	if (children != NULL) {
+		wl->children = *children;
+	}
 	wl->double_quoted = double_quoted;
 	return wl;
 }

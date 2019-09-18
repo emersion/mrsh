@@ -22,6 +22,8 @@ void expand_tilde(struct mrsh_state *state, char **str_ptr);
  */
 void split_fields(struct mrsh_array *fields, struct mrsh_word *word,
 	const char *ifs);
+void get_fields_str(struct mrsh_array *fields_str,
+	struct mrsh_array *fields_word);
 /**
  * Performs pathname expansion on each item in `fields`.
  */

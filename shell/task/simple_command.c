@@ -231,6 +231,14 @@ static void get_args(struct mrsh_array *args, struct mrsh_simple_command *sc,
 	}
 	assert(fields.len > 0);
 
+	struct mrsh_array strs = {0};
+	get_fields_str(&strs, &fields);
+	for (size_t i = 0; i < fields.len; ++i) {
+		mrsh_word_destroy(fields.data[i]);
+	}
+	mrsh_array_finish(&fields);
+	fields = strs;
+
 	if (ctx->state->options & MRSH_OPT_NOGLOB) {
 		*args = fields;
 	} else {

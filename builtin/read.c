@@ -60,6 +60,14 @@ int builtin_read(struct mrsh_state *state, int argc, char *argv[]) {
 	split_fields(&fields, &ws->word, mrsh_env_get(state, "IFS", NULL));
 	mrsh_word_destroy(&ws->word);
 
+	struct mrsh_array strs = {0};
+	get_fields_str(&strs, &fields);
+	for (size_t i = 0; i < fields.len; ++i) {
+		mrsh_word_destroy(fields.data[i]);
+	}
+	mrsh_array_finish(&fields);
+	fields = strs;
+
 	if (fields.len <= (size_t)(argc - mrsh_optind)) {
 		for (size_t i = 0; i < fields.len; ++i) {
 			mrsh_env_set(state, argv[mrsh_optind + i], (char *)fields.data[i], MRSH_VAR_ATTRIB_NONE);

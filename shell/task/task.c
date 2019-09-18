@@ -132,17 +132,12 @@ static int run_for_clause(struct context *ctx, struct mrsh_for_clause *fc) {
 		if (ret < 0) {
 			return ret;
 		}
-		struct mrsh_word_string *ws = mrsh_word_get_string(*word_ptr);
-
-		mrsh_array_add(&word_fields, strdup(ws->str));
+		mrsh_array_add(&word_fields, *word_ptr);
 	}
 
 	struct mrsh_array expanded_fields = {0};
 	if (!expand_pathnames(&expanded_fields, &word_fields)) {
 		return TASK_STATUS_ERROR;
-	}
-	for (size_t i = 0; i < word_fields.len; i++) {
-		free(word_fields.data[i]);
 	}
 	mrsh_array_finish(&word_fields);
 

@@ -231,23 +231,16 @@ static void get_args(struct mrsh_array *args, struct mrsh_simple_command *sc,
 	}
 	assert(fields.len > 0);
 
-	struct mrsh_array strs = {0};
-	get_fields_str(&strs, &fields);
+	if (ctx->state->options & MRSH_OPT_NOGLOB) {
+		get_fields_str(args, &fields);
+	} else {
+		expand_pathnames(args, &fields);
+	}
+
 	for (size_t i = 0; i < fields.len; ++i) {
 		mrsh_word_destroy(fields.data[i]);
 	}
 	mrsh_array_finish(&fields);
-	fields = strs;
-
-	if (ctx->state->options & MRSH_OPT_NOGLOB) {
-		*args = fields;
-	} else {
-		expand_pathnames(args, &fields);
-		for (size_t i = 0; i < fields.len; ++i) {
-			free(fields.data[i]);
-		}
-		mrsh_array_finish(&fields);
-	}
 
 	assert(args->len > 0);
 	mrsh_array_add(args, NULL);

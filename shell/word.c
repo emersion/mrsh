@@ -171,30 +171,110 @@ void get_fields_str(struct mrsh_array *fields_str,
 	}
 }
 
+static bool is_pathname_metachar(char c) {
+	switch (c) {
+	case '*':
+	case '?':
+	case '[':
+	case ']':
+		return true;
+	default:
+		return false;
+	}
+}
+
+static bool needs_pathname_expansion(struct mrsh_word *word) {
+	switch (word->type) {
+	case MRSH_WORD_STRING:;
+		struct mrsh_word_string *ws = mrsh_word_get_string(word);
+		if (ws->single_quoted) {
+			return false;
+		}
+
+		size_t len = strlen(ws->str);
+		for (size_t i = 0; i < len; i++) {
+			if (is_pathname_metachar(ws->str[i])) {
+				return true;
+			}
+		}
+		return false;
+	case MRSH_WORD_LIST:;
+		struct mrsh_word_list *wl = mrsh_word_get_list(word);
+		if (wl->double_quoted) {
+			return false;
+		}
+
+		for (size_t i = 0; i < wl->children.len; i++) {
+			struct mrsh_word *child = wl->children.data[i];
+			if (needs_pathname_expansion(child)) {
+				return true;
+			}
+		}
+		return false;
+	default:
+		assert(false);
+	}
+
+}
+
+static void get_word_pathname_pattern(struct mrsh_buffer *buf,
+		struct mrsh_word *word, bool quoted) {
+	switch (word->type) {
+	case MRSH_WORD_STRING:;
+		struct mrsh_word_string *ws = mrsh_word_get_string(word);
+
+		size_t len = strlen(ws->str);
+		for (size_t i = 0; i < len; i++) {
+			char c = ws->str[i];
+			if (is_pathname_metachar(c) && (quoted || ws->single_quoted)) {
+				mrsh_buffer_append_char(buf, '\\');
+			}
+			mrsh_buffer_append_char(buf, c);
+		}
+		break;
+	case MRSH_WORD_LIST:;
+		struct mrsh_word_list *wl = mrsh_word_get_list(word);
+
+		for (size_t i = 0; i < wl->children.len; i++) {
+			struct mrsh_word *child = wl->children.data[i];
+			get_word_pathname_pattern(buf, child, quoted || wl->double_quoted);
+		}
+		break;
+	default:
+		assert(false);
+	}
+}
+
 bool expand_pathnames(struct mrsh_array *expanded, struct mrsh_array *fields) {
-	const char metachars[] = "*?[";
+	struct mrsh_buffer buf = {0};
 
 	for (size_t i = 0; i < fields->len; ++i) {
-		const char *field = fields->data[i];
+		struct mrsh_word *field = fields->data[i];
 
-		if (strpbrk(field, metachars) == NULL) {
-			mrsh_array_add(expanded, strdup(field));
+		if (!needs_pathname_expansion(field)) {
+			mrsh_array_add(expanded, mrsh_word_str(field));
 			continue;
 		}
 
+		buf.len = 0;
+		get_word_pathname_pattern(&buf, field, false);
+		mrsh_buffer_append_char(&buf, '\0');
+
 		glob_t glob_buf;
-		int ret = glob(field, GLOB_NOSORT | GLOB_NOCHECK, NULL, &glob_buf);
+		int ret = glob(buf.data, GLOB_NOSORT, NULL, &glob_buf);
 		if (ret == 0) {
 			for (size_t i = 0; i < glob_buf.gl_pathc; ++i) {
 				mrsh_array_add(expanded, strdup(glob_buf.gl_pathv[i]));
 			}
 			globfree(&glob_buf);
+		} else if (ret == GLOB_NOMATCH) {
+			mrsh_array_add(expanded, mrsh_word_str(field));
 		} else {
-			assert(ret != GLOB_NOMATCH);
 			fprintf(stderr, "glob() failed\n");
 			return false;
 		}
 	}
 
+	mrsh_buffer_finish(&buf);
 	return true;
 }

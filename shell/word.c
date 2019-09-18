@@ -73,10 +73,10 @@ static void add_to_cur_field(struct split_fields_data *data,
 }
 
 static void _split_fields(struct split_fields_data *data,
-		struct mrsh_word *word) {
+		const struct mrsh_word *word) {
 	switch (word->type) {
 	case MRSH_WORD_STRING:;
-		struct mrsh_word_string *ws = mrsh_word_get_string(word);
+		const struct mrsh_word_string *ws = mrsh_word_get_string(word);
 
 		if (ws->single_quoted) {
 			add_to_cur_field(data, mrsh_word_copy(word));
@@ -117,7 +117,7 @@ static void _split_fields(struct split_fields_data *data,
 		mrsh_buffer_finish(&buf);
 		break;
 	case MRSH_WORD_LIST:;
-		struct mrsh_word_list *wl = mrsh_word_get_list(word);
+		const struct mrsh_word_list *wl = mrsh_word_get_list(word);
 
 		if (wl->double_quoted) {
 			add_to_cur_field(data, mrsh_word_copy(word));
@@ -125,7 +125,7 @@ static void _split_fields(struct split_fields_data *data,
 		}
 
 		for (size_t i = 0; i < wl->children.len; ++i) {
-			struct mrsh_word *child = wl->children.data[i];
+			const struct mrsh_word *child = wl->children.data[i];
 			_split_fields(data, child);
 		}
 		break;
@@ -134,7 +134,7 @@ static void _split_fields(struct split_fields_data *data,
 	}
 }
 
-void split_fields(struct mrsh_array *fields, struct mrsh_word *word,
+void split_fields(struct mrsh_array *fields, const struct mrsh_word *word,
 		const char *ifs) {
 	if (ifs == NULL) {
 		ifs = " \t\n";
@@ -163,11 +163,10 @@ void split_fields(struct mrsh_array *fields, struct mrsh_word *word,
 	free(ifs_non_space);
 }
 
-void get_fields_str(struct mrsh_array *fields_str,
-		struct mrsh_array *fields_word) {
-	for (size_t i = 0; i < fields_word->len; i++) {
-		struct mrsh_word *word = fields_word->data[i];
-		mrsh_array_add(fields_str, mrsh_word_str(word));
+void get_fields_str(struct mrsh_array *strs, const struct mrsh_array *fields) {
+	for (size_t i = 0; i < fields->len; i++) {
+		struct mrsh_word *word = fields->data[i];
+		mrsh_array_add(strs, mrsh_word_str(word));
 	}
 }
 
@@ -183,10 +182,10 @@ static bool is_pathname_metachar(char c) {
 	}
 }
 
-static bool needs_pathname_expansion(struct mrsh_word *word) {
+static bool needs_pathname_expansion(const struct mrsh_word *word) {
 	switch (word->type) {
 	case MRSH_WORD_STRING:;
-		struct mrsh_word_string *ws = mrsh_word_get_string(word);
+		const struct mrsh_word_string *ws = mrsh_word_get_string(word);
 		if (ws->single_quoted) {
 			return false;
 		}
@@ -199,13 +198,13 @@ static bool needs_pathname_expansion(struct mrsh_word *word) {
 		}
 		return false;
 	case MRSH_WORD_LIST:;
-		struct mrsh_word_list *wl = mrsh_word_get_list(word);
+		const struct mrsh_word_list *wl = mrsh_word_get_list(word);
 		if (wl->double_quoted) {
 			return false;
 		}
 
 		for (size_t i = 0; i < wl->children.len; i++) {
-			struct mrsh_word *child = wl->children.data[i];
+			const struct mrsh_word *child = wl->children.data[i];
 			if (needs_pathname_expansion(child)) {
 				return true;
 			}
@@ -218,10 +217,10 @@ static bool needs_pathname_expansion(struct mrsh_word *word) {
 }
 
 static void get_word_pathname_pattern(struct mrsh_buffer *buf,
-		struct mrsh_word *word, bool quoted) {
+		const struct mrsh_word *word, bool quoted) {
 	switch (word->type) {
 	case MRSH_WORD_STRING:;
-		struct mrsh_word_string *ws = mrsh_word_get_string(word);
+		const struct mrsh_word_string *ws = mrsh_word_get_string(word);
 
 		size_t len = strlen(ws->str);
 		for (size_t i = 0; i < len; i++) {
@@ -233,10 +232,10 @@ static void get_word_pathname_pattern(struct mrsh_buffer *buf,
 		}
 		break;
 	case MRSH_WORD_LIST:;
-		struct mrsh_word_list *wl = mrsh_word_get_list(word);
+		const struct mrsh_word_list *wl = mrsh_word_get_list(word);
 
 		for (size_t i = 0; i < wl->children.len; i++) {
-			struct mrsh_word *child = wl->children.data[i];
+			const struct mrsh_word *child = wl->children.data[i];
 			get_word_pathname_pattern(buf, child, quoted || wl->double_quoted);
 		}
 		break;
@@ -245,11 +244,12 @@ static void get_word_pathname_pattern(struct mrsh_buffer *buf,
 	}
 }
 
-bool expand_pathnames(struct mrsh_array *expanded, struct mrsh_array *fields) {
+bool expand_pathnames(struct mrsh_array *expanded,
+		const struct mrsh_array *fields) {
 	struct mrsh_buffer buf = {0};
 
 	for (size_t i = 0; i < fields->len; ++i) {
-		struct mrsh_word *field = fields->data[i];
+		const struct mrsh_word *field = fields->data[i];
 
 		if (!needs_pathname_expansion(field)) {
 			mrsh_array_add(expanded, mrsh_word_str(field));

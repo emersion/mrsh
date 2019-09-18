@@ -802,10 +802,10 @@ static void buffer_append_str(struct mrsh_buffer *buf, const char *str) {
 	mrsh_buffer_append(buf, str, strlen(str));
 }
 
-static void word_str(struct mrsh_word *word, struct mrsh_buffer *buf) {
+static void word_str(const struct mrsh_word *word, struct mrsh_buffer *buf) {
 	switch (word->type) {
 	case MRSH_WORD_STRING:;
-		struct mrsh_word_string *ws = mrsh_word_get_string(word);
+		const struct mrsh_word_string *ws = mrsh_word_get_string(word);
 		buffer_append_str(buf, ws->str);
 		return;
 	case MRSH_WORD_PARAMETER:
@@ -813,9 +813,9 @@ static void word_str(struct mrsh_word *word, struct mrsh_buffer *buf) {
 	case MRSH_WORD_ARITHMETIC:
 		assert(false);
 	case MRSH_WORD_LIST:;
-		struct mrsh_word_list *wl = mrsh_word_get_list(word);
+		const struct mrsh_word_list *wl = mrsh_word_get_list(word);
 		for (size_t i = 0; i < wl->children.len; ++i) {
-			struct mrsh_word *child = wl->children.data[i];
+			const struct mrsh_word *child = wl->children.data[i];
 			word_str(child, buf);
 		}
 		return;
@@ -823,7 +823,7 @@ static void word_str(struct mrsh_word *word, struct mrsh_buffer *buf) {
 	assert(false);
 }
 
-char *mrsh_word_str(struct mrsh_word *word) {
+char *mrsh_word_str(const struct mrsh_word *word) {
 	struct mrsh_buffer buf = {0};
 	word_str(word, &buf);
 	mrsh_buffer_append_char(&buf, '\0');

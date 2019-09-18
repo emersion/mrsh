@@ -20,14 +20,14 @@ void expand_tilde(struct mrsh_state *state, char **str_ptr);
  * Performs field splitting on `word`, writing fields to `fields`. This should
  * be done after expansions/substitutions.
  */
-void split_fields(struct mrsh_array *fields, struct mrsh_word *word,
+void split_fields(struct mrsh_array *fields, const struct mrsh_word *word,
 	const char *ifs);
-void get_fields_str(struct mrsh_array *fields_str,
-	struct mrsh_array *fields_word);
+void get_fields_str(struct mrsh_array *strs, const struct mrsh_array *fields);
 /**
  * Performs pathname expansion on each item in `fields`.
  */
-bool expand_pathnames(struct mrsh_array *expanded, struct mrsh_array *fields);
+bool expand_pathnames(struct mrsh_array *expanded,
+	const struct mrsh_array *fields);
 
 
 #endif

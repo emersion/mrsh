@@ -215,7 +215,7 @@ static void expand_assignments(struct context *ctx,
 		struct mrsh_array *assignments) {
 	for (size_t i = 0; i < assignments->len; ++i) {
 		struct mrsh_assignment *assign = assignments->data[i];
-		expand_tilde(ctx->state, assign->value, true);
+		expand_tilde(ctx->state, &assign->value, true);
 		run_word(ctx, &assign->value);
 		// TODO: report errors
 	}
@@ -279,7 +279,7 @@ int run_simple_command(struct context *ctx, struct mrsh_simple_command *sc) {
 	// we'll mutate the tree
 	sc = copy_simple_command(sc);
 
-	expand_tilde(ctx->state, sc->name, false);
+	expand_tilde(ctx->state, &sc->name, false);
 	int ret = run_word(ctx, &sc->name);
 	if (ret < 0) {
 		return ret;
@@ -289,7 +289,7 @@ int run_simple_command(struct context *ctx, struct mrsh_simple_command *sc) {
 	for (size_t i = 0; i < sc->arguments.len; ++i) {
 		struct mrsh_word **arg_ptr =
 			(struct mrsh_word **)&sc->arguments.data[i];
-		expand_tilde(ctx->state, *arg_ptr, false);
+		expand_tilde(ctx->state, arg_ptr, false);
 		ret = run_word(ctx, arg_ptr);
 		if (ret < 0) {
 			return ret;
@@ -298,7 +298,7 @@ int run_simple_command(struct context *ctx, struct mrsh_simple_command *sc) {
 
 	for (size_t i = 0; i < sc->io_redirects.len; ++i) {
 		struct mrsh_io_redirect *redir = sc->io_redirects.data[i];
-		expand_tilde(ctx->state, redir->name, false);
+		expand_tilde(ctx->state, &redir->name, false);
 		ret = run_word(ctx, &redir->name);
 		if (ret < 0) {
 			return ret;
@@ -306,7 +306,7 @@ int run_simple_command(struct context *ctx, struct mrsh_simple_command *sc) {
 		for (size_t j = 0; j < redir->here_document.len; ++j) {
 			struct mrsh_word **line_word_ptr =
 				(struct mrsh_word **)&redir->here_document.data[j];
-			expand_tilde(ctx->state, *line_word_ptr, false);
+			expand_tilde(ctx->state, line_word_ptr, false);
 			ret = run_word(ctx, line_word_ptr);
 			if (ret < 0) {
 				return ret;

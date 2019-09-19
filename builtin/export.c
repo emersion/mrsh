@@ -55,9 +55,10 @@ int builtin_export(struct mrsh_state *state, int argc, char *argv[]) {
 		}
 		struct mrsh_word_string *ws =
 			mrsh_word_string_create(strdup(val), false);
-		expand_tilde(state, &ws->word, true);
-		char *new_val = mrsh_word_str(&ws->word);
-		mrsh_word_destroy(&ws->word);
+		struct mrsh_word *word = &ws->word;
+		expand_tilde(state, &word, true);
+		char *new_val = mrsh_word_str(word);
+		mrsh_word_destroy(word);
 		mrsh_env_set(state, key, new_val, attrib | prev_attribs);
 		free(key);
 		free(new_val);

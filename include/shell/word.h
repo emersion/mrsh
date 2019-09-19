@@ -6,7 +6,7 @@
 /**
  * Performs tilde expansion. It leaves the word as-is in case of error.
  */
-void expand_tilde(struct mrsh_state *state, struct mrsh_word *word,
+void expand_tilde(struct mrsh_state *state, struct mrsh_word **word_ptr,
 	bool assignment);
 /**
  * Performs field splitting on `word`, writing fields to `fields`. This should

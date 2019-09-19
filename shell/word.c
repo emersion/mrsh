@@ -16,21 +16,20 @@ bool is_logname_char(char c) {
 		(c >= '0' && c <= '9') || c == '.' || c == '_' || c == '-';
 }
 
-static void expand_tilde_str(struct mrsh_state *state, char **str_ptr,
-		bool last) {
-	char *str = *str_ptr;
+static ssize_t expand_tilde_at(struct mrsh_state *state, char *str, bool last,
+		char **expanded_ptr) {
 	if (str[0] != '~') {
-		return;
+		return -1;
 	}
 
 	const char *cur;
 	for (cur = str + 1; cur[0] != '\0' && cur[0] != '/'; cur++) {
 		if (!is_logname_char(cur[0])) {
-			return;
+			return -1;
 		}
 	}
 	if (cur[0] == '\0' && !last) {
-		return;
+		return -1;
 	}
 	const char *slash = cur;
 
@@ -51,31 +50,43 @@ static void expand_tilde_str(struct mrsh_state *state, char **str_ptr,
 	free(name);
 
 	if (dir == NULL) {
-		return;
+		return -1;
 	}
 
-	size_t dir_len = strlen(dir);
-	size_t trailing_len = strlen(slash);
-	char *expanded = malloc(dir_len + trailing_len + 1);
-	if (expanded == NULL) {
-		return;
-	}
-	memcpy(expanded, dir, dir_len);
-	memcpy(expanded + dir_len, slash, trailing_len);
-	expanded[dir_len + trailing_len] = '\0';
-
-	free(str);
-	*str_ptr = expanded;
+	*expanded_ptr = strdup(dir);
+	return slash - str;
 }
 
-static void _expand_tilde(struct mrsh_state *state, struct mrsh_word *word,
+static void _expand_tilde(struct mrsh_state *state, struct mrsh_word **word_ptr,
 		bool assignment, bool first, bool last) {
+	struct mrsh_word *word = *word_ptr;
 	switch (word->type) {
 	case MRSH_WORD_STRING:;
 		struct mrsh_word_string *ws = mrsh_word_get_string(word);
-		if (!ws->single_quoted && first) {
-			// TODO: assignment
-			expand_tilde_str(state, &ws->str, last);
+		if (ws->single_quoted) {
+			break;
+		}
+
+		struct mrsh_array words = {0};
+
+		if (first) {
+			char *expanded;
+			ssize_t offset = expand_tilde_at(state, ws->str, last, &expanded);
+			if (offset >= 0) {
+				mrsh_array_add(&words,
+					mrsh_word_string_create(expanded, true));
+				char *trailing = strdup(ws->str + offset);
+				mrsh_array_add(&words,
+					mrsh_word_string_create(trailing, false));
+			}
+		}
+
+		// TODO: assignments
+
+		if (words.len > 0) {
+			struct mrsh_word_list *wl = mrsh_word_list_create(&words, false);
+			*word_ptr = &wl->word;
+			mrsh_word_destroy(word);
 		}
 		break;
 	case MRSH_WORD_LIST:;
@@ -84,8 +95,9 @@ static void _expand_tilde(struct mrsh_state *state, struct mrsh_word *word,
 			break;
 		}
 		for (size_t i = 0; i < wl->children.len; ++i) {
-			struct mrsh_word *child = wl->children.data[i];
-			_expand_tilde(state, child, assignment, first && i == 0,
+			struct mrsh_word **child_ptr =
+				(struct mrsh_word **)&wl->children.data[i];
+			_expand_tilde(state, child_ptr, assignment, first && i == 0,
 				last && i == wl->children.len - 1);
 		}
 		break;
@@ -94,9 +106,9 @@ static void _expand_tilde(struct mrsh_state *state, struct mrsh_word *word,
 	}
 }
 
-void expand_tilde(struct mrsh_state *state, struct mrsh_word *word,
+void expand_tilde(struct mrsh_state *state, struct mrsh_word **word_ptr,
 		bool assignment) {
-	_expand_tilde(state, word, assignment, true, true);
+	_expand_tilde(state, word_ptr, assignment, true, true);
 }
 
 struct split_fields_data {

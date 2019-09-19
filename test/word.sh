@@ -7,8 +7,8 @@ echo '~/stuff' ~"/stuff" "/"~ "a"~"a"
 echo ~root
 a=~/stuff
 echo $a
-#a=~/foo:~/bar:~/baz
-#echo $a
+a=~/foo:~/bar:~/baz
+echo $a
 
 echo ""
 echo "Parameter Expansion"

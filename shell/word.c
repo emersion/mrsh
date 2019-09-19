@@ -16,8 +16,8 @@ bool is_logname_char(char c) {
 		(c >= '0' && c <= '9') || c == '.' || c == '_' || c == '-';
 }
 
-static ssize_t expand_tilde_at(struct mrsh_state *state, char *str, bool last,
-		char **expanded_ptr) {
+static ssize_t expand_tilde_at(struct mrsh_state *state, const char *str,
+		bool last, char **expanded_ptr) {
 	if (str[0] != '~') {
 		return -1;
 	}
@@ -69,21 +69,45 @@ static void _expand_tilde(struct mrsh_state *state, struct mrsh_word **word_ptr,
 
 		struct mrsh_array words = {0};
 
+		const char *str = ws->str;
 		if (first) {
 			char *expanded;
-			ssize_t offset = expand_tilde_at(state, ws->str, last, &expanded);
+			ssize_t offset = expand_tilde_at(state, str, last, &expanded);
 			if (offset >= 0) {
 				mrsh_array_add(&words,
 					mrsh_word_string_create(expanded, true));
-				char *trailing = strdup(ws->str + offset);
-				mrsh_array_add(&words,
-					mrsh_word_string_create(trailing, false));
+				str += offset;
 			}
 		}
 
-		// TODO: assignments
+		if (assignment) {
+			while (true) {
+				const char *colon = strchr(str, ':');
+				if (colon == NULL) {
+					break;
+				}
+
+				char *slice = strndup(str, colon - str + 1);
+				mrsh_array_add(&words,
+					mrsh_word_string_create(slice, false));
+
+				str = colon + 1;
+
+				char *expanded;
+				ssize_t offset = expand_tilde_at(state, str, last, &expanded);
+				if (offset >= 0) {
+					mrsh_array_add(&words,
+						mrsh_word_string_create(expanded, true));
+					str += offset;
+				}
+			}
+		}
 
 		if (words.len > 0) {
+			char *trailing = strdup(str);
+			mrsh_array_add(&words,
+				mrsh_word_string_create(trailing, false));
+
 			struct mrsh_word_list *wl = mrsh_word_list_create(&words, false);
 			*word_ptr = &wl->word;
 			mrsh_word_destroy(word);

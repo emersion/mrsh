@@ -2,9 +2,11 @@
 
 echo ""
 echo "Tilde Expansion"
-echo ~ ~/stuff # ~"/stuff"
+echo ~ ~/stuff ~/"stuff" "~/stuff" '~/stuff' # ~"/stuff"
 echo ~root
 #a=~/stuff
+#echo $a
+#a=~/foo:~/bar:~/baz
 #echo $a
 
 echo ""

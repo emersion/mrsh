@@ -3,19 +3,11 @@
 
 #include <mrsh/shell.h>
 
-enum tilde_expansion {
-	// Don't perform tilde expansion at all
-	TILDE_EXPANSION_NONE,
-	// Only expand at the begining of words
-	TILDE_EXPANSION_NAME,
-	// Expand at the begining of words and after semicolons
-	TILDE_EXPANSION_ASSIGNMENT,
-};
-
 /**
- * Performs tilde expansion. It leaves the string as-is in case of error.
+ * Performs tilde expansion. It leaves the word as-is in case of error.
  */
-void expand_tilde(struct mrsh_state *state, char **str_ptr);
+void expand_tilde(struct mrsh_state *state, struct mrsh_word *word,
+	bool assignment);
 /**
  * Performs field splitting on `word`, writing fields to `fields`. This should
  * be done after expansions/substitutions.

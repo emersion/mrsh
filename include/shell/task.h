@@ -23,8 +23,8 @@
 
 struct context;
 
-int run_word(struct context *ctx, struct mrsh_word **word_ptr,
-	enum tilde_expansion tilde_expansion);
+/* Perform parameter expansion, command substitution and arithmetic expansion. */
+int run_word(struct context *ctx, struct mrsh_word **word_ptr);
 int run_simple_command(struct context *ctx, struct mrsh_simple_command *sc);
 int run_command(struct context *ctx, struct mrsh_command *cmd);
 int run_and_or_list(struct context *ctx, struct mrsh_and_or_list *and_or_list);

@@ -202,18 +202,12 @@ static int apply_parameter_op(struct context *ctx,
 	assert(false);
 }
 
-int run_word(struct context *ctx, struct mrsh_word **word_ptr,
-		enum tilde_expansion tilde_expansion) {
+int run_word(struct context *ctx, struct mrsh_word **word_ptr) {
 	struct mrsh_word *word = *word_ptr;
 
 	int ret;
 	switch (word->type) {
 	case MRSH_WORD_STRING:;
-		struct mrsh_word_string *ws = mrsh_word_get_string(word);
-		if (!ws->single_quoted && tilde_expansion != TILDE_EXPANSION_NONE) {
-			// TODO: TILDE_EXPANSION_ASSIGNMENT
-			expand_tilde(ctx->state, &ws->str);
-		}
 		return 0;
 	case MRSH_WORD_PARAMETER:;
 		struct mrsh_word_parameter *wp = mrsh_word_get_parameter(word);
@@ -244,7 +238,7 @@ int run_word(struct context *ctx, struct mrsh_word **word_ptr,
 		}
 		if (result_word != NULL) {
 			result_word = mrsh_word_copy(result_word);
-			ret = run_word(ctx, &result_word, tilde_expansion);
+			ret = run_word(ctx, &result_word);
 			if (ret < 0) {
 				return ret;
 			}
@@ -261,7 +255,7 @@ int run_word(struct context *ctx, struct mrsh_word **word_ptr,
 		// For arithmetic words, we need to expand the arithmetic expression
 		// before parsing and evaluating it
 		struct mrsh_word_arithmetic *wa = mrsh_word_get_arithmetic(word);
-		ret = run_word(ctx, &wa->body, TILDE_EXPANSION_NONE);
+		ret = run_word(ctx, &wa->body);
 		if (ret < 0) {
 			return ret;
 		}
@@ -306,10 +300,7 @@ int run_word(struct context *ctx, struct mrsh_word **word_ptr,
 		for (size_t i = 0; i < wl->children.len; ++i) {
 			struct mrsh_word **child_ptr =
 				(struct mrsh_word **)&wl->children.data[i];
-			if (i > 0 || wl->double_quoted) {
-				tilde_expansion = TILDE_EXPANSION_NONE;
-			}
-			ret = run_word(ctx, child_ptr, tilde_expansion);
+			ret = run_word(ctx, child_ptr);
 			if (ret < 0) {
 				return ret;
 			}

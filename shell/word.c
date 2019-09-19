@@ -10,7 +10,7 @@
 #include "shell/shell.h"
 #include "shell/word.h"
 
-void expand_tilde(struct mrsh_state *state, char **str_ptr) {
+static void expand_tilde_str(struct mrsh_state *state, char **str_ptr) {
 	char *str = *str_ptr;
 	if (str[0] != '~') {
 		return;
@@ -54,6 +54,31 @@ void expand_tilde(struct mrsh_state *state, char **str_ptr) {
 
 	free(str);
 	*str_ptr = expanded;
+}
+
+void expand_tilde(struct mrsh_state *state, struct mrsh_word *word,
+		bool assignment) {
+	switch (word->type) {
+	case MRSH_WORD_STRING:;
+		struct mrsh_word_string *ws = mrsh_word_get_string(word);
+		if (!ws->single_quoted) {
+			// TODO: assignment
+			expand_tilde_str(state, &ws->str);
+		}
+		break;
+	case MRSH_WORD_LIST:;
+		struct mrsh_word_list *wl = mrsh_word_get_list(word);
+		for (size_t i = 0; i < wl->children.len; ++i) {
+			struct mrsh_word *child = wl->children.data[i];
+			if (i > 0 || wl->double_quoted) {
+				continue;
+			}
+			expand_tilde(state, child, assignment);
+		}
+		break;
+	default:
+		break;
+	}
 }
 
 struct split_fields_data {

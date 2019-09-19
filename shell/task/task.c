@@ -128,7 +128,8 @@ static int run_for_clause(struct context *ctx, struct mrsh_for_clause *fc) {
 		// TODO: this mutates the AST
 		struct mrsh_word **word_ptr =
 			(struct mrsh_word **)&fc->word_list.data[i];
-		int ret = run_word(ctx, word_ptr, TILDE_EXPANSION_NAME);
+		expand_tilde(ctx->state, *word_ptr, false);
+		int ret = run_word(ctx, word_ptr);
 		if (ret < 0) {
 			return ret;
 		}
@@ -193,7 +194,8 @@ interrupt:
 
 static int run_case_clause(struct context *ctx, struct mrsh_case_clause *cc) {
 	struct mrsh_word *word = mrsh_word_copy(cc->word);
-	int ret = run_word(ctx, &word, TILDE_EXPANSION_NAME);
+	expand_tilde(ctx->state, word, false);
+	int ret = run_word(ctx, &word);
 	if (ret < 0) {
 		mrsh_word_destroy(word);
 		return ret;
@@ -210,7 +212,8 @@ static int run_case_clause(struct context *ctx, struct mrsh_case_clause *cc) {
 			// TODO: this mutates the AST
 			struct mrsh_word **word_ptr =
 				(struct mrsh_word **)&ci->patterns.data[j];
-			int ret = run_word(ctx, word_ptr, TILDE_EXPANSION_NAME);
+			expand_tilde(ctx->state, *word_ptr, false);
+			int ret = run_word(ctx, word_ptr);
 			if (ret < 0) {
 				return ret;
 			}
@@ -392,9 +395,11 @@ int mrsh_run_program(struct mrsh_state *state, struct mrsh_program *prog) {
 }
 
 int mrsh_run_word(struct mrsh_state *state, struct mrsh_word **word) {
+	expand_tilde(state, *word, false);
+
 	struct context ctx = { .state = state };
 	int last_status = state->last_status;
-	int ret = run_word(&ctx, word, TILDE_EXPANSION_NAME);
+	int ret = run_word(&ctx, word);
 	state->last_status = last_status;
 	return ret;
 }

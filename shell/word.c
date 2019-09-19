@@ -10,6 +10,12 @@
 #include "shell/shell.h"
 #include "shell/word.h"
 
+bool is_logname_char(char c) {
+	// See https://pubs.opengroup.org/onlinepubs/9699919799/basedefs/V1_chap03.html#tag_03_282
+	return (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') ||
+		(c >= '0' && c <= '9') || c == '.' || c == '_' || c == '-';
+}
+
 static void expand_tilde_str(struct mrsh_state *state, char **str_ptr,
 		bool last) {
 	char *str = *str_ptr;
@@ -17,14 +23,16 @@ static void expand_tilde_str(struct mrsh_state *state, char **str_ptr,
 		return;
 	}
 
-	const char *end = str + strlen(str);
-	const char *slash = strchr(str, '/');
-	if (slash == NULL) {
-		if (!last) {
+	const char *cur;
+	for (cur = str + 1; cur[0] != '\0' && cur[0] != '/'; cur++) {
+		if (!is_logname_char(cur[0])) {
 			return;
 		}
-		slash = end;
 	}
+	if (cur[0] == '\0' && !last) {
+		return;
+	}
+	const char *slash = cur;
 
 	char *name = NULL;
 	if (slash > str + 1) {
@@ -47,7 +55,7 @@ static void expand_tilde_str(struct mrsh_state *state, char **str_ptr,
 	}
 
 	size_t dir_len = strlen(dir);
-	size_t trailing_len = end - slash;
+	size_t trailing_len = strlen(slash);
 	char *expanded = malloc(dir_len + trailing_len + 1);
 	if (expanded == NULL) {
 		return;

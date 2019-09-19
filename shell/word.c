@@ -10,7 +10,8 @@
 #include "shell/shell.h"
 #include "shell/word.h"
 
-static void expand_tilde_str(struct mrsh_state *state, char **str_ptr) {
+static void expand_tilde_str(struct mrsh_state *state, char **str_ptr,
+		bool last) {
 	char *str = *str_ptr;
 	if (str[0] != '~') {
 		return;
@@ -19,6 +20,9 @@ static void expand_tilde_str(struct mrsh_state *state, char **str_ptr) {
 	const char *end = str + strlen(str);
 	const char *slash = strchr(str, '/');
 	if (slash == NULL) {
+		if (!last) {
+			return;
+		}
 		slash = end;
 	}
 
@@ -56,29 +60,35 @@ static void expand_tilde_str(struct mrsh_state *state, char **str_ptr) {
 	*str_ptr = expanded;
 }
 
-void expand_tilde(struct mrsh_state *state, struct mrsh_word *word,
-		bool assignment) {
+static void _expand_tilde(struct mrsh_state *state, struct mrsh_word *word,
+		bool assignment, bool first, bool last) {
 	switch (word->type) {
 	case MRSH_WORD_STRING:;
 		struct mrsh_word_string *ws = mrsh_word_get_string(word);
-		if (!ws->single_quoted) {
+		if (!ws->single_quoted && first) {
 			// TODO: assignment
-			expand_tilde_str(state, &ws->str);
+			expand_tilde_str(state, &ws->str, last);
 		}
 		break;
 	case MRSH_WORD_LIST:;
 		struct mrsh_word_list *wl = mrsh_word_get_list(word);
+		if (wl->double_quoted) {
+			break;
+		}
 		for (size_t i = 0; i < wl->children.len; ++i) {
 			struct mrsh_word *child = wl->children.data[i];
-			if (i > 0 || wl->double_quoted) {
-				continue;
-			}
-			expand_tilde(state, child, assignment);
+			_expand_tilde(state, child, assignment, first && i == 0,
+				last && i == wl->children.len - 1);
 		}
 		break;
 	default:
 		break;
 	}
+}
+
+void expand_tilde(struct mrsh_state *state, struct mrsh_word *word,
+		bool assignment) {
+	_expand_tilde(state, word, assignment, true, true);
 }
 
 struct split_fields_data {

@@ -167,7 +167,20 @@ static int apply_parameter_op(struct context *ctx,
 		}
 		return 0;
 	case MRSH_PARAM_EQUAL: // Assign Default Values
-		assert(false); // TODO
+		// TODO: error out if positional or special parameter
+		if (str == NULL || (str[0] == '\0' && wp->colon)) {
+			*result = copy_word_or_null(wp->arg);
+			int ret = run_word(ctx, result);
+			if (ret < 0) {
+				return ret;
+			}
+			char *str = mrsh_word_str(*result);
+			mrsh_env_set(ctx->state, wp->name, str, 0);
+			free(str);
+		} else {
+			*result = create_word_string(str);
+		}
+		return 0;
 	case MRSH_PARAM_QMARK: // Indicate Error if Null or Unset
 		assert(false); // TODO
 	case MRSH_PARAM_PLUS: // Use Alternative Value

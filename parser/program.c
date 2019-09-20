@@ -849,6 +849,46 @@ static struct mrsh_function_definition *function_definition(
 	return fd;
 }
 
+static bool unspecified_word(struct mrsh_parser *state) {
+	const char *const reserved[] = {
+		"[[",
+		"]]",
+		"function",
+		"select",
+	};
+
+	size_t word_len = peek_word(state, 0);
+	if (word_len == 0) {
+		return false;
+	}
+
+	for (size_t i = 0; i < sizeof(reserved) / sizeof(reserved[0]); i++) {
+		if (strncmp(state->buf.data, reserved[i], word_len) == 0 &&
+				word_len == strlen(reserved[i])) {
+			char err_msg[256];
+			snprintf(err_msg, sizeof(err_msg),
+				"keyword is reserved and causes unspecified results: %s",
+				reserved[i]);
+			parser_set_error(state, err_msg);
+			return true;
+		}
+	}
+
+	size_t name_len = peek_name(state, false);
+	if (name_len == 0) {
+		return false;
+	}
+
+	parser_peek(state, NULL, name_len + 1);
+	if (state->buf.data[name_len] == ':') {
+		parser_set_error(state, "words that are the concatenation of a name "
+			"and a colon produce unspecified results");
+		return true;
+	}
+
+	return false;
+}
+
 static struct mrsh_command *compound_command(struct mrsh_parser *state) {
 	struct mrsh_brace_group *bg = brace_group(state);
 	if (bg != NULL) {
@@ -889,6 +929,10 @@ static struct mrsh_command *compound_command(struct mrsh_parser *state) {
 	if (cc != NULL) {
 		return &cc->command;
 	} else if (mrsh_parser_error(state, NULL)) {
+		return NULL;
+	}
+
+	if (unspecified_word(state)) {
 		return NULL;
 	}
 

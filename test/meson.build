@@ -1,5 +1,5 @@
 harness = find_program('./harness.sh')
-ref_sh = find_program('sh', required: false)
+ref_sh = find_program(get_option('reference-shell'), required: false)
 
 test_files = [
 	'conformance/if.sh',

@@ -19,3 +19,10 @@ option(
 	value: true,
 	description: 'Build example programs',
 )
+
+option(
+	'reference-shell',
+	type: 'string',
+	value: 'sh',
+	description: 'Reference shell used in tests',
+)

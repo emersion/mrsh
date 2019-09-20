@@ -139,28 +139,31 @@ static const char *parameter_get_value(struct mrsh_state *state,
 	return mrsh_env_get(state, name, NULL);
 }
 
-static void assign_word_or_null(struct mrsh_word *word,
-		char **result_str, struct mrsh_word **result_word) {
+static struct mrsh_word *create_word_string(const char *str) {
+	struct mrsh_word_string *ws = mrsh_word_string_create(strdup(str), false);
+	return &ws->word;
+}
+
+static struct mrsh_word *copy_word_or_null(struct mrsh_word *word) {
 	if (word != NULL) {
-		*result_word = word;
+		return mrsh_word_copy(word);
 	} else {
-		*result_str = strdup("");
+		return create_word_string("");
 	}
 }
 
-/* Fill either result_str or result_word */
 static int apply_parameter_op(struct context *ctx,
 		struct mrsh_word_parameter *wp, const char *str,
-		char **result_str, struct mrsh_word **result_word) {
+		struct mrsh_word **result) {
 	switch (wp->op) {
 	case MRSH_PARAM_NONE:
-		*result_str = str != NULL ? strdup(str) : NULL;
+		*result = str != NULL ? create_word_string(str) : NULL;
 		return 0;
 	case MRSH_PARAM_MINUS: // Use Default Values
 		if (str == NULL || (str[0] == '\0' && wp->colon)) {
-			assign_word_or_null(wp->arg, result_str, result_word);
+			*result = copy_word_or_null(wp->arg);
 		} else {
-			*result_str = strdup(str);
+			*result = create_word_string(str);
 		}
 		return 0;
 	case MRSH_PARAM_EQUAL: // Assign Default Values
@@ -169,9 +172,9 @@ static int apply_parameter_op(struct context *ctx,
 		assert(false); // TODO
 	case MRSH_PARAM_PLUS: // Use Alternative Value
 		if (str == NULL || (str[0] == '\0' && wp->colon)) {
-			*result_str = strdup("");
+			*result = create_word_string("");
 		} else {
-			assign_word_or_null(wp->arg, result_str, result_word);
+			*result = copy_word_or_null(wp->arg);
 		}
 		return 0;
 	case MRSH_PARAM_LEADING_HASH: // String Length
@@ -191,7 +194,7 @@ static int apply_parameter_op(struct context *ctx,
 		}
 		char len_str[32];
 		snprintf(len_str, sizeof(len_str), "%d", len);
-		*result_str = strdup(len_str);
+		*result = create_word_string(len_str);
 		return 0;
 	case MRSH_PARAM_PERCENT: // Remove Smallest Suffix Pattern
 	case MRSH_PARAM_DPERCENT: // Remove Largest Suffix Pattern
@@ -221,33 +224,26 @@ int run_word(struct context *ctx, struct mrsh_word **word_ptr) {
 
 			value = lineno;
 		}
-		char *result_str = NULL;
-		struct mrsh_word *result_word = NULL;
-		ret = apply_parameter_op(ctx, wp, value, &result_str, &result_word);
+		struct mrsh_word *result = NULL;
+		ret = apply_parameter_op(ctx, wp, value, &result);
 		if (ret < 0) {
 			return ret;
 		}
-		assert(result_str == NULL || result_word == NULL);
-		if (result_str == NULL && result_word == NULL) {
+		if (result == NULL) {
 			if ((ctx->state->options & MRSH_OPT_NOUNSET)) {
 				fprintf(stderr, "%s: %s: unbound variable\n",
 						ctx->state->frame->argv[0], wp->name);
 				return TASK_STATUS_ERROR;
 			}
-			result_str = strdup("");
+			result = create_word_string("");
 		}
-		if (result_word != NULL) {
-			result_word = mrsh_word_copy(result_word);
-			ret = run_word(ctx, &result_word);
+		if (result->type != MRSH_WORD_STRING) {
+			ret = run_word(ctx, &result);
 			if (ret < 0) {
 				return ret;
 			}
-		} else if (result_str != NULL) {
-			struct mrsh_word_string *ws =
-				mrsh_word_string_create(result_str, false);
-			result_word = &ws->word;
 		}
-		swap_words(word_ptr, result_word);
+		swap_words(word_ptr, result);
 		return 0;
 	case MRSH_WORD_COMMAND:
 		return run_word_command(ctx, word_ptr);

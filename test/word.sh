@@ -31,10 +31,6 @@ echo "Command Substitution"
 echo $(echo asdf)
 echo `echo asdf`
 
-echo ""
-echo "Arithmetic Expansion"
-#echo $((1+2))
-
 # Field Splitting
 # Pathname Expansion
 # Quote Removal

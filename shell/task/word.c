@@ -182,7 +182,28 @@ static int apply_parameter_op(struct context *ctx,
 		}
 		return 0;
 	case MRSH_PARAM_QMARK: // Indicate Error if Null or Unset
-		assert(false); // TODO
+		if (str == NULL || (str[0] == '\0' && wp->colon)) {
+			char *err_msg;
+			if (wp->arg != NULL) {
+				struct mrsh_word *err_msg_word = mrsh_word_copy(wp->arg);
+				int ret = run_word(ctx, &err_msg_word);
+				if (ret < 0) {
+					return ret;
+				}
+				err_msg = mrsh_word_str(err_msg_word);
+				mrsh_word_destroy(err_msg_word);
+			} else {
+				err_msg = strdup("parameter not set or null");
+			}
+			fprintf(stderr, "%s: %s: %s\n", ctx->state->frame->argv[0],
+				wp->name, err_msg);
+			free(err_msg);
+			// TODO: make the shell exit if non-interactive
+			return TASK_STATUS_ERROR;
+		} else {
+			*result = create_word_string(str);
+		}
+		return 0;
 	case MRSH_PARAM_PLUS: // Use Alternative Value
 		if (str == NULL || (str[0] == '\0' && wp->colon)) {
 			*result = create_word_string("");
@@ -192,6 +213,7 @@ static int apply_parameter_op(struct context *ctx,
 		return 0;
 	case MRSH_PARAM_LEADING_HASH: // String Length
 		if (str == NULL && (ctx->state->options & MRSH_OPT_NOUNSET)) {
+			*result = NULL;
 			return 0;
 		}
 		if (strcmp(wp->name, "*") == 0 || strcmp(wp->name, "@") == 0) {

@@ -133,7 +133,8 @@ void job_add_process(struct mrsh_job *job, struct process *proc) {
 	if (job->pgid <= 0) {
 		job->pgid = proc->pid;
 	}
-	if (setpgid(proc->pid, job->pgid) != 0) {
+	// This can fail because we do it both in the parent and the child
+	if (setpgid(proc->pid, job->pgid) != 0 && errno != EPERM) {
 		perror("setpgid");
 		return;
 	}

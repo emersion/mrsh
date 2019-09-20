@@ -27,10 +27,10 @@ echo ${a+GOOD} ${idontexist+BAD} ${null-GOOD} ${null+}
 echo ${#hello} ${#null} ${#idontexist}
 
 # Examples from the spec
-# ${parameter}
-a=1
-set 2
-echo ${a}b-$ab-${1}0-${10}-$10
+# ${parameter}: dash and busybox choke on this
+#a=1
+#set 2
+#echo ${a}b-$ab-${1}0-${10}-$10
 # ${parameter-word}
 foo=asdf
 echo ${foo-bar}xyz}

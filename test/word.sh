@@ -26,6 +26,48 @@ echo ${a:+GOOD} ${idontexist:+BAD} ${null:+BAD} ${idontexist:+}
 echo ${a+GOOD} ${idontexist+BAD} ${null-GOOD} ${null+}
 echo ${#hello} ${#null} ${#idontexist}
 
+# Examples from the spec
+# ${parameter}
+a=1
+set 2
+echo ${a}b-$ab-${1}0-${10}-$10
+# ${parameter-word}
+foo=asdf
+echo ${foo-bar}xyz}
+foo=
+echo ${foo-bar}xyz}
+unset foo
+echo ${foo-bar}xyz}
+# ${parameter:-word}
+#unset x
+#echo ${x:-$(echo >&2 GOOD)} 2>&1
+#x=x
+#echo ${x:-$(echo >&2 BAD)} 2>&1
+# ${parameter:=word}
+unset X
+echo ${X:=abc}
+# ${parameter:?word}
+#unset posix
+#echo ${posix:?}
+# ${parameter:+word}
+set a b c
+echo ${3:+posix}
+# ${#parameter}
+posix=/usr/posix
+echo ${#posix}
+# ${parameter%word}
+#x=file.c
+#echo ${x%.c}.o
+# ${parameter%%word}
+#x=posix/src/std
+#echo ${x%%/*}
+# ${parameter#word}
+#x=$HOME/src/cmd
+#echo ${x#$HOME}
+# ${parameter##word}
+#x=/one/two/three
+#echo ${x##*/}
+
 echo ""
 echo "Command Substitution"
 echo $(echo asdf)

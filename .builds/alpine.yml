@@ -3,13 +3,14 @@ packages:
   - gcc
   - clang
   - meson
+  - dash
 sources:
   - https://git.sr.ht/~emersion/mrsh
 tasks:
   - setup: |
       cd mrsh
-      CC=gcc meson build-gcc
-      CC=clang meson build-clang
+      CC=gcc meson build-gcc -Dreference-shell=dash
+      CC=clang meson build-clang -Dreference-shell=dash
   - build-gcc: |
       cd mrsh
       ninja -C build-gcc

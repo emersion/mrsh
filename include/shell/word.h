@@ -16,6 +16,11 @@ void split_fields(struct mrsh_array *fields, const struct mrsh_word *word,
 	const char *ifs);
 void get_fields_str(struct mrsh_array *strs, const struct mrsh_array *fields);
 /**
+ * Convert a word to a pattern. Returns NULL if word doesn't contain any
+ * special pattern character (ie. requires an exact match).
+ */
+char *word_to_pattern(const struct mrsh_word *word);
+/**
  * Performs pathname expansion on each item in `fields`.
  */
 bool expand_pathnames(struct mrsh_array *expanded,

@@ -295,7 +295,7 @@ static bool needs_pathname_expansion(const struct mrsh_word *word) {
 
 }
 
-static void get_word_pathname_pattern(struct mrsh_buffer *buf,
+static void _word_to_pattern(struct mrsh_buffer *buf,
 		const struct mrsh_word *word, bool quoted) {
 	switch (word->type) {
 	case MRSH_WORD_STRING:;
@@ -315,7 +315,7 @@ static void get_word_pathname_pattern(struct mrsh_buffer *buf,
 
 		for (size_t i = 0; i < wl->children.len; i++) {
 			const struct mrsh_word *child = wl->children.data[i];
-			get_word_pathname_pattern(buf, child, quoted || wl->double_quoted);
+			_word_to_pattern(buf, child, quoted || wl->double_quoted);
 		}
 		break;
 	default:
@@ -323,24 +323,30 @@ static void get_word_pathname_pattern(struct mrsh_buffer *buf,
 	}
 }
 
+char *word_to_pattern(const struct mrsh_word *word) {
+	if (!needs_pathname_expansion(word)) {
+		return NULL;
+	}
+
+	struct mrsh_buffer buf = {0};
+	_word_to_pattern(&buf, word, false);
+	mrsh_buffer_append_char(&buf, '\0');
+	return mrsh_buffer_steal(&buf);
+}
+
 bool expand_pathnames(struct mrsh_array *expanded,
 		const struct mrsh_array *fields) {
-	struct mrsh_buffer buf = {0};
-
 	for (size_t i = 0; i < fields->len; ++i) {
 		const struct mrsh_word *field = fields->data[i];
 
-		if (!needs_pathname_expansion(field)) {
+		char *pattern = word_to_pattern(field);
+		if (pattern == NULL) {
 			mrsh_array_add(expanded, mrsh_word_str(field));
 			continue;
 		}
 
-		buf.len = 0;
-		get_word_pathname_pattern(&buf, field, false);
-		mrsh_buffer_append_char(&buf, '\0');
-
 		glob_t glob_buf;
-		int ret = glob(buf.data, GLOB_NOSORT, NULL, &glob_buf);
+		int ret = glob(pattern, GLOB_NOSORT, NULL, &glob_buf);
 		if (ret == 0) {
 			for (size_t i = 0; i < glob_buf.gl_pathc; ++i) {
 				mrsh_array_add(expanded, strdup(glob_buf.gl_pathv[i]));
@@ -349,11 +355,13 @@ bool expand_pathnames(struct mrsh_array *expanded,
 		} else if (ret == GLOB_NOMATCH) {
 			mrsh_array_add(expanded, mrsh_word_str(field));
 		} else {
-			fprintf(stderr, "glob() failed\n");
+			fprintf(stderr, "glob failed: %d\n", ret);
+			free(pattern);
 			return false;
 		}
+
+		free(pattern);
 	}
 
-	mrsh_buffer_finish(&buf);
 	return true;
 }

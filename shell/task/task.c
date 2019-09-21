@@ -217,9 +217,15 @@ static int run_case_clause(struct context *ctx, struct mrsh_case_clause *cc) {
 			if (ret < 0) {
 				return ret;
 			}
-			char *pattern_str = mrsh_word_str(*word_ptr);
-			selected = fnmatch(pattern_str, word_str, 0) == 0;
-			free(pattern_str);
+			char *pattern = word_to_pattern(*word_ptr);
+			if (pattern != NULL) {
+				selected = fnmatch(pattern, word_str, 0) == 0;
+				free(pattern);
+			} else {
+				char *str = mrsh_word_str(*word_ptr);
+				selected = strcmp(str, word_str) == 0;
+				free(str);
+			}
 			if (selected) {
 				break;
 			}

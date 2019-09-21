@@ -56,14 +56,14 @@ echo ${3:+posix}
 posix=/usr/posix
 echo ${#posix}
 # ${parameter%word}
-#x=file.c
-#echo ${x%.c}.o
+x=file.c
+echo ${x%.c}.o
 # ${parameter%%word}
 #x=posix/src/std
 #echo ${x%%/*}
 # ${parameter#word}
-#x=$HOME/src/cmd
-#echo ${x#$HOME}
+x=$HOME/src/cmd
+echo ${x#$HOME}
 # ${parameter##word}
 #x=/one/two/three
 #echo ${x##*/}

@@ -238,6 +238,20 @@ static int apply_parameter_cond_op(struct context *ctx,
 	}
 }
 
+static char *trim_str(const char *str, const char *cut, bool suffix) {
+	size_t len = strlen(str);
+	size_t cut_len = strlen(cut);
+	if (cut_len <= len) {
+		if (!suffix && memcmp(str, cut, cut_len) == 0) {
+			return strdup(str + cut_len);
+		}
+		if (suffix && memcmp(str + len - cut_len, cut, cut_len) == 0) {
+			return strndup(str, len - cut_len);
+		}
+	}
+	return strdup(str);
+}
+
 static int apply_parameter_str_op(struct context *ctx,
 		struct mrsh_word_parameter *wp, const char *str,
 		struct mrsh_word **result) {
@@ -260,6 +274,38 @@ static int apply_parameter_str_op(struct context *ctx,
 	case MRSH_PARAM_DPERCENT: // Remove Largest Suffix Pattern
 	case MRSH_PARAM_HASH: // Remove Smallest Prefix Pattern
 	case MRSH_PARAM_DHASH: // Remove Largest Prefix Pattern
+		if (str == NULL) {
+			*result = NULL;
+			return 0;
+		} else if (wp->arg == NULL) {
+			*result = create_word_string(str);
+			return 0;
+		}
+
+		bool suffix = wp->op == MRSH_PARAM_PERCENT ||
+			wp->op == MRSH_PARAM_DPERCENT;
+		bool largest = wp->op == MRSH_PARAM_DPERCENT ||
+			wp->op == MRSH_PARAM_DHASH;
+		(void)largest;
+
+		struct mrsh_word *pattern = mrsh_word_copy(wp->arg);
+		int ret = run_word(ctx, &pattern);
+		if (ret < 0) {
+			return ret;
+		}
+
+		char *pattern_str = word_to_pattern(pattern);
+		if (pattern_str == NULL) {
+			char *arg = mrsh_word_str(pattern);
+			mrsh_word_destroy(pattern);
+			char *result_str = trim_str(str, arg, suffix);
+			free(arg);
+			struct mrsh_word_string *result_ws =
+				mrsh_word_string_create(result_str, false);
+			*result = &result_ws->word;
+			return 0;
+		}
+
 		assert(false); // TODO
 	default:
 		assert(false);

@@ -1,6 +1,7 @@
 #define _POSIX_C_SOURCE 200809L
 #include <assert.h>
 #include <errno.h>
+#include <fnmatch.h>
 #include <mrsh/buffer.h>
 #include <mrsh/parser.h>
 #include <stdio.h>
@@ -252,6 +253,47 @@ static char *trim_str(const char *str, const char *cut, bool suffix) {
 	return strdup(str);
 }
 
+static char *trim_pattern(const char *str, const char *pattern, bool suffix,
+		bool largest) {
+	size_t len = strlen(str);
+	ssize_t begin, end, delta;
+	if ((!suffix && !largest) || (suffix && largest)) {
+		begin = 0;
+		end = len;
+		delta = 1;
+	} else {
+		begin = len - 1;
+		end = -1;
+		delta = -1;
+	}
+
+	char *buf = strdup(str);
+	for (ssize_t i = begin; i != end; i += delta) {
+		char ch = buf[i];
+		buf[i] = '\0';
+
+		const char *match, *trimmed;
+		if (!suffix) {
+			match = buf;
+			trimmed = str + i;
+		} else {
+			match = str + i;
+			trimmed = buf;
+		}
+
+		if (fnmatch(pattern, match, 0) == 0) {
+			char *result = strdup(trimmed);
+			free(buf);
+			return result;
+		}
+
+		buf[i] = ch;
+	}
+	free(buf);
+
+	return strdup(str);
+}
+
 static int apply_parameter_str_op(struct context *ctx,
 		struct mrsh_word_parameter *wp, const char *str,
 		struct mrsh_word **result) {
@@ -286,7 +328,6 @@ static int apply_parameter_str_op(struct context *ctx,
 			wp->op == MRSH_PARAM_DPERCENT;
 		bool largest = wp->op == MRSH_PARAM_DPERCENT ||
 			wp->op == MRSH_PARAM_DHASH;
-		(void)largest;
 
 		struct mrsh_word *pattern = mrsh_word_copy(wp->arg);
 		int ret = run_word(ctx, &pattern);
@@ -294,19 +335,23 @@ static int apply_parameter_str_op(struct context *ctx,
 			return ret;
 		}
 
+		char *result_str;
 		char *pattern_str = word_to_pattern(pattern);
 		if (pattern_str == NULL) {
 			char *arg = mrsh_word_str(pattern);
 			mrsh_word_destroy(pattern);
-			char *result_str = trim_str(str, arg, suffix);
+			result_str = trim_str(str, arg, suffix);
 			free(arg);
-			struct mrsh_word_string *result_ws =
-				mrsh_word_string_create(result_str, false);
-			*result = &result_ws->word;
-			return 0;
+		} else {
+			mrsh_word_destroy(pattern);
+			result_str = trim_pattern(str, pattern_str, suffix, largest);
+			free(pattern_str);
 		}
 
-		assert(false); // TODO
+		struct mrsh_word_string *result_ws =
+			mrsh_word_string_create(result_str, false);
+		*result = &result_ws->word;
+		return 0;
 	default:
 		assert(false);
 	}

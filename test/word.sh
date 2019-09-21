@@ -59,14 +59,14 @@ echo ${#posix}
 x=file.c
 echo ${x%.c}.o
 # ${parameter%%word}
-#x=posix/src/std
-#echo ${x%%/*}
+x=posix/src/std
+echo ${x%%/*}
 # ${parameter#word}
 x=$HOME/src/cmd
 echo ${x#$HOME}
 # ${parameter##word}
-#x=/one/two/three
-#echo ${x##*/}
+x=/one/two/three
+echo ${x##*/}
 
 echo ""
 echo "Command Substitution"

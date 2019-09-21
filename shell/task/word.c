@@ -313,7 +313,9 @@ int run_word(struct context *ctx, struct mrsh_word **word_ptr) {
 		case MRSH_PARAM_DPERCENT:
 		case MRSH_PARAM_HASH:
 		case MRSH_PARAM_DHASH:
-			if (strcmp(wp->name, "@") == 0 || strcmp(wp->name, "*") == 0) {
+			if (strcmp(wp->name, "@") == 0 || strcmp(wp->name, "*") == 0 ||
+					(wp->op != MRSH_PARAM_LEADING_HASH &&
+					strcmp(wp->name, "#") == 0)) {
 				fprintf(stderr, "%s: using this parameter operator on $%s "
 					"is undefined behaviour\n",
 					ctx->state->frame->argv[0], wp->name);

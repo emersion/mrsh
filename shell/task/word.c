@@ -101,10 +101,10 @@ static const char *parameter_get_value(struct mrsh_state *state,
 	char *end;
 	long lvalue = strtol(name, &end, 10);
 	// Special cases
-	if (strcmp(name, "@") == 0) {
-		// TODO
-	} else if (strcmp(name, "*") == 0) {
-		// TODO
+	if (strcmp(name, "@") == 0 || strcmp(name, "*") == 0) {
+		// These are handled separately, because they evaluate to a word, not
+		// a raw string.
+		return NULL;
 	} else if (strcmp(name, "#") == 0) {
 		sprintf(value, "%d", state->frame->argc - 1);
 		return value;
@@ -152,23 +152,43 @@ static struct mrsh_word *copy_word_or_null(struct mrsh_word *word) {
 	}
 }
 
-static int apply_parameter_op(struct context *ctx,
-		struct mrsh_word_parameter *wp, const char *str,
+static bool is_null_word(const struct mrsh_word *word) {
+	switch (word->type) {
+	case MRSH_WORD_STRING:;
+		const struct mrsh_word_string *ws = mrsh_word_get_string(word);
+		return ws->str[0] == '\0';
+	case MRSH_WORD_LIST:;
+		const struct mrsh_word_list *wl = mrsh_word_get_list(word);
+		for (size_t i = 0; i < wl->children.len; i++) {
+			const struct mrsh_word *child = wl->children.data[i];
+			if (!is_null_word(child)) {
+				return false;
+			}
+		}
+		return true;
+	default:
+		assert(false);
+	}
+}
+
+static int apply_parameter_cond_op(struct context *ctx,
+		struct mrsh_word_parameter *wp, struct mrsh_word *value,
 		struct mrsh_word **result) {
 	switch (wp->op) {
 	case MRSH_PARAM_NONE:
-		*result = str != NULL ? create_word_string(str) : NULL;
+		*result = value;
 		return 0;
 	case MRSH_PARAM_MINUS: // Use Default Values
-		if (str == NULL || (str[0] == '\0' && wp->colon)) {
+		if (value == NULL || (wp->colon && is_null_word(value))) {
+			mrsh_word_destroy(value);
 			*result = copy_word_or_null(wp->arg);
 		} else {
-			*result = create_word_string(str);
+			*result = value;
 		}
 		return 0;
 	case MRSH_PARAM_EQUAL: // Assign Default Values
-		// TODO: error out if positional or special parameter
-		if (str == NULL || (str[0] == '\0' && wp->colon)) {
+		if (value == NULL || (wp->colon && is_null_word(value))) {
+			mrsh_word_destroy(value);
 			*result = copy_word_or_null(wp->arg);
 			int ret = run_word(ctx, result);
 			if (ret < 0) {
@@ -178,11 +198,12 @@ static int apply_parameter_op(struct context *ctx,
 			mrsh_env_set(ctx->state, wp->name, str, 0);
 			free(str);
 		} else {
-			*result = create_word_string(str);
+			*result = value;
 		}
 		return 0;
 	case MRSH_PARAM_QMARK: // Indicate Error if Null or Unset
-		if (str == NULL || (str[0] == '\0' && wp->colon)) {
+		if (value == NULL || (wp->colon && is_null_word(value))) {
+			mrsh_word_destroy(value);
 			char *err_msg;
 			if (wp->arg != NULL) {
 				struct mrsh_word *err_msg_word = mrsh_word_copy(wp->arg);
@@ -201,26 +222,30 @@ static int apply_parameter_op(struct context *ctx,
 			// TODO: make the shell exit if non-interactive
 			return TASK_STATUS_ERROR;
 		} else {
-			*result = create_word_string(str);
+			*result = value;
 		}
 		return 0;
 	case MRSH_PARAM_PLUS: // Use Alternative Value
-		if (str == NULL || (str[0] == '\0' && wp->colon)) {
+		if (value == NULL || (wp->colon && is_null_word(value))) {
 			*result = create_word_string("");
 		} else {
 			*result = copy_word_or_null(wp->arg);
 		}
+		mrsh_word_destroy(value);
 		return 0;
+	default:
+		assert(false); // unreachable
+	}
+}
+
+static int apply_parameter_str_op(struct context *ctx,
+		struct mrsh_word_parameter *wp, const char *str,
+		struct mrsh_word **result) {
+	switch (wp->op) {
 	case MRSH_PARAM_LEADING_HASH: // String Length
 		if (str == NULL && (ctx->state->options & MRSH_OPT_NOUNSET)) {
 			*result = NULL;
 			return 0;
-		}
-		if (strcmp(wp->name, "*") == 0 || strcmp(wp->name, "@") == 0) {
-			fprintf(stderr, "%s: using the string length operator on $%s "
-				"is undefined behaviour\n",
-				ctx->state->frame->argv[0], wp->name);
-			return TASK_STATUS_ERROR;
 		}
 
 		int len = 0;
@@ -236,8 +261,9 @@ static int apply_parameter_op(struct context *ctx,
 	case MRSH_PARAM_HASH: // Remove Smallest Prefix Pattern
 	case MRSH_PARAM_DHASH: // Remove Largest Prefix Pattern
 		assert(false); // TODO
+	default:
+		assert(false);
 	}
-	assert(false);
 }
 
 int run_word(struct context *ctx, struct mrsh_word **word_ptr) {
@@ -249,6 +275,7 @@ int run_word(struct context *ctx, struct mrsh_word **word_ptr) {
 		return 0;
 	case MRSH_WORD_PARAMETER:;
 		struct mrsh_word_parameter *wp = mrsh_word_get_parameter(word);
+
 		const char *value = parameter_get_value(ctx->state, wp->name);
 		char lineno[16];
 		if (value == NULL && strcmp(wp->name, "LINENO") == 0) {
@@ -259,11 +286,47 @@ int run_word(struct context *ctx, struct mrsh_word **word_ptr) {
 
 			value = lineno;
 		}
+
 		struct mrsh_word *result = NULL;
-		ret = apply_parameter_op(ctx, wp, value, &result);
-		if (ret < 0) {
-			return ret;
+		switch (wp->op) {
+		case MRSH_PARAM_NONE:
+		case MRSH_PARAM_MINUS:
+		case MRSH_PARAM_EQUAL:
+		case MRSH_PARAM_QMARK:
+		case MRSH_PARAM_PLUS:;
+			struct mrsh_word *value_word;
+			if (strcmp(wp->name, "@") == 0 || strcmp(wp->name, "*") == 0) {
+				assert(false); // TODO
+			} else if (value != NULL) {
+				value_word = create_word_string(value);
+			} else {
+				value_word = NULL;
+			}
+
+			ret = apply_parameter_cond_op(ctx, wp, value_word, &result);
+			if (ret < 0) {
+				return ret;
+			}
+			break;
+		case MRSH_PARAM_LEADING_HASH:
+		case MRSH_PARAM_PERCENT:
+		case MRSH_PARAM_DPERCENT:
+		case MRSH_PARAM_HASH:
+		case MRSH_PARAM_DHASH:
+			if (strcmp(wp->name, "@") == 0 || strcmp(wp->name, "*") == 0) {
+				fprintf(stderr, "%s: using this parameter operator on $%s "
+					"is undefined behaviour\n",
+					ctx->state->frame->argv[0], wp->name);
+				return TASK_STATUS_ERROR;
+			}
+
+			ret = apply_parameter_str_op(ctx, wp, value, &result);
+			if (ret < 0) {
+				return ret;
+			}
+			break;
 		}
+
 		if (result == NULL) {
 			if ((ctx->state->options & MRSH_OPT_NOUNSET)) {
 				fprintf(stderr, "%s: %s: unbound variable\n",

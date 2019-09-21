@@ -26,6 +26,24 @@ echo ${a:+GOOD} ${idontexist:+BAD} ${null:+BAD} ${idontexist:+}
 echo ${a+GOOD} ${idontexist+BAD} ${null+GOOD} ${null+}
 echo ${#hello} ${#null} ${#idontexist}
 
+nargs() {
+	echo "$#"
+}
+
+set a 'b   c' d '	e'
+echo $*
+nargs $*
+echo "$*"
+nargs "$*"
+echo $@
+nargs $@
+echo "$@"
+nargs "$@"
+echo "1  $@  2"
+nargs "1  $@  2"
+echo ${null:-"$@"}
+nargs ${null:-"$@"}
+
 # Examples from the spec
 # ${parameter}: dash and busybox choke on this
 #a=1

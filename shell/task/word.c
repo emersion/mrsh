@@ -140,6 +140,33 @@ static const char *parameter_get_value(struct mrsh_state *state,
 	return mrsh_env_get(state, name, NULL);
 }
 
+static struct mrsh_word *expand_positional_params(struct mrsh_state *state,
+		bool quote_args) {
+	const char *ifs = mrsh_env_get(state, "IFS", NULL);
+	char sep[2] = {0};
+	if (ifs == NULL) {
+		sep[0] = ' ';
+	} else {
+		sep[0] = ifs[0];
+	}
+
+	struct mrsh_array words = {0};
+	for (int i = 1; i < state->frame->argc; i++) {
+		const char *arg = state->frame->argv[i];
+		if (i > 1 && sep[0] != '\0') {
+			struct mrsh_word_string *ws =
+				mrsh_word_string_create(strdup(sep), false);
+			mrsh_array_add(&words, &ws->word);
+		}
+		struct mrsh_word_string *ws =
+			mrsh_word_string_create(strdup(arg), quote_args);
+		mrsh_array_add(&words, &ws->word);
+	}
+
+	struct mrsh_word_list *wl = mrsh_word_list_create(&words, false);
+	return &wl->word;
+}
+
 static struct mrsh_word *create_word_string(const char *str) {
 	struct mrsh_word_string *ws = mrsh_word_string_create(strdup(str), false);
 	return &ws->word;
@@ -357,7 +384,8 @@ static int apply_parameter_str_op(struct context *ctx,
 	}
 }
 
-int run_word(struct context *ctx, struct mrsh_word **word_ptr) {
+static int _run_word(struct context *ctx, struct mrsh_word **word_ptr,
+		bool double_quoted) {
 	struct mrsh_word *word = *word_ptr;
 
 	int ret;
@@ -386,8 +414,13 @@ int run_word(struct context *ctx, struct mrsh_word **word_ptr) {
 		case MRSH_PARAM_QMARK:
 		case MRSH_PARAM_PLUS:;
 			struct mrsh_word *value_word;
-			if (strcmp(wp->name, "@") == 0 || strcmp(wp->name, "*") == 0) {
-				assert(false); // TODO
+			if (strcmp(wp->name, "@") == 0) {
+				// $@ expands to quoted fields only if it's inside double quotes
+				// TODO: error out if expansion is unspecified
+				value_word = expand_positional_params(ctx->state,
+					double_quoted);
+			} else if (strcmp(wp->name, "*") == 0) {
+				value_word = expand_positional_params(ctx->state, false);
 			} else if (value != NULL) {
 				value_word = create_word_string(value);
 			} else {
@@ -482,17 +515,77 @@ int run_word(struct context *ctx, struct mrsh_word **word_ptr) {
 		mrsh_parser_destroy(parser);
 		return ret;
 	case MRSH_WORD_LIST:;
-		// For word lists, we just need to expand each word
 		struct mrsh_word_list *wl = mrsh_word_get_list(word);
+
+		struct mrsh_array at_sign_words = {0};
 		for (size_t i = 0; i < wl->children.len; ++i) {
 			struct mrsh_word **child_ptr =
 				(struct mrsh_word **)&wl->children.data[i];
-			ret = run_word(ctx, child_ptr);
+
+			bool is_at_sign = false;
+			if ((*child_ptr)->type == MRSH_WORD_PARAMETER) {
+				struct mrsh_word_parameter *wp =
+					mrsh_word_get_parameter(*child_ptr);
+				is_at_sign = strcmp(wp->name, "@") == 0;
+			}
+
+			ret = _run_word(ctx, child_ptr,
+				double_quoted || wl->double_quoted);
 			if (ret < 0) {
 				return ret;
 			}
+
+			if (wl->double_quoted && is_at_sign) {
+				// Fucking $@ needs special handling: we need to extract the
+				// fields it expands to outside of the double quotes
+				mrsh_array_add(&at_sign_words, *child_ptr);
+			}
 		}
+
+		if (at_sign_words.len > 0) {
+			// We need to put $@ expansions outside of the double quotes.
+			// Disclaimer: this is a PITA.
+			struct mrsh_array quoted = {0};
+			struct mrsh_array unquoted = {0};
+			size_t at_sign_idx = 0;
+			for (size_t i = 0; i < wl->children.len; i++) {
+				struct mrsh_word *child = wl->children.data[i];
+				wl->children.data[i] = NULL; // steal the child
+				if (at_sign_idx >= at_sign_words.len ||
+						child != at_sign_words.data[at_sign_idx]) {
+					mrsh_array_add(&quoted, child);
+					continue;
+				}
+
+				if (quoted.len > 0) {
+					struct mrsh_word_list *quoted_wl =
+						mrsh_word_list_create(&quoted, true);
+					mrsh_array_add(&unquoted, &quoted_wl->word);
+					// `unquoted` has been stolen by mrsh_word_list_create
+					quoted = (struct mrsh_array){0};
+				}
+
+				mrsh_array_add(&unquoted, at_sign_words.data[at_sign_idx]);
+
+				at_sign_idx++;
+			}
+			if (quoted.len > 0) {
+				struct mrsh_word_list *quoted_wl =
+					mrsh_word_list_create(&quoted, true);
+				mrsh_array_add(&unquoted, &quoted_wl->word);
+			}
+
+			struct mrsh_word_list *unquoted_wl =
+				mrsh_word_list_create(&unquoted, false);
+			swap_words(word_ptr, &unquoted_wl->word);
+		}
+		mrsh_array_finish(&at_sign_words);
+
 		return 0;
 	}
 	assert(false);
+}
+
+int run_word(struct context *ctx, struct mrsh_word **word_ptr) {
+	return _run_word(ctx, word_ptr, false);
 }

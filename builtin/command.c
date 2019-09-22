@@ -57,18 +57,20 @@ int builtin_command(struct mrsh_state *state, int argc, char *argv[]) {
 	while ((opt = mrsh_getopt(argc, argv, ":vVp")) != -1) {
 		switch (opt) {
 		case 'v':
-			if (argc != 3) {
+			if (mrsh_optind < argc) {
+				fprintf(stderr, command_usage);
 				return 1;
 			}
 			return command_v(state, argv[mrsh_optind]);
 		case 'V':
+			fprintf(stderr, "command: `-V` has an unspecified output format, "
+				"use `-v` instead\n");
+			return 0;
 		case 'p':
-			fprintf(stderr, "command: `-V` and `-p` and no arg not "
-					"yet implemented\n");
+			fprintf(stderr, "command: `-p` not yet implemented\n");
 			return 1;
 		default:
-			fprintf(stderr, "command: unknown option -- %c\n",
-					mrsh_optopt);
+			fprintf(stderr, "command: unknown option -- %c\n", mrsh_optopt);
 			fprintf(stderr, command_usage);
 			return 1;
 		}

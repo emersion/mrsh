@@ -11,7 +11,7 @@
 static const char command_usage[] = "usage: command [-v|-V|-p] "
 	"command_name [argument...]\n";
 
-static int command_v(struct mrsh_state *state, const char *command_name) {
+static int verify_command(struct mrsh_state *state, const char *command_name) {
 	size_t len_command_name = strlen(command_name);
 
 	const char *look_alias =
@@ -54,21 +54,19 @@ int builtin_command(struct mrsh_state *state, int argc, char *argv[]) {
 	mrsh_optind = 0;
 	int opt;
 
+	bool verify = false, default_path = false;
 	while ((opt = mrsh_getopt(argc, argv, ":vVp")) != -1) {
 		switch (opt) {
 		case 'v':
-			if (mrsh_optind != argc - 1) {
-				fprintf(stderr, command_usage);
-				return 1;
-			}
-			return command_v(state, argv[mrsh_optind]);
+			verify = true;
+			break;
 		case 'V':
 			fprintf(stderr, "command: `-V` has an unspecified output format, "
 				"use `-v` instead\n");
 			return 0;
 		case 'p':
-			fprintf(stderr, "command: `-p` not yet implemented\n");
-			return 1;
+			default_path = true;
+			break;
 		default:
 			fprintf(stderr, "command: unknown option -- %c\n", mrsh_optopt);
 			fprintf(stderr, command_usage);
@@ -76,5 +74,18 @@ int builtin_command(struct mrsh_state *state, int argc, char *argv[]) {
 		}
 	}
 
-	return 0;
+	if (default_path) {
+		fprintf(stderr, "command: `-p` not yet implemented\n");
+		return 1;
+	}
+	if (verify) {
+		if (mrsh_optind != argc - 1) {
+			fprintf(stderr, command_usage);
+			return 1;
+		}
+		return verify_command(state, argv[mrsh_optind]);
+	}
+
+	fprintf(stderr, "command: executing not yet implemented\n");
+	return 1;
 }

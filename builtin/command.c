@@ -57,7 +57,7 @@ int builtin_command(struct mrsh_state *state, int argc, char *argv[]) {
 	while ((opt = mrsh_getopt(argc, argv, ":vVp")) != -1) {
 		switch (opt) {
 		case 'v':
-			if (mrsh_optind < argc) {
+			if (mrsh_optind != argc - 1) {
 				fprintf(stderr, command_usage);
 				return 1;
 			}

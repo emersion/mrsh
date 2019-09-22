@@ -41,7 +41,7 @@ int builtin_hash(struct mrsh_state *state, int argc, char *argv[]) {
 			continue;
 		}
 
-		const char *path = expand_path(state, utility, true);
+		const char *path = expand_path(state, utility, true, false);
 		if (path == NULL) {
 			fprintf(stderr, "hash: command not found: %s\n", utility);
 			return 1;

@@ -11,7 +11,8 @@
 static const char command_usage[] = "usage: command [-v|-V|-p] "
 	"command_name [argument...]\n";
 
-static int verify_command(struct mrsh_state *state, const char *command_name) {
+static int verify_command(struct mrsh_state *state, const char *command_name,
+		bool default_path) {
 	size_t len_command_name = strlen(command_name);
 
 	const char *look_alias =
@@ -41,7 +42,7 @@ static int verify_command(struct mrsh_state *state, const char *command_name) {
 		}
 	}
 
-	const char *expanded = expand_path(state, command_name, 1);
+	const char *expanded = expand_path(state, command_name, true, default_path);
 	if (expanded != NULL) {
 		printf("%s\n", expanded);
 		return 0;
@@ -74,16 +75,12 @@ int builtin_command(struct mrsh_state *state, int argc, char *argv[]) {
 		}
 	}
 
-	if (default_path) {
-		fprintf(stderr, "command: `-p` not yet implemented\n");
-		return 1;
-	}
 	if (verify) {
 		if (mrsh_optind != argc - 1) {
 			fprintf(stderr, command_usage);
 			return 1;
 		}
-		return verify_command(state, argv[mrsh_optind]);
+		return verify_command(state, argv[mrsh_optind], default_path);
 	}
 
 	fprintf(stderr, "command: executing not yet implemented\n");

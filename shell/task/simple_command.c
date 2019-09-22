@@ -43,7 +43,7 @@ static int run_process(struct context *ctx, struct mrsh_simple_command *sc,
 	// The pipeline is responsible for creating the job
 	assert(ctx->job != NULL);
 
-	const char *path = expand_path(ctx->state, argv[0], true);
+	const char *path = expand_path(ctx->state, argv[0], true, false);
 	if (!path) {
 		fprintf(stderr, "%s: not found\n", argv[0]);
 		return TASK_STATUS_ERROR;

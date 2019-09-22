@@ -8,19 +8,38 @@
 #include <unistd.h>
 #include "shell/path.h"
 
-const char *expand_path(struct mrsh_state *state, const char *file, bool exec) {
+const char *expand_path(struct mrsh_state *state, const char *file, bool exec,
+		bool default_path) {
 	if (strchr(file, '/')) {
 		return file;
 	}
+
+	char *pathe;
+	if (!default_path) {
+		const char *_pathe = mrsh_env_get(state, "PATH", NULL);
+		if (!_pathe) {
+			return NULL;
+		}
+		pathe = strdup(_pathe);
+		if (!pathe) {
+			return NULL;
+		}
+	} else {
+		size_t pathe_size = confstr(_CS_PATH, NULL, 0);
+		if (pathe_size == 0) {
+			return NULL;
+		}
+		pathe = malloc(pathe_size);
+		if (pathe == NULL) {
+			return NULL;
+		}
+		if (confstr(_CS_PATH, pathe, pathe_size) != pathe_size) {
+			free(pathe);
+			return NULL;
+		}
+	}
+
 	static char path[PATH_MAX + 1];
-	const char *_pathe = mrsh_env_get(state, "PATH", NULL);
-	if (!_pathe) {
-		return NULL;
-	}
-	char *pathe = strdup(_pathe);
-	if (!pathe) {
-		return NULL;
-	}
 	char *basedir = strtok(pathe, ":");
 	while (basedir) {
 		int blen = strlen(basedir);

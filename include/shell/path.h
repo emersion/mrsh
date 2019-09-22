@@ -4,9 +4,13 @@
 #include <mrsh/shell.h>
 #include <stdbool.h>
 
-/** Searches $PATH for the requested file and returns it if found. If exec is
+/* Searches $PATH for the requested file and returns it if found. If exec is
  * true, it will require the file to be executable in order to be considered a
- * match. Fully qualified paths are returned as-is. */
-const char *expand_path(struct mrsh_state *state, const char *file, bool exec);
+ * match. If default_path is true, the system's default search path will be
+ * used instead of the $PATH variable. Fully qualified paths are returned
+ * as-is.
+ */
+const char *expand_path(struct mrsh_state *state, const char *file, bool exec,
+	bool default_path);
 
 #endif

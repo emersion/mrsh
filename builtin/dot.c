@@ -19,7 +19,7 @@ int builtin_dot(struct mrsh_state *state, int argc, char *argv[]) {
 		return 1;
 	}
 
-	const char *path = expand_path(state, argv[1], false);
+	const char *path = expand_path(state, argv[1], false, false);
 	if (!path) {
 		fprintf(stderr, "%s: not found\n", argv[1]);
 		if (!state->interactive) {

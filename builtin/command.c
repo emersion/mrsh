@@ -1,12 +1,14 @@
 #define _POSIX_C_SOURCE 200809L
-#include "parser.h"
-#include "mrsh/getopt.h"
+#include <mrsh/builtin.h>
+#include <mrsh/getopt.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/stat.h>
+#include <unistd.h>
+#include "parser.h"
+#include "shell/job.h"
 #include "shell/path.h"
-#include "mrsh/builtin.h"
+#include "shell/process.h"
 
 static const char command_usage[] = "usage: command [-v|-V|-p] "
 	"command_name [argument...]\n";
@@ -48,7 +50,36 @@ static int verify_command(struct mrsh_state *state, const char *command_name,
 		return 0;
 	}
 
-	return 127;
+	return 1;
+}
+
+static int run_command(struct mrsh_state *state, int argc, char *argv[],
+		bool default_path) {
+	if (mrsh_has_builtin(argv[0])) {
+		return mrsh_run_builtin(state, argc - mrsh_optind, &argv[mrsh_optind]);
+	}
+
+	const char *path = expand_path(state, argv[0], true, default_path);
+	if (!path) {
+		fprintf(stderr, "%s: not found\n", argv[0]);
+		return 127;
+	}
+
+	// TODO: job control support
+	pid_t pid = fork();
+	if (pid < 0) {
+		perror("fork");
+		return 126;
+	} else if (pid == 0) {
+		execv(path, argv);
+
+		// Something went wrong
+		perror(argv[0]);
+		exit(126);
+	}
+
+	struct process *proc = process_create(state, pid);
+	return job_wait_process(proc);
 }
 
 int builtin_command(struct mrsh_state *state, int argc, char *argv[]) {
@@ -75,6 +106,11 @@ int builtin_command(struct mrsh_state *state, int argc, char *argv[]) {
 		}
 	}
 
+	if (mrsh_optind >= argc) {
+		fprintf(stderr, command_usage);
+		return 1;
+	}
+
 	if (verify) {
 		if (mrsh_optind != argc - 1) {
 			fprintf(stderr, command_usage);
@@ -83,6 +119,6 @@ int builtin_command(struct mrsh_state *state, int argc, char *argv[]) {
 		return verify_command(state, argv[mrsh_optind], default_path);
 	}
 
-	fprintf(stderr, "command: executing not yet implemented\n");
-	return 1;
+	return run_command(state, argc - mrsh_optind, &argv[mrsh_optind],
+		default_path);
 }

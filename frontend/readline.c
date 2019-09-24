@@ -23,7 +23,7 @@ static void sigint_handler(int n) {
 	 * signal safe, but under these circumstances it's very likely that the
 	 * interrupted function will not be affected. */
 	char newline = '\n';
-	write(STDOUT_FILENO, &newline, 1);
+	(void)write(STDOUT_FILENO, &newline, 1);
 	rl_on_new_line();
 	rl_replace_line("", 0);
 	rl_redisplay();

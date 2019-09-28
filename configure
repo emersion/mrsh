@@ -184,7 +184,7 @@ for flag in \
 	-Wfloat-equal -Wstrict-prototypes -Wredundant-decls \
 	-Wimplicit-fallthrough=2 -Wendif-labels -Wstrict-aliasing=2 -Woverflow \
 	-Wformat=2 -Wno-missing-braces -Wno-missing-field-initializers \
-	-Wno-unused-parameter
+	-Wno-unused-parameter -Wno-unused-result
 do
 	printf "Checking for $flag... "
 	if test_cflags "$flag"

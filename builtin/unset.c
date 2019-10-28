@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "builtin.h"
+#include "shell/shell.h"
 
 static const char unset_usage[] = "usage: unset [-fv] name...\n";
 
@@ -45,7 +46,7 @@ int builtin_unset(struct mrsh_state *state, int argc, char *argv[]) {
 		} else {
 			struct mrsh_function *oldfn =
 				mrsh_hashtable_del(&state->functions, argv[i]);
-			mrsh_function_destroy(oldfn);
+			function_destroy(oldfn);
 		}
 	}
 	return 0;

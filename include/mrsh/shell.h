@@ -66,17 +66,6 @@ enum mrsh_variable_attrib {
 	MRSH_VAR_ATTRIB_READONLY = 1 << 1,
 };
 
-struct mrsh_variable {
-	char *value;
-	uint32_t attribs;
-};
-
-struct mrsh_function {
-	struct mrsh_command *body;
-};
-
-struct mrsh_job;
-
 enum mrsh_branch_control {
 	MRSH_BRANCH_BREAK,
 	MRSH_BRANCH_CONTINUE,
@@ -92,6 +81,8 @@ struct mrsh_call_frame {
 	enum mrsh_branch_control branch_control;
 	int nloops;
 };
+
+struct mrsh_job;
 
 struct mrsh_state {
 	int exit;
@@ -114,8 +105,6 @@ struct mrsh_state {
 	// TODO: move this to context
 	bool child; // true if we're not the main shell process
 };
-
-void mrsh_function_destroy(struct mrsh_function *fn);
 
 struct mrsh_parser;
 

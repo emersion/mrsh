@@ -5,6 +5,7 @@
 #include <string.h>
 #include <ctype.h>
 #include "builtin.h"
+#include "shell/shell.h"
 
 struct builtin {
 	const char *name;

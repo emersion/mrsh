@@ -5,6 +5,15 @@
 #include "job.h"
 #include "process.h"
 
+struct mrsh_variable {
+	char *value;
+	uint32_t attribs; // enum mrsh_variable_attrib
+};
+
+struct mrsh_function {
+	struct mrsh_command *body;
+};
+
 /**
  * A context holds state information and per-job information. A context is
  * guaranteed to be shared between all members of a job.
@@ -17,5 +26,7 @@ struct context {
 	// When executing an asynchronous list, this is set to true
 	bool background;
 };
+
+void function_destroy(struct mrsh_function *fn);
 
 #endif

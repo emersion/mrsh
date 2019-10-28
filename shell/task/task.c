@@ -247,7 +247,7 @@ static int run_function_definition(struct context *ctx,
 	fn->body = mrsh_command_copy(fnd->body);
 	struct mrsh_function *old_fn =
 		mrsh_hashtable_set(&ctx->state->functions, fnd->name, fn);
-	mrsh_function_destroy(old_fn);
+	function_destroy(old_fn);
 	return 0;
 }
 

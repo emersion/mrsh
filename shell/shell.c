@@ -10,7 +10,7 @@
 #include "shell/shell.h"
 #include "shell/process.h"
 
-void mrsh_function_destroy(struct mrsh_function *fn) {
+void function_destroy(struct mrsh_function *fn) {
 	if (!fn) {
 		return;
 	}
@@ -55,7 +55,7 @@ static void state_var_finish_iterator(const char *key, void *value,
 }
 
 static void state_fn_finish_iterator(const char *key, void *value, void *_) {
-	mrsh_function_destroy((struct mrsh_function *)value);
+	function_destroy((struct mrsh_function *)value);
 }
 
 static void call_frame_destroy(struct mrsh_call_frame *frame) {

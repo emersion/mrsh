@@ -108,10 +108,10 @@ struct mrsh_state {
 
 struct mrsh_parser;
 
-void mrsh_state_init(struct mrsh_state *state);
+struct mrsh_state *mrsh_state_create(void);
+void mrsh_state_destroy(struct mrsh_state *state);
 void mrsh_state_set_parser_alias_func(
 		struct mrsh_state *state, struct mrsh_parser *parser);
-void mrsh_state_finish(struct mrsh_state *state);
 void mrsh_env_set(struct mrsh_state *state,
 	const char *key, const char *value, uint32_t attribs);
 void mrsh_env_unset(struct mrsh_state *state, const char *key);

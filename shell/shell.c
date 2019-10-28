@@ -18,12 +18,21 @@ void function_destroy(struct mrsh_function *fn) {
 	free(fn);
 }
 
-void mrsh_state_init(struct mrsh_state *state) {
+struct mrsh_state *mrsh_state_create(void) {
+	struct mrsh_state *state = calloc(1, sizeof(*state));
+	if (state == NULL) {
+		return NULL;
+	}
 	state->exit = -1;
-	state->term_fd = -1;
-	state->interactive = isatty(STDIN_FILENO);
+	state->term_fd = STDIN_FILENO;
+	state->interactive = isatty(state->term_fd);
 	state->options = state->interactive ? MRSH_OPT_INTERACTIVE : 0;
 	state->frame = calloc(1, sizeof(struct mrsh_call_frame));
+	if (state->frame == NULL) {
+		free(state);
+		return NULL;
+	}
+	return state;
 }
 
 static const char *get_alias(const char *name, void *data) {
@@ -66,7 +75,7 @@ static void call_frame_destroy(struct mrsh_call_frame *frame) {
 	free(frame);
 }
 
-void mrsh_state_finish(struct mrsh_state *state) {
+void mrsh_state_destroy(struct mrsh_state *state) {
 	mrsh_hashtable_for_each(&state->variables, state_var_finish_iterator, NULL);
 	mrsh_hashtable_finish(&state->variables);
 	mrsh_hashtable_for_each(&state->functions, state_fn_finish_iterator, NULL);
@@ -88,6 +97,7 @@ void mrsh_state_finish(struct mrsh_state *state) {
 		call_frame_destroy(frame);
 		frame = prev;
 	}
+	free(state);
 }
 
 void mrsh_env_set(struct mrsh_state *state,

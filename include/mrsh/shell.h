@@ -86,7 +86,7 @@ struct mrsh_job;
 
 struct mrsh_state {
 	int exit;
-	int fd;
+	int term_fd;
 	uint32_t options; // enum mrsh_option
 	struct mrsh_call_frame *frame;
 	bool interactive;

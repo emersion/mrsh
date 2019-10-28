@@ -20,7 +20,7 @@ void function_destroy(struct mrsh_function *fn) {
 
 void mrsh_state_init(struct mrsh_state *state) {
 	state->exit = -1;
-	state->fd = -1;
+	state->term_fd = -1;
 	state->interactive = isatty(STDIN_FILENO);
 	state->options = state->interactive ? MRSH_OPT_INTERACTIVE : 0;
 	state->frame = calloc(1, sizeof(struct mrsh_call_frame));

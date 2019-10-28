@@ -40,19 +40,19 @@ int main(int argc, char *argv[]) {
 		}
 	}
 
-	state.fd = -1;
+	state.term_fd = STDIN_FILENO;
+
 	struct mrsh_buffer parser_buffer = {0};
 	struct mrsh_parser *parser;
+	int fd = -1;
 	if (state.interactive) {
 		interactive_init(&state);
 		parser = mrsh_parser_with_buffer(&parser_buffer);
-		state.fd = STDIN_FILENO;
 	} else {
 		if (init_args.command_str) {
 			parser = mrsh_parser_with_data(init_args.command_str,
 				strlen(init_args.command_str));
 		} else {
-			int fd;
 			if (init_args.command_file) {
 				fd = open(init_args.command_file, O_RDONLY | O_CLOEXEC);
 				if (fd < 0) {
@@ -65,7 +65,6 @@ int main(int argc, char *argv[]) {
 			}
 
 			parser = mrsh_parser_with_fd(fd);
-			state.fd = fd;
 		}
 	}
 	mrsh_state_set_parser_alias_func(&state, parser);
@@ -146,8 +145,8 @@ int main(int argc, char *argv[]) {
 	mrsh_parser_destroy(parser);
 	mrsh_buffer_finish(&parser_buffer);
 	mrsh_state_finish(&state);
-	if (state.fd >= 0) {
-		close(state.fd);
+	if (fd >= 0) {
+		close(fd);
 	}
 
 	return state.exit;

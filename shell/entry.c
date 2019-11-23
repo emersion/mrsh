@@ -119,16 +119,12 @@ void mrsh_source_env(struct mrsh_state *state) {
 		return;
 	}
 	path = expand_parameter(state, path);
-	char *real = realpath(path, NULL);
-	if (strcmp(path, real) != 0) {
+	if (path[0] != '/') {
 		fprintf(stderr, "Error: $ENV is not an absolute path; "
 				"this is undefined behavior.\n");
 		fprintf(stderr, "Continuing without sourcing it.\n");
-		free(path);
-		free(real);
-		return;
+	} else {
+		source_file(state, path);
 	}
-	source_file(state, real);
 	free(path);
-	free(real);
 }

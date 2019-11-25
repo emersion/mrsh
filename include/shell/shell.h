@@ -54,8 +54,12 @@ struct mrsh_context {
 	bool background;
 };
 
-struct mrsh_state_priv *state_get_priv(struct mrsh_state *state);
-struct mrsh_call_frame_priv *call_frame_get_priv(struct mrsh_call_frame *frame);
 void function_destroy(struct mrsh_function *fn);
+
+struct mrsh_call_frame_priv *call_frame_get_priv(struct mrsh_call_frame *frame);
+
+struct mrsh_state_priv *state_get_priv(struct mrsh_state *state);
+void push_frame(struct mrsh_state *state, int argc, const char *argv[]);
+void pop_frame(struct mrsh_state *state);
 
 #endif

@@ -341,13 +341,13 @@ int run_simple_command(struct mrsh_context *ctx, struct mrsh_simple_command *sc)
 	const struct mrsh_function *fn_def =
 		mrsh_hashtable_get(&priv->functions, argv_0);
 	if (fn_def != NULL) {
-		mrsh_push_frame(state, argc, (const char **)argv);
+		push_frame(state, argc, (const char **)argv);
 		// fn_def may be free'd during run_command when overwritten with another
 		// function, so we need to copy it.
 		struct mrsh_command *body = mrsh_command_copy(fn_def->body);
 		ret = run_command(ctx, body);
 		mrsh_command_destroy(body);
-		mrsh_pop_frame(state);
+		pop_frame(state);
 	} else if (mrsh_has_builtin(argv_0)) {
 		ret = run_builtin(ctx, sc, argc, argv);
 	} else {

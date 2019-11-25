@@ -148,7 +148,7 @@ struct mrsh_call_frame_priv *call_frame_get_priv(struct mrsh_call_frame *frame) 
 	return (struct mrsh_call_frame_priv *)frame;
 }
 
-void mrsh_push_frame(struct mrsh_state *state, int argc, const char *argv[]) {
+void push_frame(struct mrsh_state *state, int argc, const char *argv[]) {
 	struct mrsh_call_frame_priv *next = calloc(1, sizeof(*next));
 	next->pub.argc = argc;
 	next->pub.argv = malloc(sizeof(char *) * argc);
@@ -159,7 +159,7 @@ void mrsh_push_frame(struct mrsh_state *state, int argc, const char *argv[]) {
 	state->frame = &next->pub;
 }
 
-void mrsh_pop_frame(struct mrsh_state *state) {
+void pop_frame(struct mrsh_state *state) {
 	struct mrsh_call_frame *frame = state->frame;
 	assert(frame->prev != NULL);
 	state->frame = frame->prev;

@@ -9,23 +9,26 @@
 #include "shell/job.h"
 #include "shell/path.h"
 #include "shell/process.h"
+#include "shell/shell.h"
 
 static const char command_usage[] = "usage: command [-v|-V|-p] "
 	"command_name [argument...]\n";
 
 static int verify_command(struct mrsh_state *state, const char *command_name,
 		bool default_path) {
+	struct mrsh_state_priv *priv = state_get_priv(state);
+
 	size_t len_command_name = strlen(command_name);
 
 	const char *look_alias =
-		mrsh_hashtable_get(&state->aliases, command_name);
+		mrsh_hashtable_get(&priv->aliases, command_name);
 	if (look_alias != NULL) {
 		printf("alias %s='%s'\n", command_name, look_alias);
 		return 0;
 	}
 
 	const char *look_fn =
-		mrsh_hashtable_get(&state->functions, command_name);
+		mrsh_hashtable_get(&priv->functions, command_name);
 	if (look_fn != NULL) {
 		printf("%s\n", command_name);
 		return 0;

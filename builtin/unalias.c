@@ -5,14 +5,18 @@
 #include <stdlib.h>
 #include <string.h>
 #include "builtin.h"
+#include "shell/shell.h"
 
 static const char unalias_usage[] = "usage: unalias -a|alias-name...\n";
 
-static void delete_alias_iterator(const char *key, void *_value, void *user_data) {
+static void delete_alias_iterator(const char *key, void *_value,
+		void *user_data) {
 	free(mrsh_hashtable_del((struct mrsh_hashtable*)user_data, key));
 }
 
 int builtin_unalias(struct mrsh_state *state, int argc, char *argv[]) {
+	struct mrsh_state_priv *priv = state_get_priv(state);
+
 	bool all = false;
 
 	mrsh_optind = 0;
@@ -34,7 +38,8 @@ int builtin_unalias(struct mrsh_state *state, int argc, char *argv[]) {
 			fprintf(stderr, unalias_usage);
 			return 1;
 		}
-		mrsh_hashtable_for_each(&state->aliases, delete_alias_iterator, &state->aliases);
+		mrsh_hashtable_for_each(&priv->aliases, delete_alias_iterator,
+			&priv->aliases);
 		return 0;
 	}
 
@@ -44,7 +49,7 @@ int builtin_unalias(struct mrsh_state *state, int argc, char *argv[]) {
 	}
 
 	for (int i = mrsh_optind; i < argc; ++i) {
-		free(mrsh_hashtable_del(&state->aliases, argv[i]));
+		free(mrsh_hashtable_del(&priv->aliases, argv[i]));
 	}
 	return 0;
 }

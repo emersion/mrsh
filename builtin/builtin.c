@@ -161,13 +161,15 @@ static int varcmp(const void *p1, const void *p2) {
 
 struct mrsh_collect_var *mrsh_collect_vars(struct mrsh_state *state,
 		uint32_t attribs, size_t *count) {
+	struct mrsh_state_priv *priv = state_get_priv(state);
+
 	struct collect_iter iter = {
 		.len = 64,
 		.count = 0,
 		.values = malloc(64 * sizeof(struct mrsh_collect_var)),
 		.attribs = attribs,
 	};
-	mrsh_hashtable_for_each(&state->variables, collect_vars, &iter);
+	mrsh_hashtable_for_each(&priv->variables, collect_vars, &iter);
 	qsort(iter.values, iter.count, sizeof(struct mrsh_collect_var), varcmp);
 	*count = iter.count;
 	return iter.values;

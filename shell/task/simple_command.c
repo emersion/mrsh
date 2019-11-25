@@ -40,6 +40,9 @@ static struct mrsh_process *init_child(struct mrsh_context *ctx, pid_t pid) {
 
 static int run_process(struct mrsh_context *ctx, struct mrsh_simple_command *sc,
 		char **argv) {
+	struct mrsh_state *state = ctx->state;
+	struct mrsh_state_priv *priv = state_get_priv(state);
+
 	// The pipeline is responsible for creating the job
 	assert(ctx->job != NULL);
 
@@ -55,14 +58,14 @@ static int run_process(struct mrsh_context *ctx, struct mrsh_simple_command *sc,
 		return TASK_STATUS_ERROR;
 	} else if (pid == 0) {
 		init_child(ctx, getpid());
-		if (ctx->state->options & MRSH_OPT_MONITOR) {
-			init_job_child_process(ctx->state);
+		if (state->options & MRSH_OPT_MONITOR) {
+			init_job_child_process(state);
 		}
 
 		for (size_t i = 0; i < sc->assignments.len; ++i) {
 			struct mrsh_assignment *assign = sc->assignments.data[i];
 			uint32_t prev_attribs;
-			if (mrsh_env_get(ctx->state, assign->name, &prev_attribs)
+			if (mrsh_env_get(state, assign->name, &prev_attribs)
 					&& (prev_attribs & MRSH_VAR_ATTRIB_READONLY)) {
 				fprintf(stderr, "cannot modify readonly variable %s\n",
 						assign->name);
@@ -73,8 +76,8 @@ static int run_process(struct mrsh_context *ctx, struct mrsh_simple_command *sc,
 			free(value);
 		}
 
-		mrsh_hashtable_for_each(&ctx->state->variables,
-				populate_env_iterator, NULL);
+		mrsh_hashtable_for_each(&priv->variables,
+			populate_env_iterator, NULL);
 
 		for (size_t i = 0; i < sc->io_redirects.len; ++i) {
 			struct mrsh_io_redirect *redir = sc->io_redirects.data[i];
@@ -254,6 +257,9 @@ static struct mrsh_simple_command *copy_simple_command(
 }
 
 int run_simple_command(struct mrsh_context *ctx, struct mrsh_simple_command *sc) {
+	struct mrsh_state *state = ctx->state;
+	struct mrsh_state_priv *priv = state_get_priv(state);
+
 	if (sc->name == NULL) {
 		// Copy each assignment from the AST, because during expansion and
 		// substitution we'll mutate the tree
@@ -279,7 +285,7 @@ int run_simple_command(struct mrsh_context *ctx, struct mrsh_simple_command *sc)
 	// we'll mutate the tree
 	sc = copy_simple_command(sc);
 
-	expand_tilde(ctx->state, &sc->name, false);
+	expand_tilde(state, &sc->name, false);
 	int ret = run_word(ctx, &sc->name);
 	if (ret < 0) {
 		return ret;
@@ -289,7 +295,7 @@ int run_simple_command(struct mrsh_context *ctx, struct mrsh_simple_command *sc)
 	for (size_t i = 0; i < sc->arguments.len; ++i) {
 		struct mrsh_word **arg_ptr =
 			(struct mrsh_word **)&sc->arguments.data[i];
-		expand_tilde(ctx->state, arg_ptr, false);
+		expand_tilde(state, arg_ptr, false);
 		ret = run_word(ctx, arg_ptr);
 		if (ret < 0) {
 			return ret;
@@ -298,7 +304,7 @@ int run_simple_command(struct mrsh_context *ctx, struct mrsh_simple_command *sc)
 
 	for (size_t i = 0; i < sc->io_redirects.len; ++i) {
 		struct mrsh_io_redirect *redir = sc->io_redirects.data[i];
-		expand_tilde(ctx->state, &redir->name, false);
+		expand_tilde(state, &redir->name, false);
 		ret = run_word(ctx, &redir->name);
 		if (ret < 0) {
 			return ret;
@@ -306,7 +312,7 @@ int run_simple_command(struct mrsh_context *ctx, struct mrsh_simple_command *sc)
 		for (size_t j = 0; j < redir->here_document.len; ++j) {
 			struct mrsh_word **line_word_ptr =
 				(struct mrsh_word **)&redir->here_document.data[j];
-			expand_tilde(ctx->state, line_word_ptr, false);
+			expand_tilde(state, line_word_ptr, false);
 			ret = run_word(ctx, line_word_ptr);
 			if (ret < 0) {
 				return ret;
@@ -321,8 +327,8 @@ int run_simple_command(struct mrsh_context *ctx, struct mrsh_simple_command *sc)
 	int argc = args.len - 1; // argv is NULL-terminated
 	const char *argv_0 = argv[0];
 
-	if ((ctx->state->options & MRSH_OPT_XTRACE)) {
-		char *ps4 = mrsh_get_ps4(ctx->state);
+	if ((state->options & MRSH_OPT_XTRACE)) {
+		char *ps4 = mrsh_get_ps4(state);
 		fprintf(stderr, "%s", ps4);
 		for (int i = 0; i < argc; ++i) {
 			fprintf(stderr, "%s%s", i > 0 ? " " : "", argv[i]);
@@ -333,15 +339,15 @@ int run_simple_command(struct mrsh_context *ctx, struct mrsh_simple_command *sc)
 
 	ret = -1;
 	const struct mrsh_function *fn_def =
-		mrsh_hashtable_get(&ctx->state->functions, argv_0);
+		mrsh_hashtable_get(&priv->functions, argv_0);
 	if (fn_def != NULL) {
-		mrsh_push_frame(ctx->state, argc, (const char **)argv);
+		mrsh_push_frame(state, argc, (const char **)argv);
 		// fn_def may be free'd during run_command when overwritten with another
 		// function, so we need to copy it.
 		struct mrsh_command *body = mrsh_command_copy(fn_def->body);
 		ret = run_command(ctx, body);
 		mrsh_command_destroy(body);
-		mrsh_pop_frame(ctx->state);
+		mrsh_pop_frame(state);
 	} else if (mrsh_has_builtin(argv_0)) {
 		ret = run_builtin(ctx, sc, argc, argv);
 	} else {

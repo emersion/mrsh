@@ -1,14 +1,16 @@
 #define _POSIX_C_SOURCE 200809L
 #include <mrsh/builtin.h>
 #include <mrsh/getopt.h>
-#include <mrsh/shell.h>
 #include <shell/path.h>
 #include <stdlib.h>
 #include "builtin.h"
+#include "shell/shell.h"
 
 static const char type_usage[] = "usage: type name...\n";
 
 int builtin_type(struct mrsh_state *state, int argc, char *argv[]) {
+	struct mrsh_state_priv *priv = state_get_priv(state);
+
 	mrsh_optind = 0;
 	if (mrsh_getopt(argc, argv, ":") != -1) {
 		fprintf(stderr, "type: unknown option -- %c\n", mrsh_optopt);
@@ -24,7 +26,7 @@ int builtin_type(struct mrsh_state *state, int argc, char *argv[]) {
 	for (int i = mrsh_optind; i < argc; ++i) {
 		char *name = argv[i];
 
-		char *alias = mrsh_hashtable_get(&state->aliases, name);
+		char *alias = mrsh_hashtable_get(&priv->aliases, name);
 		if (alias != NULL) {
 			fprintf(stdout, "%s is an alias for %s\n", name, alias);
 			continue;

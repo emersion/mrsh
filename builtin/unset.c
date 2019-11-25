@@ -10,6 +10,8 @@
 static const char unset_usage[] = "usage: unset [-fv] name...\n";
 
 int builtin_unset(struct mrsh_state *state, int argc, char *argv[]) {
+	struct mrsh_state_priv *priv = state_get_priv(state);
+
 	bool funcs = false;
 
 	mrsh_optind = 0;
@@ -45,7 +47,7 @@ int builtin_unset(struct mrsh_state *state, int argc, char *argv[]) {
 			}
 		} else {
 			struct mrsh_function *oldfn =
-				mrsh_hashtable_del(&state->functions, argv[i]);
+				mrsh_hashtable_del(&priv->functions, argv[i]);
 			function_destroy(oldfn);
 		}
 	}

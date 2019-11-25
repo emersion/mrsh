@@ -245,10 +245,12 @@ static int run_case_clause(struct mrsh_context *ctx, struct mrsh_case_clause *cc
 
 static int run_function_definition(struct mrsh_context *ctx,
 		struct mrsh_function_definition *fnd) {
+	struct mrsh_state_priv *priv = state_get_priv(ctx->state);
+
 	struct mrsh_function *fn = calloc(1, sizeof(struct mrsh_function));
 	fn->body = mrsh_command_copy(fnd->body);
 	struct mrsh_function *old_fn =
-		mrsh_hashtable_set(&ctx->state->functions, fnd->name, fn);
+		mrsh_hashtable_set(&priv->functions, fnd->name, fn);
 	function_destroy(old_fn);
 	return 0;
 }

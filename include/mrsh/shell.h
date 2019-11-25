@@ -85,14 +85,9 @@ struct mrsh_job;
 
 struct mrsh_state {
 	int exit;
-	int term_fd;
 	uint32_t options; // enum mrsh_option
 	struct mrsh_call_frame *frame;
 	bool interactive;
-	struct mrsh_hashtable variables; // struct mrsh_variable *
-	struct mrsh_hashtable aliases; // char *
-	struct mrsh_hashtable functions; // struct mrsh_function *
-	struct mrsh_array processes;
 	int last_status;
 };
 

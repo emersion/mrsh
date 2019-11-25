@@ -27,7 +27,7 @@ static const size_t IGNORED_SIGNALS_LEN =
 bool mrsh_set_job_control(struct mrsh_state *state, bool enabled) {
 	struct mrsh_state_priv *priv = state_get_priv(state);
 
-	assert(state->term_fd >= 0);
+	assert(priv->term_fd >= 0);
 
 	if (priv->job_control == enabled) {
 		return true;
@@ -37,7 +37,7 @@ bool mrsh_set_job_control(struct mrsh_state *state, bool enabled) {
 		// Loop until we are in the foreground
 		while (true) {
 			pid_t pgid = getpgrp();
-			if (tcgetpgrp(state->term_fd) == pgid) {
+			if (tcgetpgrp(priv->term_fd) == pgid) {
 				break;
 			}
 			kill(-pgid, SIGTTIN);
@@ -64,12 +64,12 @@ bool mrsh_set_job_control(struct mrsh_state *state, bool enabled) {
 		}
 
 		// Grab control of the terminal
-		if (tcsetpgrp(state->term_fd, priv->pgid) != 0) {
+		if (tcsetpgrp(priv->term_fd, priv->pgid) != 0) {
 			perror("tcsetpgrp");
 			return false;
 		}
 		// Save default terminal attributes for the shell
-		if (tcgetattr(state->term_fd, &priv->term_modes) != 0) {
+		if (tcgetattr(priv->term_fd, &priv->term_modes) != 0) {
 			perror("tcgetattr");
 			return false;
 		}
@@ -160,22 +160,22 @@ bool job_set_foreground(struct mrsh_job *job, bool foreground, bool cont) {
 	if (foreground && priv->foreground_job != job) {
 		assert(priv->foreground_job == NULL);
 		// Put the job in the foreground
-		tcsetpgrp(state->term_fd, job->pgid);
+		tcsetpgrp(priv->term_fd, job->pgid);
 		if (cont) {
 			// Restore the job's terminal modes
-			tcsetattr(state->term_fd, TCSADRAIN, &job->term_modes);
+			tcsetattr(priv->term_fd, TCSADRAIN, &job->term_modes);
 		}
 		priv->foreground_job = job;
 	}
 
 	if (!foreground && priv->foreground_job == job) {
 		// Put the shell back in the foreground
-		tcsetpgrp(state->term_fd, priv->pgid);
+		tcsetpgrp(priv->term_fd, priv->pgid);
 		// Save the job's terminal modes, to restore them if it's put in the
 		// foreground again
-		tcgetattr(state->term_fd, &job->term_modes);
+		tcgetattr(priv->term_fd, &job->term_modes);
 		// Restore the shell’s terminal modes
-		tcsetattr(state->term_fd, TCSADRAIN, &priv->term_modes);
+		tcsetattr(priv->term_fd, TCSADRAIN, &priv->term_modes);
 		priv->foreground_job = NULL;
 	}
 

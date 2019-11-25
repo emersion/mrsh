@@ -8,10 +8,12 @@
 #include "shell/task.h"
 
 struct mrsh_process *process_create(struct mrsh_state *state, pid_t pid) {
+	struct mrsh_state_priv *priv = state_get_priv(state);
+
 	struct mrsh_process *proc = calloc(1, sizeof(struct mrsh_process));
 	proc->pid = pid;
 	proc->state = state;
-	mrsh_array_add(&state->processes, proc);
+	mrsh_array_add(&priv->processes, proc);
 	return proc;
 }
 
@@ -22,10 +24,11 @@ static void array_remove(struct mrsh_array *array, size_t i) {
 }
 
 void process_destroy(struct mrsh_process *proc) {
-	struct mrsh_state *state = proc->state;
-	for (size_t i = 0; i < state->processes.len; ++i) {
-		if (state->processes.data[i] == proc) {
-			array_remove(&state->processes, i);
+	struct mrsh_state_priv *priv = state_get_priv(proc->state);
+
+	for (size_t i = 0; i < priv->processes.len; ++i) {
+		if (priv->processes.data[i] == proc) {
+			array_remove(&priv->processes, i);
 			break;
 		}
 	}
@@ -50,10 +53,12 @@ int process_poll(struct mrsh_process *proc) {
 }
 
 void update_process(struct mrsh_state *state, pid_t pid, int stat) {
+	struct mrsh_state_priv *priv = state_get_priv(state);
+
 	struct mrsh_process *proc = NULL;
 	bool found = false;
-	for (size_t i = 0; i < state->processes.len; ++i) {
-		proc = state->processes.data[i];
+	for (size_t i = 0; i < priv->processes.len; ++i) {
+		proc = priv->processes.data[i];
 		if (proc->pid == pid) {
 			found = true;
 			break;

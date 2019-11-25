@@ -18,6 +18,12 @@ struct mrsh_function {
 struct mrsh_state_priv {
 	struct mrsh_state pub;
 
+	int term_fd;
+	struct mrsh_array processes;
+	struct mrsh_hashtable aliases; // char *
+	struct mrsh_hashtable variables; // struct mrsh_variable *
+	struct mrsh_hashtable functions; // struct mrsh_function *
+
 	bool job_control;
 	pid_t pgid;
 	struct termios term_modes;

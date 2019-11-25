@@ -23,27 +23,31 @@ struct mrsh_state *mrsh_state_create(void) {
 	if (priv == NULL) {
 		return NULL;
 	}
+
+	priv->term_fd = STDIN_FILENO;
+
 	struct mrsh_state *state = &priv->pub;
 	state->exit = -1;
-	state->term_fd = STDIN_FILENO;
-	state->interactive = isatty(state->term_fd);
+	state->interactive = isatty(priv->term_fd);
 	state->options = state->interactive ? MRSH_OPT_INTERACTIVE : 0;
 	state->frame = calloc(1, sizeof(struct mrsh_call_frame));
 	if (state->frame == NULL) {
 		free(priv);
 		return NULL;
 	}
+
 	return state;
 }
 
-static const char *get_alias(const char *name, void *data) {
+static const char *get_alias_func(const char *name, void *data) {
 	struct mrsh_state *state = data;
-	return mrsh_hashtable_get(&state->aliases, name);
+	struct mrsh_state_priv *priv = state_get_priv(state);
+	return mrsh_hashtable_get(&priv->aliases, name);
 }
 
 void mrsh_state_set_parser_alias_func(
 		struct mrsh_state *state, struct mrsh_parser *parser) {
-	mrsh_parser_set_alias_func(parser, get_alias, state);
+	mrsh_parser_set_alias_func(parser, get_alias_func, state);
 }
 
 static void state_string_finish_iterator(const char *key, void *value,
@@ -78,21 +82,21 @@ static void call_frame_destroy(struct mrsh_call_frame *frame) {
 
 void mrsh_state_destroy(struct mrsh_state *state) {
 	struct mrsh_state_priv *priv = state_get_priv(state);
-	mrsh_hashtable_for_each(&state->variables, state_var_finish_iterator, NULL);
-	mrsh_hashtable_finish(&state->variables);
-	mrsh_hashtable_for_each(&state->functions, state_fn_finish_iterator, NULL);
-	mrsh_hashtable_finish(&state->functions);
-	mrsh_hashtable_for_each(&state->aliases,
+	mrsh_hashtable_for_each(&priv->variables, state_var_finish_iterator, NULL);
+	mrsh_hashtable_finish(&priv->variables);
+	mrsh_hashtable_for_each(&priv->functions, state_fn_finish_iterator, NULL);
+	mrsh_hashtable_finish(&priv->functions);
+	mrsh_hashtable_for_each(&priv->aliases,
 		state_string_finish_iterator, NULL);
-	mrsh_hashtable_finish(&state->aliases);
+	mrsh_hashtable_finish(&priv->aliases);
 	while (priv->jobs.len > 0) {
 		job_destroy(priv->jobs.data[priv->jobs.len - 1]);
 	}
 	mrsh_array_finish(&priv->jobs);
-	while (state->processes.len > 0) {
-		process_destroy(state->processes.data[state->processes.len - 1]);
+	while (priv->processes.len > 0) {
+		process_destroy(priv->processes.data[priv->processes.len - 1]);
 	}
-	mrsh_array_finish(&state->processes);
+	mrsh_array_finish(&priv->processes);
 	struct mrsh_call_frame *frame = state->frame;
 	while (frame) {
 		struct mrsh_call_frame *prev = frame->prev;
@@ -108,24 +112,29 @@ struct mrsh_state_priv *state_get_priv(struct mrsh_state *state) {
 
 void mrsh_env_set(struct mrsh_state *state,
 		const char *key, const char *value, uint32_t attribs) {
+	struct mrsh_state_priv *priv = state_get_priv(state);
+
 	struct mrsh_variable *var = calloc(1, sizeof(struct mrsh_variable));
 	if (!var) {
-		fprintf(stderr, "Failed to allocate shell variable");
-		exit(1);
+		return;
 	}
 	var->value = strdup(value);
 	var->attribs = attribs;
-	struct mrsh_variable *old = mrsh_hashtable_set(&state->variables, key, var);
+	struct mrsh_variable *old = mrsh_hashtable_set(&priv->variables, key, var);
 	variable_destroy(old);
 }
 
 void mrsh_env_unset(struct mrsh_state *state, const char *key) {
-	variable_destroy(mrsh_hashtable_del(&state->variables, key));
+	struct mrsh_state_priv *priv = state_get_priv(state);
+
+	variable_destroy(mrsh_hashtable_del(&priv->variables, key));
 }
 
 const char *mrsh_env_get(struct mrsh_state *state,
 		const char *key, uint32_t *attribs) {
-	struct mrsh_variable *var = mrsh_hashtable_get(&state->variables, key);
+	struct mrsh_state_priv *priv = state_get_priv(state);
+
+	struct mrsh_variable *var = mrsh_hashtable_get(&priv->variables, key);
 	if (var && attribs) {
 		*attribs = var->attribs;
 	}

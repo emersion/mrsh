@@ -15,6 +15,13 @@ struct mrsh_function {
 	struct mrsh_command *body;
 };
 
+enum mrsh_branch_control {
+	MRSH_BRANCH_BREAK,
+	MRSH_BRANCH_CONTINUE,
+	MRSH_BRANCH_RETURN,
+	MRSH_BRANCH_EXIT,
+};
+
 struct mrsh_call_frame_priv {
 	struct mrsh_call_frame pub;
 

@@ -100,9 +100,6 @@ struct mrsh_state {
 	pid_t pgid;
 	struct mrsh_array jobs; // struct mrsh_job *
 	struct mrsh_job *foreground_job;
-
-	// TODO: move this to context
-	bool child; // true if we're not the main shell process
 };
 
 struct mrsh_parser;

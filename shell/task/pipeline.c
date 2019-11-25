@@ -22,6 +22,8 @@ static struct mrsh_process *init_child(struct mrsh_context *ctx, pid_t pid) {
 }
 
 int run_pipeline(struct mrsh_context *ctx, struct mrsh_pipeline *pl) {
+	struct mrsh_state_priv *priv = state_get_priv(ctx->state);
+
 	// Create a new sub-context, because we want one job per pipeline.
 	struct mrsh_context child_ctx = *ctx;
 	if (child_ctx.job == NULL) {
@@ -61,7 +63,7 @@ int run_pipeline(struct mrsh_context *ctx, struct mrsh_pipeline *pl) {
 		if (pid < 0) {
 			return TASK_STATUS_ERROR;
 		} else if (pid == 0) {
-			child_ctx.state->child = true;
+			priv->child = true;
 
 			init_child(&child_ctx, getpid());
 			if (ctx->state->options & MRSH_OPT_MONITOR) {

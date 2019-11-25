@@ -213,7 +213,10 @@ int job_poll(struct mrsh_job *job) {
 }
 
 static bool _job_wait(struct mrsh_state *state, pid_t pid) {
+	struct mrsh_state_priv *priv = state_get_priv(state);
+
 	assert(pid > 0 && pid != getpid());
+
 	while (true) {
 		// We only want to be notified about stopped processes in the main
 		// shell. Child processes want to block until their own children have
@@ -222,7 +225,7 @@ static bool _job_wait(struct mrsh_state *state, pid_t pid) {
 		// Here it's important to wait for a specific process: we don't want to
 		// steal one of our grandchildren's status for one of our children.
 		int stat;
-		pid_t ret = waitpid(pid, &stat, state->child ? 0 : WUNTRACED);
+		pid_t ret = waitpid(pid, &stat, priv->child ? 0 : WUNTRACED);
 		if (ret < 0) {
 			if (errno == EINTR) {
 				continue;
@@ -290,12 +293,14 @@ bool init_job_child_process(struct mrsh_state *state) {
 }
 
 void update_job(struct mrsh_state *state, pid_t pid, int stat) {
+	struct mrsh_state_priv *priv = state_get_priv(state);
+
 	update_process(state, pid, stat);
 
 	// Put stopped and terminated jobs in the background. We don't want to do so
 	// if we're not the main shell, because we only have a partial view of the
 	// jobs (we only know about our own child processes).
-	if (!state->child) {
+	if (!priv->child) {
 		for (size_t i = 0; i < state->jobs.len; ++i) {
 			struct mrsh_job *job = state->jobs.data[i];
 			if (job_poll(job) != TASK_STATUS_WAIT && job->pgid > 0) {

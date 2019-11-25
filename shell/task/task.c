@@ -12,12 +12,14 @@
 #include "shell/task.h"
 
 static int run_subshell(struct mrsh_context *ctx, struct mrsh_array *array) {
+	struct mrsh_state_priv *priv = state_get_priv(ctx->state);
+
 	pid_t pid = fork();
 	if (pid < 0) {
 		perror("fork");
 		return TASK_STATUS_ERROR;
 	} else if (pid == 0) {
-		ctx->state->child = true;
+		priv->child = true;
 
 		if (!(ctx->state->options & MRSH_OPT_MONITOR)) {
 			// If job control is disabled, stdin is /dev/null
@@ -324,6 +326,7 @@ static struct mrsh_process *init_async_child(struct mrsh_context *ctx, pid_t pid
 
 int run_command_list_array(struct mrsh_context *ctx, struct mrsh_array *array) {
 	struct mrsh_state *state = ctx->state;
+	struct mrsh_state_priv *priv = state_get_priv(state);
 
 	int ret = 0;
 	for (size_t i = 0; i < array->len; ++i) {
@@ -341,7 +344,7 @@ int run_command_list_array(struct mrsh_context *ctx, struct mrsh_array *array) {
 				return TASK_STATUS_ERROR;
 			} else if (pid == 0) {
 				ctx = NULL; // Use child_ctx instead
-				state->child = true;
+				priv->child = true;
 
 				init_async_child(&child_ctx, getpid());
 				if (state->options & MRSH_OPT_MONITOR) {

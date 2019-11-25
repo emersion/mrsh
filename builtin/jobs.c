@@ -21,7 +21,7 @@ static char *job_state_str(struct mrsh_job *job, bool r) {
 		return "Error";
 	case TASK_STATUS_STOPPED:
 		if (job->processes.len > 0) {
-			struct process *proc = job->processes.data[0];
+			struct mrsh_process *proc = job->processes.data[0];
 			switch (proc->signal) {
 			case SIGSTOP:
 				return r ? "Stopped (SIGSTOP)" : "Suspended (SIGSTOP)";
@@ -34,7 +34,7 @@ static char *job_state_str(struct mrsh_job *job, bool r) {
 		return r ? "Stopped" : "Suspended";
 	default:
 		if (job->processes.len > 0) {
-			struct process *proc = job->processes.data[0];
+			struct mrsh_process *proc = job->processes.data[0];
 			if (proc->stat != 0) {
 				static char stat[128];
 				snprintf(stat, sizeof(stat), "Done(%d)", proc->stat);
@@ -65,7 +65,7 @@ static void show_job(struct mrsh_job *job, const struct jobs_context *ctx) {
 	}
 	if (ctx->pids) {
 		for (size_t i = 0; i < job->processes.len; ++i) {
-			struct process *proc = job->processes.data[i];
+			struct mrsh_process *proc = job->processes.data[i];
 			printf("%d\n", proc->pid);
 		}
 	} else if (ctx->pgids) {

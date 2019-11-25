@@ -41,7 +41,7 @@ static void swap_words(struct mrsh_word **word_ptr, struct mrsh_word *new_word) 
 	*word_ptr = new_word;
 }
 
-static int run_word_command(struct context *ctx, struct mrsh_word **word_ptr) {
+static int run_word_command(struct mrsh_context *ctx, struct mrsh_word **word_ptr) {
 	struct mrsh_word_command *wc = mrsh_word_get_command(*word_ptr);
 
 	int fds[2];
@@ -69,7 +69,7 @@ static int run_word_command(struct context *ctx, struct mrsh_word **word_ptr) {
 		exit(ctx->state->exit >= 0 ? ctx->state->exit : 0);
 	}
 
-	struct process *process = process_create(ctx->state, pid);
+	struct mrsh_process *process = process_create(ctx->state, pid);
 
 	close(fds[1]);
 	int child_fd = fds[0];
@@ -123,7 +123,7 @@ static const char *parameter_get_value(struct mrsh_state *state,
 			if (job->processes.len == 0) {
 				continue;
 			}
-			struct process *process =
+			struct mrsh_process *process =
 				job->processes.data[job->processes.len - 1];
 			sprintf(value, "%d", process->pid);
 			return value;
@@ -199,7 +199,7 @@ static bool is_null_word(const struct mrsh_word *word) {
 	}
 }
 
-static int apply_parameter_cond_op(struct context *ctx,
+static int apply_parameter_cond_op(struct mrsh_context *ctx,
 		struct mrsh_word_parameter *wp, struct mrsh_word *value,
 		struct mrsh_word **result) {
 	switch (wp->op) {
@@ -321,7 +321,7 @@ static char *trim_pattern(const char *str, const char *pattern, bool suffix,
 	return strdup(str);
 }
 
-static int apply_parameter_str_op(struct context *ctx,
+static int apply_parameter_str_op(struct mrsh_context *ctx,
 		struct mrsh_word_parameter *wp, const char *str,
 		struct mrsh_word **result) {
 	switch (wp->op) {
@@ -384,7 +384,7 @@ static int apply_parameter_str_op(struct context *ctx,
 	}
 }
 
-static int _run_word(struct context *ctx, struct mrsh_word **word_ptr,
+static int _run_word(struct mrsh_context *ctx, struct mrsh_word **word_ptr,
 		bool double_quoted) {
 	struct mrsh_word *word = *word_ptr;
 
@@ -586,6 +586,6 @@ static int _run_word(struct context *ctx, struct mrsh_word **word_ptr,
 	assert(false);
 }
 
-int run_word(struct context *ctx, struct mrsh_word **word_ptr) {
+int run_word(struct mrsh_context *ctx, struct mrsh_word **word_ptr) {
 	return _run_word(ctx, word_ptr, false);
 }

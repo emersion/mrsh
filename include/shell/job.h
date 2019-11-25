@@ -8,7 +8,7 @@
 
 struct mrsh_node;
 struct mrsh_state;
-struct process;
+struct mrsh_process;
 
 /**
  * A job is a set of processes, comprising a shell pipeline, and any processes
@@ -27,7 +27,7 @@ struct mrsh_job {
 	int job_id;
 	struct termios term_modes; // only valid if stopped
 	struct mrsh_state *state;
-	struct mrsh_array processes; // struct process *
+	struct mrsh_array processes; // struct mrsh_process *
 };
 
 /**
@@ -44,7 +44,7 @@ void job_destroy(struct mrsh_job *job);
  * If the job doesn't have a process group (because it's empty), then a new
  * process group is created.
  */
-void job_add_process(struct mrsh_job *job, struct process *proc);
+void job_add_process(struct mrsh_job *job, struct mrsh_process *proc);
 /**
  * Polls the job's current status without blocking. Returns:
  * - TASK_STATUS_WAIT if the job is running (ie. one or more processes are
@@ -62,7 +62,7 @@ int job_wait(struct mrsh_job *job);
 /**
  * Wait for the completion of the process.
  */
-int job_wait_process(struct process *proc);
+int job_wait_process(struct mrsh_process *proc);
 /**
  * Put the job in the foreground or in the background. If the job is stopped and
  * cont is set to true, it will be continued.

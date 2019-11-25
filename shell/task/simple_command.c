@@ -26,8 +26,8 @@ static void populate_env_iterator(const char *key, void *_var, void *_) {
  * Put the process into its job's process group. This has to be done both in the
  * parent and the child because of potential race conditions.
  */
-static struct process *init_child(struct context *ctx, pid_t pid) {
-	struct process *proc = process_create(ctx->state, pid);
+static struct mrsh_process *init_child(struct mrsh_context *ctx, pid_t pid) {
+	struct mrsh_process *proc = process_create(ctx->state, pid);
 	if (ctx->state->options & MRSH_OPT_MONITOR) {
 		job_add_process(ctx->job, proc);
 
@@ -38,7 +38,7 @@ static struct process *init_child(struct context *ctx, pid_t pid) {
 	return proc;
 }
 
-static int run_process(struct context *ctx, struct mrsh_simple_command *sc,
+static int run_process(struct mrsh_context *ctx, struct mrsh_simple_command *sc,
 		char **argv) {
 	// The pipeline is responsible for creating the job
 	assert(ctx->job != NULL);
@@ -105,7 +105,7 @@ static int run_process(struct context *ctx, struct mrsh_simple_command *sc,
 		exit(127);
 	}
 
-	struct process *process = init_child(ctx, pid);
+	struct mrsh_process *process = init_child(ctx, pid);
 	return job_wait_process(process);
 }
 
@@ -138,7 +138,7 @@ static bool dup_and_save_fd(int fd, int redir_fd, struct saved_fd *saved) {
 	return true;
 }
 
-static int run_builtin(struct context *ctx, struct mrsh_simple_command *sc,
+static int run_builtin(struct mrsh_context *ctx, struct mrsh_simple_command *sc,
 		int argc, char **argv) {
 	// Duplicate old FDs to be able to restore them later
 	// Zero-length VLAs are undefined behaviour
@@ -188,7 +188,7 @@ static int run_builtin(struct context *ctx, struct mrsh_simple_command *sc,
 	return ret;
 }
 
-static int run_assignments(struct context *ctx, struct mrsh_array *assignments) {
+static int run_assignments(struct mrsh_context *ctx, struct mrsh_array *assignments) {
 	for (size_t i = 0; i < assignments->len; ++i) {
 		struct mrsh_assignment *assign = assignments->data[i];
 		char *new_value = mrsh_word_str(assign->value);
@@ -211,7 +211,7 @@ static int run_assignments(struct context *ctx, struct mrsh_array *assignments) 
 	return 0;
 }
 
-static void expand_assignments(struct context *ctx,
+static void expand_assignments(struct mrsh_context *ctx,
 		struct mrsh_array *assignments) {
 	for (size_t i = 0; i < assignments->len; ++i) {
 		struct mrsh_assignment *assign = assignments->data[i];
@@ -222,7 +222,7 @@ static void expand_assignments(struct context *ctx,
 }
 
 static void get_args(struct mrsh_array *args, struct mrsh_simple_command *sc,
-		struct context *ctx) {
+		struct mrsh_context *ctx) {
 	struct mrsh_array fields = {0};
 	const char *ifs = mrsh_env_get(ctx->state, "IFS", NULL);
 	split_fields(&fields, sc->name, ifs);
@@ -253,7 +253,7 @@ static struct mrsh_simple_command *copy_simple_command(
 	return mrsh_command_get_simple_command(cmd);
 }
 
-int run_simple_command(struct context *ctx, struct mrsh_simple_command *sc) {
+int run_simple_command(struct mrsh_context *ctx, struct mrsh_simple_command *sc) {
 	if (sc->name == NULL) {
 		// Copy each assignment from the AST, because during expansion and
 		// substitution we'll mutate the tree

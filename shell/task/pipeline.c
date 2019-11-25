@@ -9,8 +9,8 @@
  * Put the process into its job's process group. This has to be done both in the
  * parent and the child because of potential race conditions.
  */
-static struct process *init_child(struct context *ctx, pid_t pid) {
-	struct process *proc = process_create(ctx->state, pid);
+static struct mrsh_process *init_child(struct mrsh_context *ctx, pid_t pid) {
+	struct mrsh_process *proc = process_create(ctx->state, pid);
 	if (ctx->state->options & MRSH_OPT_MONITOR) {
 		job_add_process(ctx->job, proc);
 
@@ -21,9 +21,9 @@ static struct process *init_child(struct context *ctx, pid_t pid) {
 	return proc;
 }
 
-int run_pipeline(struct context *ctx, struct mrsh_pipeline *pl) {
+int run_pipeline(struct mrsh_context *ctx, struct mrsh_pipeline *pl) {
 	// Create a new sub-context, because we want one job per pipeline.
-	struct context child_ctx = *ctx;
+	struct mrsh_context child_ctx = *ctx;
 	if (child_ctx.job == NULL) {
 		child_ctx.job = job_create(ctx->state, &pl->and_or_list.node);
 	}
@@ -98,7 +98,7 @@ int run_pipeline(struct context *ctx, struct mrsh_pipeline *pl) {
 			exit(ret);
 		}
 
-		struct process *proc = init_child(&child_ctx, pid);
+		struct mrsh_process *proc = init_child(&child_ctx, pid);
 		mrsh_array_add(&procs, proc);
 
 		if (cur_stdin >= 0) {
@@ -118,7 +118,7 @@ int run_pipeline(struct context *ctx, struct mrsh_pipeline *pl) {
 
 	int ret = 0;
 	for (size_t i = 0; i < procs.len; ++i) {
-		struct process *proc = procs.data[i];
+		struct mrsh_process *proc = procs.data[i];
 		ret = job_wait_process(proc);
 		if (ret < 0) {
 			break;

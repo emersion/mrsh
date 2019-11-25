@@ -29,7 +29,7 @@ int builtin_wait(struct mrsh_state *state, int argc, char *argv[]) {
 		/* All known processes */
 		int _npids = 0;
 		for (size_t j = 0; j < state->processes.len; ++j) {
-			struct process *process = state->processes.data[j];
+			struct mrsh_process *process = state->processes.data[j];
 			if (process->terminated) {
 				continue;
 			}
@@ -63,7 +63,7 @@ int builtin_wait(struct mrsh_state *state, int argc, char *argv[]) {
 				/* Check if this pid is known */
 				bool found = false;
 				for (size_t j = 0; j < state->processes.len; ++j) {
-					struct process *process = state->processes.data[j];
+					struct mrsh_process *process = state->processes.data[j];
 					if (process->pid == pid) {
 						if (process->terminated) {
 							pids[i - 1].status = process->stat;

@@ -11,7 +11,7 @@
 #include "shell/shell.h"
 #include "shell/task.h"
 
-static int run_subshell(struct context *ctx, struct mrsh_array *array) {
+static int run_subshell(struct mrsh_context *ctx, struct mrsh_array *array) {
 	pid_t pid = fork();
 	if (pid < 0) {
 		perror("fork");
@@ -42,11 +42,11 @@ static int run_subshell(struct context *ctx, struct mrsh_array *array) {
 		exit(ret);
 	}
 
-	struct process *proc = process_create(ctx->state, pid);
+	struct mrsh_process *proc = process_create(ctx->state, pid);
 	return job_wait_process(proc);
 }
 
-static int run_if_clause(struct context *ctx, struct mrsh_if_clause *ic) {
+static int run_if_clause(struct mrsh_context *ctx, struct mrsh_if_clause *ic) {
 	int ret = run_command_list_array(ctx, &ic->condition);
 	if (ret < 0) {
 		return ret;
@@ -62,7 +62,7 @@ static int run_if_clause(struct context *ctx, struct mrsh_if_clause *ic) {
 	}
 }
 
-static int run_loop_clause(struct context *ctx, struct mrsh_loop_clause *lc) {
+static int run_loop_clause(struct mrsh_context *ctx, struct mrsh_loop_clause *lc) {
 	int loop_num = ++ctx->state->frame->nloops;
 
 	int loop_ret = 0;
@@ -120,7 +120,7 @@ interrupt:
 	return loop_ret;
 }
 
-static int run_for_clause(struct context *ctx, struct mrsh_for_clause *fc) {
+static int run_for_clause(struct mrsh_context *ctx, struct mrsh_for_clause *fc) {
 	int loop_num = ++ctx->state->frame->nloops;
 
 	struct mrsh_array word_fields = {0};
@@ -192,7 +192,7 @@ interrupt:
 	return loop_ret;
 }
 
-static int run_case_clause(struct context *ctx, struct mrsh_case_clause *cc) {
+static int run_case_clause(struct mrsh_context *ctx, struct mrsh_case_clause *cc) {
 	struct mrsh_word *word = mrsh_word_copy(cc->word);
 	expand_tilde(ctx->state, &word, false);
 	int ret = run_word(ctx, &word);
@@ -241,7 +241,7 @@ static int run_case_clause(struct context *ctx, struct mrsh_case_clause *cc) {
 	return case_ret;
 }
 
-static int run_function_definition(struct context *ctx,
+static int run_function_definition(struct mrsh_context *ctx,
 		struct mrsh_function_definition *fnd) {
 	struct mrsh_function *fn = calloc(1, sizeof(struct mrsh_function));
 	fn->body = mrsh_command_copy(fnd->body);
@@ -251,7 +251,7 @@ static int run_function_definition(struct context *ctx,
 	return 0;
 }
 
-int run_command(struct context *ctx, struct mrsh_command *cmd) {
+int run_command(struct mrsh_context *ctx, struct mrsh_command *cmd) {
 	switch (cmd->type) {
 	case MRSH_SIMPLE_COMMAND:;
 		struct mrsh_simple_command *sc = mrsh_command_get_simple_command(cmd);
@@ -283,7 +283,7 @@ int run_command(struct context *ctx, struct mrsh_command *cmd) {
 	assert(false);
 }
 
-int run_and_or_list(struct context *ctx, struct mrsh_and_or_list *and_or_list) {
+int run_and_or_list(struct mrsh_context *ctx, struct mrsh_and_or_list *and_or_list) {
 	switch (and_or_list->type) {
 	case MRSH_AND_OR_LIST_PIPELINE:;
 		struct mrsh_pipeline *pl = mrsh_and_or_list_get_pipeline(and_or_list);
@@ -312,8 +312,8 @@ int run_and_or_list(struct context *ctx, struct mrsh_and_or_list *and_or_list) {
  * Put the process into its job's process group. This has to be done both in the
  * parent and the child because of potential race conditions.
  */
-static struct process *init_async_child(struct context *ctx, pid_t pid) {
-	struct process *proc = process_create(ctx->state, pid);
+static struct mrsh_process *init_async_child(struct mrsh_context *ctx, pid_t pid) {
+	struct mrsh_process *proc = process_create(ctx->state, pid);
 
 	if (ctx->state->options & MRSH_OPT_MONITOR) {
 		job_add_process(ctx->job, proc);
@@ -322,14 +322,14 @@ static struct process *init_async_child(struct context *ctx, pid_t pid) {
 	return proc;
 }
 
-int run_command_list_array(struct context *ctx, struct mrsh_array *array) {
+int run_command_list_array(struct mrsh_context *ctx, struct mrsh_array *array) {
 	struct mrsh_state *state = ctx->state;
 
 	int ret = 0;
 	for (size_t i = 0; i < array->len; ++i) {
 		struct mrsh_command_list *list = array->data[i];
 		if (list->ampersand) {
-			struct context child_ctx = *ctx;
+			struct mrsh_context child_ctx = *ctx;
 			child_ctx.background = true;
 			if (child_ctx.job == NULL) {
 				child_ctx.job = job_create(state, &list->node);
@@ -394,7 +394,7 @@ static void destroy_terminated_jobs(struct mrsh_state *state) {
 }
 
 int mrsh_run_program(struct mrsh_state *state, struct mrsh_program *prog) {
-	struct context ctx = { .state = state };
+	struct mrsh_context ctx = { .state = state };
 	int ret = run_command_list_array(&ctx, &prog->body);
 	destroy_terminated_jobs(state);
 	return ret;
@@ -403,7 +403,7 @@ int mrsh_run_program(struct mrsh_state *state, struct mrsh_program *prog) {
 int mrsh_run_word(struct mrsh_state *state, struct mrsh_word **word) {
 	expand_tilde(state, word, false);
 
-	struct context ctx = { .state = state };
+	struct mrsh_context ctx = { .state = state };
 	int last_status = state->last_status;
 	int ret = run_word(&ctx, word);
 	state->last_status = last_status;

@@ -129,7 +129,7 @@ void job_destroy(struct mrsh_job *job) {
 	free(job);
 }
 
-void job_add_process(struct mrsh_job *job, struct process *proc) {
+void job_add_process(struct mrsh_job *job, struct mrsh_process *proc) {
 	if (job->pgid <= 0) {
 		job->pgid = proc->pid;
 	}
@@ -179,7 +179,7 @@ bool job_set_foreground(struct mrsh_job *job, bool foreground, bool cont) {
 		}
 
 		for (size_t j = 0; j < job->processes.len; ++j) {
-			struct process *proc = job->processes.data[j];
+			struct mrsh_process *proc = job->processes.data[j];
 			proc->stopped = false;
 		}
 	}
@@ -191,7 +191,7 @@ int job_poll(struct mrsh_job *job) {
 	int proc_status = 0;
 	bool stopped = false;
 	for (size_t j = 0; j < job->processes.len; ++j) {
-		struct process *proc = job->processes.data[j];
+		struct mrsh_process *proc = job->processes.data[j];
 		proc_status = process_poll(proc);
 		if (proc_status == TASK_STATUS_WAIT) {
 			return TASK_STATUS_WAIT;
@@ -240,9 +240,9 @@ int job_wait(struct mrsh_job *job) {
 			return status;
 		}
 
-		struct process *wait_proc = NULL;
+		struct mrsh_process *wait_proc = NULL;
 		for (size_t j = 0; j < job->processes.len; ++j) {
-			struct process *proc = job->processes.data[j];
+			struct mrsh_process *proc = job->processes.data[j];
 			if (process_poll(proc) == TASK_STATUS_WAIT) {
 				wait_proc = proc;
 				break;
@@ -255,7 +255,7 @@ int job_wait(struct mrsh_job *job) {
 	}
 }
 
-int job_wait_process(struct process *proc) {
+int job_wait_process(struct mrsh_process *proc) {
 	while (true) {
 		int status = process_poll(proc);
 		if (status != TASK_STATUS_WAIT) {

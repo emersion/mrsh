@@ -78,7 +78,7 @@ static int run_command(struct mrsh_state *state, int argc, char *argv[],
 		exit(126);
 	}
 
-	struct process *proc = process_create(state, pid);
+	struct mrsh_process *proc = process_create(state, pid);
 	return job_wait_process(proc);
 }
 

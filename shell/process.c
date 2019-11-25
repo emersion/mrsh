@@ -7,8 +7,8 @@
 #include "shell/process.h"
 #include "shell/task.h"
 
-struct process *process_create(struct mrsh_state *state, pid_t pid) {
-	struct process *proc = calloc(1, sizeof(struct process));
+struct mrsh_process *process_create(struct mrsh_state *state, pid_t pid) {
+	struct mrsh_process *proc = calloc(1, sizeof(struct mrsh_process));
 	proc->pid = pid;
 	proc->state = state;
 	mrsh_array_add(&state->processes, proc);
@@ -21,7 +21,7 @@ static void array_remove(struct mrsh_array *array, size_t i) {
 	--array->len;
 }
 
-void process_destroy(struct process *proc) {
+void process_destroy(struct mrsh_process *proc) {
 	struct mrsh_state *state = proc->state;
 	for (size_t i = 0; i < state->processes.len; ++i) {
 		if (state->processes.data[i] == proc) {
@@ -33,7 +33,7 @@ void process_destroy(struct process *proc) {
 	free(proc);
 }
 
-int process_poll(struct process *proc) {
+int process_poll(struct mrsh_process *proc) {
 	if (proc->stopped) {
 		return TASK_STATUS_STOPPED;
 	} else if (!proc->terminated) {
@@ -50,7 +50,7 @@ int process_poll(struct process *proc) {
 }
 
 void update_process(struct mrsh_state *state, pid_t pid, int stat) {
-	struct process *proc = NULL;
+	struct mrsh_process *proc = NULL;
 	bool found = false;
 	for (size_t i = 0; i < state->processes.len; ++i) {
 		proc = state->processes.data[i];

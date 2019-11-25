@@ -18,7 +18,7 @@ struct mrsh_function {
  * A context holds state information and per-job information. A context is
  * guaranteed to be shared between all members of a job.
  */
-struct context {
+struct mrsh_context {
 	struct mrsh_state *state;
 	// When executing a pipeline, this is set to the job created for the
 	// pipeline

@@ -114,7 +114,7 @@ struct saved_fd {
 	int redir_fd;
 };
 
-bool dup_and_save_fd(int fd, int redir_fd, struct saved_fd *saved) {
+static bool dup_and_save_fd(int fd, int redir_fd, struct saved_fd *saved) {
 	saved->redir_fd = redir_fd;
 
 	if (fd == redir_fd) {

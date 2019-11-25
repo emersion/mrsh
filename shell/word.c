@@ -10,7 +10,7 @@
 #include "shell/shell.h"
 #include "shell/word.h"
 
-bool is_logname_char(char c) {
+static bool is_logname_char(char c) {
 	// See https://pubs.opengroup.org/onlinepubs/9699919799/basedefs/V1_chap03.html#tag_03_282
 	return (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') ||
 		(c >= '0' && c <= '9') || c == '.' || c == '_' || c == '-';

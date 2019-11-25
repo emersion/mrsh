@@ -1,6 +1,8 @@
 #ifndef BUILTIN_H
 #define BUILTIN_H
 
+#include <mrsh/builtin.h>
+
 struct mrsh_state;
 
 typedef int (*mrsh_builtin_func)(struct mrsh_state *state,

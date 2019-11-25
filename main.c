@@ -29,16 +29,6 @@ int main(int argc, char *argv[]) {
 		return 1;
 	}
 
-	if (!(state->options & MRSH_OPT_NOEXEC)) {
-		// If argv[0] begins with `-`, it's a login shell
-		if (state->frame->argv[0][0] == '-') {
-			mrsh_source_profile(state);
-		}
-		if (state->interactive) {
-			mrsh_source_env(state);
-		}
-	}
-
 	struct mrsh_buffer parser_buffer = {0};
 	struct mrsh_parser *parser;
 	int fd = -1;
@@ -69,6 +59,16 @@ int main(int argc, char *argv[]) {
 	if (state->interactive) {
 		if (!mrsh_set_job_control(state, true)) {
 			fprintf(stderr, "failed to enable job control\n");
+		}
+	}
+
+	if (!(state->options & MRSH_OPT_NOEXEC)) {
+		// If argv[0] begins with `-`, it's a login shell
+		if (state->frame->argv[0][0] == '-') {
+			mrsh_source_profile(state);
+		}
+		if (state->interactive) {
+			mrsh_source_env(state);
 		}
 	}
 

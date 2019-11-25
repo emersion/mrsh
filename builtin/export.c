@@ -19,8 +19,8 @@ int builtin_export(struct mrsh_state *state, int argc, char *argv[]) {
 		return 1;
 	} else if (argc == 2 && strcmp(argv[1], "-p") == 0) {
 		size_t count;
-		struct mrsh_collect_var *vars = mrsh_collect_vars(
-				state, MRSH_VAR_ATTRIB_EXPORT, &count);
+		struct mrsh_collect_var *vars = collect_vars(
+			state, MRSH_VAR_ATTRIB_EXPORT, &count);
 		for (size_t i = 0; i < count; ++i) {
 			printf("%s %s=", argv[0], vars[i].key);
 			print_escaped(vars[i].value);

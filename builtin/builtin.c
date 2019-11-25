@@ -137,9 +137,9 @@ struct collect_iter {
 	struct mrsh_collect_var *values;
 };
 
-static void collect_vars(const char *key, void *_var, void *user_data) {
+static void collect_vars_iterator(const char *key, void *_var, void *data) {
 	const struct mrsh_variable *var = _var;
-	struct collect_iter *iter = user_data;
+	struct collect_iter *iter = data;
 	if (iter->attribs != MRSH_VAR_ATTRIB_NONE
 			&& !(var->attribs & iter->attribs)) {
 		return;
@@ -159,7 +159,7 @@ static int varcmp(const void *p1, const void *p2) {
 	return strcmp(v1->key, v2->key);
 }
 
-struct mrsh_collect_var *mrsh_collect_vars(struct mrsh_state *state,
+struct mrsh_collect_var *collect_vars(struct mrsh_state *state,
 		uint32_t attribs, size_t *count) {
 	struct mrsh_state_priv *priv = state_get_priv(state);
 
@@ -169,7 +169,7 @@ struct mrsh_collect_var *mrsh_collect_vars(struct mrsh_state *state,
 		.values = malloc(64 * sizeof(struct mrsh_collect_var)),
 		.attribs = attribs,
 	};
-	mrsh_hashtable_for_each(&priv->variables, collect_vars, &iter);
+	mrsh_hashtable_for_each(&priv->variables, collect_vars_iterator, &iter);
 	qsort(iter.values, iter.count, sizeof(struct mrsh_collect_var), varcmp);
 	*count = iter.count;
 	return iter.values;

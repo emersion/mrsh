@@ -102,8 +102,8 @@ static int set(struct mrsh_state *state, struct mrsh_init_args *init_args,
 		int argc, char *argv[]) {
 	if (argc == 1 && init_args == NULL) {
 		size_t count;
-		struct mrsh_collect_var *vars = mrsh_collect_vars(
-				state, MRSH_VAR_ATTRIB_NONE, &count);
+		struct mrsh_collect_var *vars = collect_vars(
+			state, MRSH_VAR_ATTRIB_NONE, &count);
 		for (size_t i = 0; i < count; ++i) {
 			printf("%s=", vars[i].key);
 			print_escaped(vars[i].value);

@@ -43,4 +43,14 @@ int builtin_unspecified(struct mrsh_state *state, int argc, char *argv[]);
 
 const char *state_get_options(struct mrsh_state *state);
 
+struct mrsh_collect_var {
+	const char *key, *value;
+};
+
+/** Collects and alpha-sorts variables matching attribs. Count will be set to
+ * the number of matching variables. You are responsible for freeing the return
+ * value when you're done.*/
+struct mrsh_collect_var *collect_vars(struct mrsh_state *state,
+	uint32_t attribs, size_t *count);
+
 #endif

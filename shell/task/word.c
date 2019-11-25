@@ -98,6 +98,8 @@ static int run_word_command(struct mrsh_context *ctx, struct mrsh_word **word_pt
 
 static const char *parameter_get_value(struct mrsh_state *state,
 		const char *name) {
+	struct mrsh_state_priv *priv = state_get_priv(state);
+
 	static char value[16];
 	char *end;
 	long lvalue = strtol(name, &end, 10);
@@ -118,8 +120,8 @@ static const char *parameter_get_value(struct mrsh_state *state,
 		sprintf(value, "%d", (int)getpid());
 		return value;
 	} else if (strcmp(name, "!") == 0) {
-		for (ssize_t i = state->jobs.len - 1; i >= 0; i--) {
-			struct mrsh_job *job = state->jobs.data[i];
+		for (ssize_t i = priv->jobs.len - 1; i >= 0; i--) {
+			struct mrsh_job *job = priv->jobs.data[i];
 			if (job->processes.len == 0) {
 				continue;
 			}

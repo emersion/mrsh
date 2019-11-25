@@ -6,7 +6,6 @@
 #include <mrsh/hashtable.h>
 #include <stdint.h>
 #include <stdio.h>
-#include <termios.h>
 
 enum mrsh_option {
 	// -a: When this option is on, the export attribute shall be set for each
@@ -95,11 +94,6 @@ struct mrsh_state {
 	struct mrsh_hashtable functions; // struct mrsh_function *
 	struct mrsh_array processes;
 	int last_status;
-
-	bool job_control;
-	pid_t pgid;
-	struct mrsh_array jobs; // struct mrsh_job *
-	struct mrsh_job *foreground_job;
 };
 
 struct mrsh_parser;

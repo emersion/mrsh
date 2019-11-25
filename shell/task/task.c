@@ -387,8 +387,10 @@ int run_command_list_array(struct mrsh_context *ctx, struct mrsh_array *array) {
 }
 
 static void destroy_terminated_jobs(struct mrsh_state *state) {
-	for (ssize_t i = 0; i < (ssize_t)state->jobs.len; ++i) {
-		struct mrsh_job *job = state->jobs.data[i];
+	struct mrsh_state_priv *priv = state_get_priv(state);
+
+	for (size_t i = 0; i < priv->jobs.len; ++i) {
+		struct mrsh_job *job = priv->jobs.data[i];
 		if (job_poll(job) >= 0) {
 			job_destroy(job);
 			--i;

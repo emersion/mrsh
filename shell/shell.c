@@ -77,6 +77,7 @@ static void call_frame_destroy(struct mrsh_call_frame *frame) {
 }
 
 void mrsh_state_destroy(struct mrsh_state *state) {
+	struct mrsh_state_priv *priv = state_get_priv(state);
 	mrsh_hashtable_for_each(&state->variables, state_var_finish_iterator, NULL);
 	mrsh_hashtable_finish(&state->variables);
 	mrsh_hashtable_for_each(&state->functions, state_fn_finish_iterator, NULL);
@@ -84,10 +85,10 @@ void mrsh_state_destroy(struct mrsh_state *state) {
 	mrsh_hashtable_for_each(&state->aliases,
 		state_string_finish_iterator, NULL);
 	mrsh_hashtable_finish(&state->aliases);
-	while (state->jobs.len > 0) {
-		job_destroy(state->jobs.data[state->jobs.len - 1]);
+	while (priv->jobs.len > 0) {
+		job_destroy(priv->jobs.data[priv->jobs.len - 1]);
 	}
-	mrsh_array_finish(&state->jobs);
+	mrsh_array_finish(&priv->jobs);
 	while (state->processes.len > 0) {
 		process_destroy(state->processes.data[state->processes.len - 1]);
 	}

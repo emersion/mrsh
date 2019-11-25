@@ -29,7 +29,7 @@ bool mrsh_set_job_control(struct mrsh_state *state, bool enabled) {
 
 	assert(state->term_fd >= 0);
 
-	if (state->job_control == enabled) {
+	if (priv->job_control == enabled) {
 		return true;
 	}
 
@@ -55,16 +55,16 @@ bool mrsh_set_job_control(struct mrsh_state *state, bool enabled) {
 
 		// Put ourselves in our own process group, if we aren't the session
 		// leader
-		state->pgid = getpid();
-		if (getsid(0) != state->pgid) {
-			if (setpgid(state->pgid, state->pgid) != 0) {
+		priv->pgid = getpid();
+		if (getsid(0) != priv->pgid) {
+			if (setpgid(priv->pgid, priv->pgid) != 0) {
 				perror("setpgid");
 				return false;
 			}
 		}
 
 		// Grab control of the terminal
-		if (tcsetpgrp(state->term_fd, state->pgid) != 0) {
+		if (tcsetpgrp(state->term_fd, priv->pgid) != 0) {
 			perror("tcsetpgrp");
 			return false;
 		}
@@ -77,7 +77,7 @@ bool mrsh_set_job_control(struct mrsh_state *state, bool enabled) {
 		return false; // TODO
 	}
 
-	state->job_control = enabled;
+	priv->job_control = enabled;
 	return true;
 }
 
@@ -89,9 +89,11 @@ static void array_remove(struct mrsh_array *array, size_t i) {
 
 struct mrsh_job *job_create(struct mrsh_state *state,
 		const struct mrsh_node *node) {
+	struct mrsh_state_priv *priv = state_get_priv(state);
+
 	int id = 1;
-	for (size_t i = 0; i < state->jobs.len; ++i) {
-		struct mrsh_job *job = state->jobs.data[i];
+	for (size_t i = 0; i < priv->jobs.len; ++i) {
+		struct mrsh_job *job = priv->jobs.data[i];
 		if (id < job->job_id + 1) {
 			id = job->job_id + 1;
 		}
@@ -102,7 +104,7 @@ struct mrsh_job *job_create(struct mrsh_state *state,
 	job->node = mrsh_node_copy(node);
 	job->pgid = -1;
 	job->job_id = id;
-	mrsh_array_add(&state->jobs, job);
+	mrsh_array_add(&priv->jobs, job);
 	return job;
 }
 
@@ -111,14 +113,15 @@ void job_destroy(struct mrsh_job *job) {
 		return;
 	}
 
-	if (job->state->foreground_job == job) {
+	struct mrsh_state_priv *priv = state_get_priv(job->state);
+
+	if (priv->foreground_job == job) {
 		job_set_foreground(job, false, false);
 	}
 
-	struct mrsh_state *state = job->state;
-	for (size_t i = 0; i < state->jobs.len; ++i) {
-		if (state->jobs.data[i] == job) {
-			array_remove(&state->jobs, i);
+	for (size_t i = 0; i < priv->jobs.len; ++i) {
+		if (priv->jobs.data[i] == job) {
+			array_remove(&priv->jobs, i);
 			break;
 		}
 	}
@@ -154,26 +157,26 @@ bool job_set_foreground(struct mrsh_job *job, bool foreground, bool cont) {
 		cont = false;
 	}
 
-	if (foreground && state->foreground_job != job) {
-		assert(state->foreground_job == NULL);
+	if (foreground && priv->foreground_job != job) {
+		assert(priv->foreground_job == NULL);
 		// Put the job in the foreground
 		tcsetpgrp(state->term_fd, job->pgid);
 		if (cont) {
 			// Restore the job's terminal modes
 			tcsetattr(state->term_fd, TCSADRAIN, &job->term_modes);
 		}
-		state->foreground_job = job;
+		priv->foreground_job = job;
 	}
 
-	if (!foreground && state->foreground_job == job) {
+	if (!foreground && priv->foreground_job == job) {
 		// Put the shell back in the foreground
-		tcsetpgrp(state->term_fd, state->pgid);
+		tcsetpgrp(state->term_fd, priv->pgid);
 		// Save the job's terminal modes, to restore them if it's put in the
 		// foreground again
 		tcgetattr(state->term_fd, &job->term_modes);
 		// Restore the shell’s terminal modes
 		tcsetattr(state->term_fd, TCSADRAIN, &priv->term_modes);
-		state->foreground_job = NULL;
+		priv->foreground_job = NULL;
 	}
 
 	if (cont) {
@@ -276,7 +279,9 @@ int job_wait_process(struct mrsh_process *proc) {
 }
 
 bool init_job_child_process(struct mrsh_state *state) {
-	if (!state->job_control) {
+	struct mrsh_state_priv *priv = state_get_priv(state);
+
+	if (!priv->job_control) {
 		return true;
 	}
 
@@ -301,8 +306,8 @@ void update_job(struct mrsh_state *state, pid_t pid, int stat) {
 	// if we're not the main shell, because we only have a partial view of the
 	// jobs (we only know about our own child processes).
 	if (!priv->child) {
-		for (size_t i = 0; i < state->jobs.len; ++i) {
-			struct mrsh_job *job = state->jobs.data[i];
+		for (size_t i = 0; i < priv->jobs.len; ++i) {
+			struct mrsh_job *job = priv->jobs.data[i];
 			if (job_poll(job) != TASK_STATUS_WAIT && job->pgid > 0) {
 				job_set_foreground(job, false, false);
 			}
@@ -313,6 +318,8 @@ void update_job(struct mrsh_state *state, pid_t pid, int stat) {
 // https://pubs.opengroup.org/onlinepubs/9699919799/basedefs/V1_chap03.html#tag_03_204
 struct mrsh_job *job_by_id(struct mrsh_state *state,
 		const char *id, bool interactive) {
+	struct mrsh_state_priv *priv = state_get_priv(state);
+
 	if (id[0] != '%' || id[1] == '\0') {
 		if (interactive) {
 			fprintf(stderr, "Invalid job ID specifier\n");
@@ -325,14 +332,14 @@ struct mrsh_job *job_by_id(struct mrsh_state *state,
 		case '%':
 		case '+':
 			// Current job
-			for (ssize_t i = state->jobs.len - 1; i >= 0; --i) {
-				struct mrsh_job *job = state->jobs.data[i];
+			for (ssize_t i = priv->jobs.len - 1; i >= 0; --i) {
+				struct mrsh_job *job = priv->jobs.data[i];
 				if (job_poll(job) == TASK_STATUS_STOPPED) {
 					return job;
 				}
 			}
-			for (ssize_t i = state->jobs.len - 1; i >= 0; --i) {
-				struct mrsh_job *job = state->jobs.data[i];
+			for (ssize_t i = priv->jobs.len - 1; i >= 0; --i) {
+				struct mrsh_job *job = priv->jobs.data[i];
 				if (job_poll(job) == TASK_STATUS_WAIT) {
 					return job;
 				}
@@ -343,8 +350,8 @@ struct mrsh_job *job_by_id(struct mrsh_state *state,
 			return NULL;
 		case '-':
 			// Previous job
-			for (ssize_t i = state->jobs.len - 1, n = 0; i >= 0; --i) {
-				struct mrsh_job *job = state->jobs.data[i];
+			for (ssize_t i = priv->jobs.len - 1, n = 0; i >= 0; --i) {
+				struct mrsh_job *job = priv->jobs.data[i];
 				if (job_poll(job) == TASK_STATUS_STOPPED) {
 					if (++n == 2) {
 						return job;
@@ -352,8 +359,8 @@ struct mrsh_job *job_by_id(struct mrsh_state *state,
 				}
 			}
 			bool first = true;
-			for (ssize_t i = state->jobs.len - 1; i >= 0; --i) {
-				struct mrsh_job *job = state->jobs.data[i];
+			for (ssize_t i = priv->jobs.len - 1; i >= 0; --i) {
+				struct mrsh_job *job = priv->jobs.data[i];
 				if (job_poll(job) == TASK_STATUS_WAIT) {
 					if (first) {
 						first = false;
@@ -378,8 +385,8 @@ struct mrsh_job *job_by_id(struct mrsh_state *state,
 			}
 			return NULL;
 		}
-		for (size_t i = 0; i < state->jobs.len; ++i) {
-			struct mrsh_job *job = state->jobs.data[i];
+		for (size_t i = 0; i < priv->jobs.len; ++i) {
+			struct mrsh_job *job = priv->jobs.data[i];
 			if (job->job_id == n) {
 				return job;
 			}
@@ -390,8 +397,8 @@ struct mrsh_job *job_by_id(struct mrsh_state *state,
 		return NULL;
 	}
 
-	for (size_t i = 0; i < state->jobs.len; i++) {
-		struct mrsh_job *job = state->jobs.data[i];
+	for (size_t i = 0; i < priv->jobs.len; i++) {
+		struct mrsh_job *job = priv->jobs.data[i];
 		char *cmd = mrsh_node_format(job->node);
 		bool match = false;
 		switch (id[1]) {

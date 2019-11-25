@@ -2,6 +2,7 @@
 #define SHELL_SHELL_H
 
 #include <mrsh/shell.h>
+#include <termios.h>
 #include "job.h"
 #include "process.h"
 
@@ -17,7 +18,11 @@ struct mrsh_function {
 struct mrsh_state_priv {
 	struct mrsh_state pub;
 
+	bool job_control;
+	pid_t pgid;
 	struct termios term_modes;
+	struct mrsh_array jobs; // struct mrsh_job *
+	struct mrsh_job *foreground_job;
 
 	// TODO: move this to context
 	bool child; // true if we're not the main shell process

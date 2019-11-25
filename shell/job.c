@@ -2,7 +2,6 @@
 #include <assert.h>
 #include <errno.h>
 #include <mrsh/array.h>
-#include <mrsh/shell.h>
 #include <signal.h>
 #include <stdlib.h>
 #include <string.h>
@@ -11,6 +10,7 @@
 #include <unistd.h>
 #include "shell/job.h"
 #include "shell/process.h"
+#include "shell/shell.h"
 #include "shell/task.h"
 
 static const int ignored_signals[] = {
@@ -25,6 +25,8 @@ static const size_t IGNORED_SIGNALS_LEN =
 	sizeof(ignored_signals) / sizeof(ignored_signals[0]);
 
 bool mrsh_set_job_control(struct mrsh_state *state, bool enabled) {
+	struct mrsh_state_priv *priv = state_get_priv(state);
+
 	assert(state->term_fd >= 0);
 
 	if (state->job_control == enabled) {
@@ -67,7 +69,7 @@ bool mrsh_set_job_control(struct mrsh_state *state, bool enabled) {
 			return false;
 		}
 		// Save default terminal attributes for the shell
-		if (tcgetattr(state->term_fd, &state->term_modes) != 0) {
+		if (tcgetattr(state->term_fd, &priv->term_modes) != 0) {
 			perror("tcgetattr");
 			return false;
 		}
@@ -143,6 +145,8 @@ void job_add_process(struct mrsh_job *job, struct mrsh_process *proc) {
 
 bool job_set_foreground(struct mrsh_job *job, bool foreground, bool cont) {
 	struct mrsh_state *state = job->state;
+	struct mrsh_state_priv *priv = state_get_priv(state);
+
 	assert(job->pgid > 0);
 
 	// Don't try to continue the job if it's not stopped
@@ -168,7 +172,7 @@ bool job_set_foreground(struct mrsh_job *job, bool foreground, bool cont) {
 		// foreground again
 		tcgetattr(state->term_fd, &job->term_modes);
 		// Restore the shell’s terminal modes
-		tcsetattr(state->term_fd, TCSADRAIN, &state->term_modes);
+		tcsetattr(state->term_fd, TCSADRAIN, &priv->term_modes);
 		state->foreground_job = NULL;
 	}
 

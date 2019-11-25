@@ -14,6 +14,12 @@ struct mrsh_function {
 	struct mrsh_command *body;
 };
 
+struct mrsh_state_priv {
+	struct mrsh_state pub;
+
+	struct termios term_modes;
+};
+
 /**
  * A context holds state information and per-job information. A context is
  * guaranteed to be shared between all members of a job.
@@ -27,6 +33,7 @@ struct mrsh_context {
 	bool background;
 };
 
+struct mrsh_state_priv *state_get_priv(struct mrsh_state *state);
 void function_destroy(struct mrsh_function *fn);
 
 #endif

@@ -19,17 +19,18 @@ void function_destroy(struct mrsh_function *fn) {
 }
 
 struct mrsh_state *mrsh_state_create(void) {
-	struct mrsh_state *state = calloc(1, sizeof(*state));
-	if (state == NULL) {
+	struct mrsh_state_priv *priv = calloc(1, sizeof(*priv));
+	if (priv == NULL) {
 		return NULL;
 	}
+	struct mrsh_state *state = &priv->pub;
 	state->exit = -1;
 	state->term_fd = STDIN_FILENO;
 	state->interactive = isatty(state->term_fd);
 	state->options = state->interactive ? MRSH_OPT_INTERACTIVE : 0;
 	state->frame = calloc(1, sizeof(struct mrsh_call_frame));
 	if (state->frame == NULL) {
-		free(state);
+		free(priv);
 		return NULL;
 	}
 	return state;
@@ -98,6 +99,10 @@ void mrsh_state_destroy(struct mrsh_state *state) {
 		frame = prev;
 	}
 	free(state);
+}
+
+struct mrsh_state_priv *state_get_priv(struct mrsh_state *state) {
+	return (struct mrsh_state_priv *)state;
 }
 
 void mrsh_env_set(struct mrsh_state *state,

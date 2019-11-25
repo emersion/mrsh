@@ -11,29 +11,29 @@
 #include "ast.h"
 #include "parser.h"
 
-static struct mrsh_word *single_quotes(struct mrsh_parser *state) {
-	struct mrsh_position begin = state->pos;
+static struct mrsh_word *single_quotes(struct mrsh_parser *parser) {
+	struct mrsh_position begin = parser->pos;
 
-	char c = parser_read_char(state);
+	char c = parser_read_char(parser);
 	assert(c == '\'');
 
 	struct mrsh_buffer buf = {0};
 
 	while (true) {
-		char c = parser_peek_char(state);
+		char c = parser_peek_char(parser);
 		if (c == '\0') {
-			parser_set_error(state, "single quotes not terminated");
+			parser_set_error(parser, "single quotes not terminated");
 			return NULL;
 		}
 		if (c == '\'') {
-			parser_read_char(state);
+			parser_read_char(parser);
 			break;
 		}
 
 		if (c == '\n') {
-			read_continuation_line(state);
+			read_continuation_line(parser);
 		} else {
-			parser_read_char(state);
+			parser_read_char(parser);
 		}
 
 		mrsh_buffer_append_char(&buf, c);
@@ -43,24 +43,24 @@ static struct mrsh_word *single_quotes(struct mrsh_parser *state) {
 	char *data = mrsh_buffer_steal(&buf);
 	struct mrsh_word_string *ws = mrsh_word_string_create(data, true);
 	ws->range.begin = begin;
-	ws->range.end = state->pos;
+	ws->range.end = parser->pos;
 	return &ws->word;
 }
 
-size_t peek_name(struct mrsh_parser *state, bool in_braces) {
+size_t peek_name(struct mrsh_parser *parser, bool in_braces) {
 	// In the shell command language, a word consisting solely of underscores,
 	// digits, and alphabetics from the portable character set. The first
 	// character of a name is not a digit.
 
-	if (!symbol(state, TOKEN)) {
+	if (!symbol(parser, TOKEN)) {
 		return false;
 	}
 
 	size_t i = 0;
 	while (true) {
-		parser_peek(state, NULL, i + 1);
+		parser_peek(parser, NULL, i + 1);
 
-		char c = state->buf.data[i];
+		char c = parser->buf.data[i];
 		if (c != '_' && !isalnum(c)) {
 			break;
 		} else if (i == 0 && isdigit(c) && !in_braces) {
@@ -73,16 +73,16 @@ size_t peek_name(struct mrsh_parser *state, bool in_braces) {
 	return i;
 }
 
-size_t peek_word(struct mrsh_parser *state, char end) {
-	if (!symbol(state, TOKEN)) {
+size_t peek_word(struct mrsh_parser *parser, char end) {
+	if (!symbol(parser, TOKEN)) {
 		return false;
 	}
 
 	size_t i = 0;
 	while (true) {
-		parser_peek(state, NULL, i + 1);
+		parser_peek(parser, NULL, i + 1);
 
-		char c = state->buf.data[i];
+		char c = parser->buf.data[i];
 
 		switch (c) {
 		case '\0':
@@ -105,97 +105,97 @@ size_t peek_word(struct mrsh_parser *state, char end) {
 	}
 }
 
-bool token(struct mrsh_parser *state, const char *str,
+bool token(struct mrsh_parser *parser, const char *str,
 		struct mrsh_range *range) {
-	if (!symbol(state, TOKEN)) {
+	if (!symbol(parser, TOKEN)) {
 		return false;
 	}
 
-	struct mrsh_position begin = state->pos;
+	struct mrsh_position begin = parser->pos;
 
 	size_t len = strlen(str);
 	assert(len > 0);
 
 	if (len == 1 && !isalpha(str[0])) {
-		if (parser_peek_char(state) != str[0]) {
+		if (parser_peek_char(parser) != str[0]) {
 			return false;
 		}
-		parser_read_char(state);
+		parser_read_char(parser);
 	} else {
-		size_t word_len = peek_word(state, 0);
-		if (len != word_len || strncmp(state->buf.data, str, word_len) != 0) {
+		size_t word_len = peek_word(parser, 0);
+		if (len != word_len || strncmp(parser->buf.data, str, word_len) != 0) {
 			return false;
 		}
 		// assert(isalpha(str[i]));
 
-		parser_read(state, NULL, len);
+		parser_read(parser, NULL, len);
 	}
 
 	if (range != NULL) {
 		range->begin = begin;
-		range->end = state->pos;
+		range->end = parser->pos;
 	}
 
-	consume_symbol(state);
+	consume_symbol(parser);
 	return true;
 }
 
-bool expect_token(struct mrsh_parser *state, const char *str,
+bool expect_token(struct mrsh_parser *parser, const char *str,
 		struct mrsh_range *range) {
-	if (token(state, str, range)) {
+	if (token(parser, str, range)) {
 		return true;
 	}
 	char msg[128];
 	snprintf(msg, sizeof(msg), "expected '%s'", str);
-	parser_set_error(state, msg);
+	parser_set_error(parser, msg);
 	return false;
 }
 
-char *read_token(struct mrsh_parser *state, size_t len,
+char *read_token(struct mrsh_parser *parser, size_t len,
 		struct mrsh_range *range) {
-	if (!symbol(state, TOKEN)) {
+	if (!symbol(parser, TOKEN)) {
 		return NULL;
 	}
 
-	struct mrsh_position begin = state->pos;
+	struct mrsh_position begin = parser->pos;
 
 	char *tok = malloc(len + 1);
-	parser_read(state, tok, len);
+	parser_read(parser, tok, len);
 	tok[len] = '\0';
 
 	if (range != NULL) {
 		range->begin = begin;
-		range->end = state->pos;
+		range->end = parser->pos;
 	}
 
-	consume_symbol(state);
+	consume_symbol(parser);
 
 	return tok;
 }
 
-static struct mrsh_word *word_list(struct mrsh_parser *state, char end,
+static struct mrsh_word *word_list(struct mrsh_parser *parser, char end,
 		word_func f) {
 	struct mrsh_array children = {0};
 
 	while (true) {
-		if (parser_peek_char(state) == end) {
+		if (parser_peek_char(parser) == end) {
 			break;
 		}
 
-		struct mrsh_word *child = f(state, end);
+		struct mrsh_word *child = f(parser, end);
 		if (child == NULL) {
 			break;
 		}
 		mrsh_array_add(&children, child);
 
-		struct mrsh_position begin = state->pos;
+		struct mrsh_position begin = parser->pos;
 		struct mrsh_buffer buf = {0};
 		while (true) {
-			char c = parser_peek_char(state);
+			char c = parser_peek_char(parser);
 			if (!isblank(c)) {
 				break;
 			}
-			mrsh_buffer_append_char(&buf, parser_read_char(state));
+			mrsh_buffer_append_char(&buf, parser_read_char(parser));
 		}
 		if (buf.len == 0) {
 			break; // word() ended on a non-blank char, stop here
@@ -204,7 +204,7 @@ static struct mrsh_word *word_list(struct mrsh_parser *state, char end,
 		struct mrsh_word_string *ws =
 			mrsh_word_string_create(mrsh_buffer_steal(&buf), false);
 		ws->range.begin = begin;
-		ws->range.end = state->pos;
+		ws->range.end = parser->pos;
 		mrsh_array_add(&children, &ws->word);
 		mrsh_buffer_finish(&buf);
 	}
@@ -236,13 +236,13 @@ static enum mrsh_word_parameter_op char_to_parameter_op_val(char c) {
 	}
 }
 
-static bool expect_parameter_op(struct mrsh_parser *state,
+static bool expect_parameter_op(struct mrsh_parser *parser,
 		enum mrsh_word_parameter_op *op, bool *colon) {
-	char c = parser_read_char(state);
+	char c = parser_read_char(parser);
 
 	*colon = c == ':';
 	if (*colon) {
-		c = parser_read_char(state);
+		c = parser_read_char(parser);
 	}
 
 	*op = char_to_parameter_op_val(c);
@@ -252,12 +252,12 @@ static bool expect_parameter_op(struct mrsh_parser *state,
 
 	// Colon can only be used with value operations
 	if (*colon) {
-		parser_set_error(state, "expected a parameter operation");
+		parser_set_error(parser, "expected a parameter operation");
 		return false;
 	}
 
 	// Substring processing operations
-	char c_next = parser_peek_char(state);
+	char c_next = parser_peek_char(parser);
 	bool is_double = c == c_next;
 	switch (c) {
 	case '%':
@@ -267,55 +267,55 @@ static bool expect_parameter_op(struct mrsh_parser *state,
 		*op = is_double ? MRSH_PARAM_DHASH : MRSH_PARAM_HASH;
 		break;
 	default:
-		parser_set_error(state, "expected a parameter operation");
+		parser_set_error(parser, "expected a parameter operation");
 		return false;
 	}
 
 	if (is_double) {
-		parser_read_char(state);
+		parser_read_char(parser);
 	}
 	return true;
 }
 
 static struct mrsh_word_parameter *expect_parameter_expression(
-		struct mrsh_parser *state) {
-	struct mrsh_position lbrace_pos = state->pos;
+		struct mrsh_parser *parser) {
+	struct mrsh_position lbrace_pos = parser->pos;
 
-	char c = parser_read_char(state);
+	char c = parser_read_char(parser);
 	assert(c == '{');
 
 	enum mrsh_word_parameter_op op = MRSH_PARAM_NONE;
 	struct mrsh_range op_range = {0};
-	if (parser_peek_char(state) == '#') {
-		op_range.begin = state->pos;
-		parser_read_char(state);
-		op_range.end = state->pos;
+	if (parser_peek_char(parser) == '#') {
+		op_range.begin = parser->pos;
+		parser_read_char(parser);
+		op_range.end = parser->pos;
 		op = MRSH_PARAM_LEADING_HASH;
 	}
 
-	size_t name_len = peek_name(state, true);
+	size_t name_len = peek_name(parser, true);
 	if (name_len == 0) {
-		parser_set_error(state, "expected a parameter");
+		parser_set_error(parser, "expected a parameter");
 		return NULL;
 	}
 
 	struct mrsh_range name_range;
-	char *name = read_token(state, name_len, &name_range);
+	char *name = read_token(parser, name_len, &name_range);
 
 	bool colon = false;
 	struct mrsh_word *arg = NULL;
-	if (op == MRSH_PARAM_NONE && parser_peek_char(state) != '}') {
-		op_range.begin = state->pos;
-		if (!expect_parameter_op(state, &op, &colon)) {
+	if (op == MRSH_PARAM_NONE && parser_peek_char(parser) != '}') {
+		op_range.begin = parser->pos;
+		if (!expect_parameter_op(parser, &op, &colon)) {
 			return NULL;
 		}
-		op_range.end = state->pos;
-		arg = word_list(state, '}', word);
+		op_range.end = parser->pos;
+		arg = word_list(parser, '}', word);
 	}
 
-	struct mrsh_position rbrace_pos = state->pos;
-	if (parser_read_char(state) != '}') {
-		parser_set_error(state, "expected end of parameter");
+	struct mrsh_position rbrace_pos = parser->pos;
+	if (parser_read_char(parser) != '}') {
+		parser_set_error(parser, "expected end of parameter");
 		return NULL;
 	}
 
@@ -329,21 +329,21 @@ static struct mrsh_word_parameter *expect_parameter_expression(
 }
 
 static struct mrsh_word_command *expect_word_command(
-		struct mrsh_parser *state) {
-	char c = parser_read_char(state);
+		struct mrsh_parser *parser) {
+	char c = parser_read_char(parser);
 	assert(c == '(');
-	assert(symbol(state, TOKEN));
-	consume_symbol(state);
+	assert(symbol(parser, TOKEN));
+	consume_symbol(parser);
 
-	struct mrsh_program *prog = mrsh_parse_program(state);
+	struct mrsh_program *prog = mrsh_parse_program(parser);
 	if (prog == NULL) {
-		if (!mrsh_parser_error(state, NULL)) {
-			parser_set_error(state, "expected a program");
+		if (!mrsh_parser_error(parser, NULL)) {
+			parser_set_error(parser, "expected a program");
 		}
 		return NULL;
 	}
 
-	if (!expect_token(state, ")", NULL)) {
+	if (!expect_token(parser, ")", NULL)) {
 		mrsh_program_destroy(prog);
 		return NULL;
 	}
@@ -352,25 +352,25 @@ static struct mrsh_word_command *expect_word_command(
 }
 
 static struct mrsh_word_arithmetic *expect_word_arithmetic(
-		struct mrsh_parser *state) {
-	char c = parser_read_char(state);
+		struct mrsh_parser *parser) {
+	char c = parser_read_char(parser);
 	assert(c == '(');
-	c = parser_read_char(state);
+	c = parser_read_char(parser);
 	assert(c == '(');
 
-	struct mrsh_word *body = word_list(state, 0, arithmetic_word);
+	struct mrsh_word *body = word_list(parser, 0, arithmetic_word);
 	if (body == NULL) {
-		if (!mrsh_parser_error(state, NULL)) {
-			parser_set_error(state, "expected an arithmetic expression");
+		if (!mrsh_parser_error(parser, NULL)) {
+			parser_set_error(parser, "expected an arithmetic expression");
 		}
 		return NULL;
 	}
 
-	if (!expect_token(state, ")", NULL)) {
+	if (!expect_token(parser, ")", NULL)) {
 		mrsh_word_destroy(body);
 		return NULL;
 	}
-	if (!expect_token(state, ")", NULL)) {
+	if (!expect_token(parser, ")", NULL)) {
 		mrsh_word_destroy(body);
 		return NULL;
 	}
@@ -379,16 +379,16 @@ static struct mrsh_word_arithmetic *expect_word_arithmetic(
 }
 
 // Expect parameter expansion or command substitution
-struct mrsh_word *expect_dollar(struct mrsh_parser *state) {
-	struct mrsh_position dollar_pos = state->pos;
-	char c = parser_read_char(state);
+struct mrsh_word *expect_dollar(struct mrsh_parser *parser) {
+	struct mrsh_position dollar_pos = parser->pos;
+	char c = parser_read_char(parser);
 	assert(c == '$');
 
 	struct mrsh_word_parameter *wp;
-	c = parser_peek_char(state);
+	c = parser_peek_char(parser);
 	switch (c) {
 	case '{': // Parameter expansion in the form `${expression}`
-		wp = expect_parameter_expression(state);
+		wp = expect_parameter_expression(parser);
 		if (wp == NULL) {
 			return NULL;
 		}
@@ -398,16 +398,16 @@ struct mrsh_word *expect_dollar(struct mrsh_parser *state) {
 	// the form `$((expression))`
 	case '(':;
 		char next[2];
-		parser_peek(state, next, sizeof(next));
+		parser_peek(parser, next, sizeof(next));
 		if (next[1] == '(') {
-			struct mrsh_word_arithmetic *wa = expect_word_arithmetic(state);
+			struct mrsh_word_arithmetic *wa = expect_word_arithmetic(parser);
 			if (wa == NULL) {
 				return NULL;
 			}
 			// TODO: store dollar_pos in wa
 			return &wa->word;
 		} else {
-			struct mrsh_word_command *wc = expect_word_command(state);
+			struct mrsh_word_command *wc = expect_word_command(parser);
 			if (wc == NULL) {
 				return NULL;
 			}
@@ -415,7 +415,7 @@ struct mrsh_word *expect_dollar(struct mrsh_parser *state) {
 			return &wc->word;
 		}
 	default:; // Parameter expansion in the form `$parameter`
-		size_t name_len = peek_name(state, false);
+		size_t name_len = peek_name(parser, false);
 		if (name_len == 0) {
 			bool ok = false;
 			switch (c) {
@@ -436,13 +436,13 @@ struct mrsh_word *expect_dollar(struct mrsh_parser *state) {
 			} else {
 				// 2.6. If an unquoted '$' is followed by a character that is
 				// not one of the following […] the result is unspecified.
-				parser_set_error(state, "invalid parameter name");
+				parser_set_error(parser, "invalid parameter name");
 				return NULL;
 			}
 		}
 
 		struct mrsh_range name_range;
-		char *name = read_token(state, name_len, &name_range);
+		char *name = read_token(parser, name_len, &name_range);
 
 		wp = mrsh_word_parameter_create(name, MRSH_PARAM_NONE, false, NULL);
 		wp->dollar_pos = dollar_pos;
@@ -451,42 +451,42 @@ struct mrsh_word *expect_dollar(struct mrsh_parser *state) {
 	}
 }
 
-struct mrsh_word *back_quotes(struct mrsh_parser *state) {
-	struct mrsh_position begin = state->pos;
+struct mrsh_word *back_quotes(struct mrsh_parser *parser) {
+	struct mrsh_position begin = parser->pos;
 
-	char c = parser_read_char(state);
+	char c = parser_read_char(parser);
 	assert(c == '`');
 
 	struct mrsh_buffer buf = {0};
 
 	while (true) {
-		char c = parser_peek_char(state);
+		char c = parser_peek_char(parser);
 		if (c == '\0') {
-			parser_set_error(state, "back quotes not terminated");
+			parser_set_error(parser, "back quotes not terminated");
 			return NULL;
 		}
 		if (c == '`') {
-			parser_read_char(state);
+			parser_read_char(parser);
 			break;
 		}
 		if (c == '\\') {
 			// Quoted backslash
 			char next[2];
-			parser_peek(state, next, sizeof(next));
+			parser_peek(parser, next, sizeof(next));
 			switch (next[1]) {
 			case '$':
 			case '`':
 			case '\\':
-				parser_read_char(state);
+				parser_read_char(parser);
 				c = next[1];
 				break;
 			}
 		}
 
 		if (c == '\n') {
-			read_continuation_line(state);
+			read_continuation_line(parser);
 		} else {
-			parser_read_char(state);
+			parser_read_char(parser);
 		}
 
 		mrsh_buffer_append_char(&buf, c);
@@ -501,7 +501,7 @@ struct mrsh_word *back_quotes(struct mrsh_parser *state) {
 		const char *err_msg = mrsh_parser_error(subparser, NULL);
 		if (err_msg != NULL) {
 			// TODO: how should we handle subparser error position?
-			parser_set_error(state, err_msg);
+			parser_set_error(parser, err_msg);
 			goto error;
 		}
 	}
@@ -511,7 +511,7 @@ struct mrsh_word *back_quotes(struct mrsh_parser *state) {
 
 	struct mrsh_word_command *wc = mrsh_word_command_create(prog, true);
 	wc->range.begin = begin;
-	wc->range.end = state->pos;
+	wc->range.end = parser->pos;
 	return &wc->word;
 
 error:
@@ -524,7 +524,7 @@ error:
  * Append a new string word to `children` with the contents of `buf`, and reset
  * `buf`.
  */
-static void push_buffer_word_string(struct mrsh_parser *state,
+static void push_buffer_word_string(struct mrsh_parser *parser,
 		struct mrsh_array *children, struct mrsh_buffer *buf,
 		struct mrsh_position *child_begin) {
 	if (buf->len == 0) {
@@ -537,16 +537,16 @@ static void push_buffer_word_string(struct mrsh_parser *state,
 	char *data = mrsh_buffer_steal(buf);
 	struct mrsh_word_string *ws = mrsh_word_string_create(data, false);
 	ws->range.begin = *child_begin;
-	ws->range.end = state->pos;
+	ws->range.end = parser->pos;
 	mrsh_array_add(children, &ws->word);
 
 	*child_begin = (struct mrsh_position){0};
 }
 
-static struct mrsh_word *double_quotes(struct mrsh_parser *state) {
-	struct mrsh_position lquote_pos = state->pos;
+static struct mrsh_word *double_quotes(struct mrsh_parser *parser) {
+	struct mrsh_position lquote_pos = parser->pos;
 
-	char c = parser_read_char(state);
+	char c = parser_read_char(parser);
 	assert(c == '"');
 
 	struct mrsh_array children = {0};
@@ -555,24 +555,24 @@ static struct mrsh_word *double_quotes(struct mrsh_parser *state) {
 	struct mrsh_position rquote_pos = {0};
 	while (true) {
 		if (!mrsh_position_valid(&child_begin)) {
-			child_begin = state->pos;
+			child_begin = parser->pos;
 		}
 
-		char c = parser_peek_char(state);
+		char c = parser_peek_char(parser);
 		if (c == '\0') {
-			parser_set_error(state, "double quotes not terminated");
+			parser_set_error(parser, "double quotes not terminated");
 			return NULL;
 		}
 		if (c == '"') {
-			push_buffer_word_string(state, &children, &buf, &child_begin);
-			rquote_pos = state->pos;
-			parser_read_char(state);
+			push_buffer_word_string(parser, &children, &buf, &child_begin);
+			rquote_pos = parser->pos;
+			parser_read_char(parser);
 			break;
 		}
 
 		if (c == '$') {
-			push_buffer_word_string(state, &children, &buf, &child_begin);
-			struct mrsh_word *t = expect_dollar(state);
+			push_buffer_word_string(parser, &children, &buf, &child_begin);
+			struct mrsh_word *t = expect_dollar(parser);
 			if (t == NULL) {
 				return NULL;
 			}
@@ -581,8 +581,8 @@ static struct mrsh_word *double_quotes(struct mrsh_parser *state) {
 		}
 
 		if (c == '`') {
-			push_buffer_word_string(state, &children, &buf, &child_begin);
-			struct mrsh_word *t = back_quotes(state);
+			push_buffer_word_string(parser, &children, &buf, &child_begin);
+			struct mrsh_word *t = back_quotes(parser);
 			if (t == NULL) {
 				return NULL;
 			}
@@ -593,25 +593,25 @@ static struct mrsh_word *double_quotes(struct mrsh_parser *state) {
 		if (c == '\\') {
 			// Quoted backslash
 			char next[2];
-			parser_peek(state, next, sizeof(next));
+			parser_peek(parser, next, sizeof(next));
 			switch (next[1]) {
 			case '$':
 			case '`':
 			case '"':
 			case '\\':
-				parser_read_char(state);
+				parser_read_char(parser);
 				c = next[1];
 				break;
 			}
 
 			if (next[1] == '\n') {
-				parser_read_char(state); // read backslash
-				read_continuation_line(state);
+				parser_read_char(parser); // read backslash
+				read_continuation_line(parser);
 				continue;
 			}
 		}
 
-		parser_read_char(state);
+		parser_read_char(parser);
 		mrsh_buffer_append_char(&buf, c);
 	}
 
@@ -623,14 +623,14 @@ static struct mrsh_word *double_quotes(struct mrsh_parser *state) {
 	return &wl->word;
 }
 
-struct mrsh_word *word(struct mrsh_parser *state, char end) {
-	if (!symbol(state, TOKEN)) {
+struct mrsh_word *word(struct mrsh_parser *parser, char end) {
+	if (!symbol(parser, TOKEN)) {
 		return NULL;
 	}
 
-	if (is_operator_start(parser_peek_char(state))
-			|| parser_peek_char(state) == ')'
-			|| parser_peek_char(state) == end) {
+	if (is_operator_start(parser_peek_char(parser))
+			|| parser_peek_char(parser) == ')'
+			|| parser_peek_char(parser) == end) {
 		return NULL;
 	}
 
@@ -640,17 +640,17 @@ struct mrsh_word *word(struct mrsh_parser *state, char end) {
 
 	while (true) {
 		if (!mrsh_position_valid(&child_begin)) {
-			child_begin = state->pos;
+			child_begin = parser->pos;
 		}
 
-		char c = parser_peek_char(state);
+		char c = parser_peek_char(parser);
 		if (c == '\0' || c == '\n' || c == ')' || c == end) {
 			break;
 		}
 
 		if (c == '$') {
-			push_buffer_word_string(state, &children, &buf, &child_begin);
-			struct mrsh_word *t = expect_dollar(state);
+			push_buffer_word_string(parser, &children, &buf, &child_begin);
+			struct mrsh_word *t = expect_dollar(parser);
 			if (t == NULL) {
 				return NULL;
 			}
@@ -659,8 +659,8 @@ struct mrsh_word *word(struct mrsh_parser *state, char end) {
 		}
 
 		if (c == '`') {
-			push_buffer_word_string(state, &children, &buf, &child_begin);
-			struct mrsh_word *t = back_quotes(state);
+			push_buffer_word_string(parser, &children, &buf, &child_begin);
+			struct mrsh_word *t = back_quotes(parser);
 			if (t == NULL) {
 				return NULL;
 			}
@@ -670,8 +670,8 @@ struct mrsh_word *word(struct mrsh_parser *state, char end) {
 
 		// Quoting
 		if (c == '\'') {
-			push_buffer_word_string(state, &children, &buf, &child_begin);
-			struct mrsh_word *t = single_quotes(state);
+			push_buffer_word_string(parser, &children, &buf, &child_begin);
+			struct mrsh_word *t = single_quotes(parser);
 			if (t == NULL) {
 				return NULL;
 			}
@@ -679,8 +679,8 @@ struct mrsh_word *word(struct mrsh_parser *state, char end) {
 			continue;
 		}
 		if (c == '"') {
-			push_buffer_word_string(state, &children, &buf, &child_begin);
-			struct mrsh_word *t = double_quotes(state);
+			push_buffer_word_string(parser, &children, &buf, &child_begin);
+			struct mrsh_word *t = double_quotes(parser);
 			if (t == NULL) {
 				return NULL;
 			}
@@ -690,25 +690,25 @@ struct mrsh_word *word(struct mrsh_parser *state, char end) {
 
 		if (c == '\\') {
 			// Unquoted backslash
-			parser_read_char(state);
-			c = parser_peek_char(state);
+			parser_read_char(parser);
+			c = parser_peek_char(parser);
 			if (c == '\n') {
 				// Continuation line
-				read_continuation_line(state);
+				read_continuation_line(parser);
 				continue;
 			}
 		} else if (is_operator_start(c) || isblank(c)) {
 			break;
 		}
 
-		parser_read_char(state);
+		parser_read_char(parser);
 		mrsh_buffer_append_char(&buf, c);
 	}
 
-	push_buffer_word_string(state, &children, &buf, &child_begin);
+	push_buffer_word_string(parser, &children, &buf, &child_begin);
 	mrsh_buffer_finish(&buf);
 
-	consume_symbol(state);
+	consume_symbol(parser);
 
 	if (children.len == 1) {
 		struct mrsh_word *word = children.data[0];
@@ -721,11 +721,11 @@ struct mrsh_word *word(struct mrsh_parser *state, char end) {
 }
 
 /* TODO remove end parameter when no *_word function takes it */
-struct mrsh_word *arithmetic_word(struct mrsh_parser *state, char end) {
+struct mrsh_word *arithmetic_word(struct mrsh_parser *parser, char end) {
 	char next[3] = {0};
-	char c = parser_peek_char(state);
+	char c = parser_peek_char(parser);
 	if (c == ')') {
-		parser_peek(state, next, sizeof(*next) * 2);
+		parser_peek(parser, next, sizeof(*next) * 2);
 		if (!strcmp(next, "))")) {
 			return NULL;
 		}
@@ -738,10 +738,10 @@ struct mrsh_word *arithmetic_word(struct mrsh_parser *state, char end) {
 
 	while (true) {
 		if (!mrsh_position_valid(&child_begin)) {
-			child_begin = state->pos;
+			child_begin = parser->pos;
 		}
 
-		parser_peek(state, next, sizeof(*next) * 2);
+		parser_peek(parser, next, sizeof(*next) * 2);
 		c = next[0];
 		if (c == '\0' || c == '\n' || c == ';'
 				|| isblank(c)
@@ -750,8 +750,8 @@ struct mrsh_word *arithmetic_word(struct mrsh_parser *state, char end) {
 		}
 
 		if (c == '$') {
-			push_buffer_word_string(state, &children, &buf, &child_begin);
-			struct mrsh_word *t = expect_dollar(state);
+			push_buffer_word_string(parser, &children, &buf, &child_begin);
+			struct mrsh_word *t = expect_dollar(parser);
 			if (t == NULL) {
 				return NULL;
 			}
@@ -760,8 +760,8 @@ struct mrsh_word *arithmetic_word(struct mrsh_parser *state, char end) {
 		}
 
 		if (c == '`') {
-			push_buffer_word_string(state, &children, &buf, &child_begin);
-			struct mrsh_word *t = back_quotes(state);
+			push_buffer_word_string(parser, &children, &buf, &child_begin);
+			struct mrsh_word *t = back_quotes(parser);
 			if (t == NULL) {
 				return NULL;
 			}
@@ -771,8 +771,8 @@ struct mrsh_word *arithmetic_word(struct mrsh_parser *state, char end) {
 
 		// Quoting
 		if (c == '\'') {
-			push_buffer_word_string(state, &children, &buf, &child_begin);
-			struct mrsh_word *t = single_quotes(state);
+			push_buffer_word_string(parser, &children, &buf, &child_begin);
+			struct mrsh_word *t = single_quotes(parser);
 			if (t == NULL) {
 				return NULL;
 			}
@@ -780,8 +780,8 @@ struct mrsh_word *arithmetic_word(struct mrsh_parser *state, char end) {
 			continue;
 		}
 		if (c == '"') {
-			push_buffer_word_string(state, &children, &buf, &child_begin);
-			struct mrsh_word *t = double_quotes(state);
+			push_buffer_word_string(parser, &children, &buf, &child_begin);
+			struct mrsh_word *t = double_quotes(parser);
 			if (t == NULL) {
 				return NULL;
 			}
@@ -791,16 +791,16 @@ struct mrsh_word *arithmetic_word(struct mrsh_parser *state, char end) {
 
 		if (c == '\\') {
 			// Unquoted backslash
-			parser_read_char(state);
-			c = parser_peek_char(state);
+			parser_read_char(parser);
+			c = parser_peek_char(parser);
 			if (c == '\n') {
 				// Continuation line
-				read_continuation_line(state);
+				read_continuation_line(parser);
 				continue;
 			}
 		}
 		if (!strcmp(next, "<<") || !strcmp(next, ">>")) {
-			parser_read_char(state);
+			parser_read_char(parser);
 			mrsh_buffer_append_char(&buf, c);
 		}
 
@@ -808,21 +808,21 @@ struct mrsh_word *arithmetic_word(struct mrsh_parser *state, char end) {
 			nested_parens++;
 		} else if (c == ')') {
 			if (nested_parens == 0) {
-				parser_set_error(state, "unmatched closing parenthesis "
+				parser_set_error(parser, "unmatched closing parenthesis "
 					"in arithmetic expression");
 				return NULL;
 			}
 			nested_parens--;
 		}
 
-		parser_read_char(state);
+		parser_read_char(parser);
 		mrsh_buffer_append_char(&buf, c);
 	}
 
-	push_buffer_word_string(state, &children, &buf, &child_begin);
+	push_buffer_word_string(parser, &children, &buf, &child_begin);
 	mrsh_buffer_finish(&buf);
 
-	consume_symbol(state);
+	consume_symbol(parser);
 
 	if (children.len == 1) {
 		struct mrsh_word *word = children.data[0];
@@ -834,7 +834,7 @@ struct mrsh_word *arithmetic_word(struct mrsh_parser *state, char end) {
 	}
 }
 
-struct mrsh_word *mrsh_parse_word(struct mrsh_parser *state) {
-	parser_begin(state);
-	return word_list(state, 0, word);
+struct mrsh_word *mrsh_parse_word(struct mrsh_parser *parser) {
+	parser_begin(parser);
+	return word_list(parser, 0, word);
 }

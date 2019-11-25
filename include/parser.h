@@ -63,35 +63,35 @@ struct mrsh_parser {
 	void *alias_user_data;
 };
 
-typedef struct mrsh_word *(*word_func)(struct mrsh_parser *state, char end);
+typedef struct mrsh_word *(*word_func)(struct mrsh_parser *parser, char end);
 
-size_t parser_peek(struct mrsh_parser *state, char *buf, size_t size);
-char parser_peek_char(struct mrsh_parser *state);
-size_t parser_read(struct mrsh_parser *state, char *buf, size_t size);
-char parser_read_char(struct mrsh_parser *state);
-bool token(struct mrsh_parser *state, const char *str,
+size_t parser_peek(struct mrsh_parser *parser, char *buf, size_t size);
+char parser_peek_char(struct mrsh_parser *parser);
+size_t parser_read(struct mrsh_parser *parser, char *buf, size_t size);
+char parser_read_char(struct mrsh_parser *parser);
+bool token(struct mrsh_parser *parser, const char *str,
 	struct mrsh_range *range);
-bool expect_token(struct mrsh_parser *state, const char *str,
+bool expect_token(struct mrsh_parser *parser, const char *str,
 	struct mrsh_range *range);
-char *read_token(struct mrsh_parser *state, size_t len,
+char *read_token(struct mrsh_parser *parser, size_t len,
 	struct mrsh_range *range);
-void read_continuation_line(struct mrsh_parser *state);
-void parser_set_error(struct mrsh_parser *state, const char *msg);
-void parser_begin(struct mrsh_parser *state);
+void read_continuation_line(struct mrsh_parser *parser);
+void parser_set_error(struct mrsh_parser *parser, const char *msg);
+void parser_begin(struct mrsh_parser *parser);
 bool is_operator_start(char c);
-enum symbol_name get_symbol(struct mrsh_parser *state);
-void consume_symbol(struct mrsh_parser *state);
-bool symbol(struct mrsh_parser *state, enum symbol_name sym);
-bool eof(struct mrsh_parser *state);
-bool newline(struct mrsh_parser *state);
-void linebreak(struct mrsh_parser *state);
-bool newline_list(struct mrsh_parser *state);
+enum symbol_name get_symbol(struct mrsh_parser *parser);
+void consume_symbol(struct mrsh_parser *parser);
+bool symbol(struct mrsh_parser *parser, enum symbol_name sym);
+bool eof(struct mrsh_parser *parser);
+bool newline(struct mrsh_parser *parser);
+void linebreak(struct mrsh_parser *parser);
+bool newline_list(struct mrsh_parser *parser);
 
-size_t peek_name(struct mrsh_parser *state, bool in_braces);
-size_t peek_word(struct mrsh_parser *state, char end);
-struct mrsh_word *expect_dollar(struct mrsh_parser *state);
-struct mrsh_word *back_quotes(struct mrsh_parser *state);
-struct mrsh_word *word(struct mrsh_parser *state, char end);
-struct mrsh_word *arithmetic_word(struct mrsh_parser *state, char end);
+size_t peek_name(struct mrsh_parser *parser, bool in_braces);
+size_t peek_word(struct mrsh_parser *parser, char end);
+struct mrsh_word *expect_dollar(struct mrsh_parser *parser);
+struct mrsh_word *back_quotes(struct mrsh_parser *parser);
+struct mrsh_word *word(struct mrsh_parser *parser, char end);
+struct mrsh_word *arithmetic_word(struct mrsh_parser *parser, char end);
 
 #endif

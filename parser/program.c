@@ -1202,11 +1202,10 @@ static bool expect_here_document(struct mrsh_parser *state,
 	return true;
 }
 
-static bool expect_complete_command(struct mrsh_parser *state,
+static bool complete_command(struct mrsh_parser *state,
 		struct mrsh_array *cmds) {
 	struct mrsh_command_list *l = list(state);
 	if (l == NULL) {
-		parser_set_error(state, "expected a complete command");
 		return false;
 	}
 	mrsh_array_add(cmds, l);
@@ -1243,6 +1242,16 @@ static bool expect_complete_command(struct mrsh_parser *state,
 	return true;
 }
 
+static bool expect_complete_command(struct mrsh_parser *state,
+		struct mrsh_array *cmds) {
+	if (!complete_command(state, cmds)) {
+		parser_set_error(state, "expected a complete command");
+		return false;
+	}
+
+	return true;
+}
+
 static struct mrsh_program *program(struct mrsh_parser *state) {
 	struct mrsh_program *prog = mrsh_program_create();
 	if (prog == NULL) {
@@ -1264,9 +1273,8 @@ static struct mrsh_program *program(struct mrsh_parser *state) {
 			return prog;
 		}
 
-		if (!expect_complete_command(state, &prog->body)) {
-			mrsh_program_destroy(prog);
-			return NULL;
+		if (!complete_command(state, &prog->body)) {
+			break;
 		}
 	}
 

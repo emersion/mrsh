@@ -332,6 +332,8 @@ static struct mrsh_word_command *expect_word_command(
 		struct mrsh_parser *state) {
 	char c = parser_read_char(state);
 	assert(c == '(');
+	assert(symbol(state, TOKEN));
+	consume_symbol(state);
 
 	struct mrsh_program *prog = mrsh_parse_program(state);
 	if (prog == NULL) {

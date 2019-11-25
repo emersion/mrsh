@@ -44,6 +44,11 @@ nargs "1  $@  2"
 echo ${null:-"$@"}
 nargs ${null:-"$@"}
 
+echo "a
+b"
+echo 'a
+b'
+
 # Examples from the spec
 # ${parameter}: dash and busybox choke on this
 #a=1
@@ -90,6 +95,13 @@ echo ""
 echo "Command Substitution"
 echo $(echo asdf)
 echo `echo asdf`
+echo $(
+	echo a
+	echo b
+)
+echo `
+	echo asdf
+`
 
 # Field Splitting
 # Pathname Expansion

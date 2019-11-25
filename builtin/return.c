@@ -23,8 +23,10 @@ int builtin_return(struct mrsh_state *state, int argc, char *argv[]) {
 		}
 	}
 
-	state->frame->nloops = 0;
-	state->frame->branch_control = MRSH_BRANCH_RETURN;
+	struct mrsh_call_frame_priv *frame_priv = call_frame_get_priv(state->frame);
+
+	frame_priv->nloops = 0;
+	frame_priv->branch_control = MRSH_BRANCH_RETURN;
 	state->last_status = n;
 	return TASK_STATUS_INTERRUPTED;
 }

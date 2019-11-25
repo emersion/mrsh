@@ -15,6 +15,13 @@ struct mrsh_function {
 	struct mrsh_command *body;
 };
 
+struct mrsh_call_frame_priv {
+	struct mrsh_call_frame pub;
+
+	enum mrsh_branch_control branch_control;
+	int nloops;
+};
+
 struct mrsh_state_priv {
 	struct mrsh_state pub;
 
@@ -48,6 +55,7 @@ struct mrsh_context {
 };
 
 struct mrsh_state_priv *state_get_priv(struct mrsh_state *state);
+struct mrsh_call_frame_priv *call_frame_get_priv(struct mrsh_call_frame *frame);
 void function_destroy(struct mrsh_function *fn);
 
 #endif

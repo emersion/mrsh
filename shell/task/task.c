@@ -65,7 +65,9 @@ static int run_if_clause(struct mrsh_context *ctx, struct mrsh_if_clause *ic) {
 }
 
 static int run_loop_clause(struct mrsh_context *ctx, struct mrsh_loop_clause *lc) {
-	int loop_num = ++ctx->state->frame->nloops;
+	struct mrsh_call_frame_priv *frame_priv =
+		call_frame_get_priv(ctx->state->frame);
+	int loop_num = ++frame_priv->nloops;
 
 	int loop_ret = 0;
 	while (ctx->state->exit == -1) {
@@ -99,11 +101,11 @@ static int run_loop_clause(struct mrsh_context *ctx, struct mrsh_loop_clause *lc
 		continue;
 
 interrupt:
-		if (ctx->state->frame->nloops < loop_num) {
+		if (frame_priv->nloops < loop_num) {
 			loop_ret = TASK_STATUS_INTERRUPTED; // break to parent loop
 			break;
 		}
-		switch (ctx->state->frame->branch_control) {
+		switch (frame_priv->branch_control) {
 		case MRSH_BRANCH_BREAK:
 		case MRSH_BRANCH_RETURN:
 		case MRSH_BRANCH_EXIT:
@@ -118,12 +120,14 @@ interrupt:
 		}
 	}
 
-	--ctx->state->frame->nloops;
+	--frame_priv->nloops;
 	return loop_ret;
 }
 
 static int run_for_clause(struct mrsh_context *ctx, struct mrsh_for_clause *fc) {
-	int loop_num = ++ctx->state->frame->nloops;
+	struct mrsh_call_frame_priv *frame_priv =
+		call_frame_get_priv(ctx->state->frame);
+	int loop_num = ++frame_priv->nloops;
 
 	struct mrsh_array word_fields = {0};
 	for (size_t i = 0; i < fc->word_list.len; i++) {
@@ -165,12 +169,12 @@ static int run_for_clause(struct mrsh_context *ctx, struct mrsh_for_clause *fc) 
 		continue;
 
 interrupt:
-		if (ctx->state->frame->nloops < loop_num) {
+		if (frame_priv->nloops < loop_num) {
 			loop_ret = TASK_STATUS_INTERRUPTED; // break to parent loop
 			break;
 		}
 		bool break_loop = false;
-		switch (ctx->state->frame->branch_control) {
+		switch (frame_priv->branch_control) {
 		case MRSH_BRANCH_BREAK:
 		case MRSH_BRANCH_RETURN:
 		case MRSH_BRANCH_EXIT:
@@ -190,7 +194,7 @@ interrupt:
 	}
 	mrsh_array_finish(&expanded_fields);
 
-	--ctx->state->frame->nloops;
+	--frame_priv->nloops;
 	return loop_ret;
 }
 

@@ -25,12 +25,14 @@ int builtin_break(struct mrsh_state *state, int argc, char *argv[]) {
 		}
 	}
 
-	if (n > state->frame->nloops) {
-		n = state->frame->nloops;
+	struct mrsh_call_frame_priv *frame_priv = call_frame_get_priv(state->frame);
+
+	if (n > frame_priv->nloops) {
+		n = frame_priv->nloops;
 	}
 
-	state->frame->nloops -= n - 1;
-	state->frame->branch_control =
+	frame_priv->nloops -= n - 1;
+	frame_priv->branch_control =
 		strcmp(argv[0], "break") == 0 ? MRSH_BRANCH_BREAK : MRSH_BRANCH_CONTINUE;
 	return TASK_STATUS_INTERRUPTED;
 }

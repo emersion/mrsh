@@ -76,17 +76,12 @@ struct mrsh_call_frame {
 	char **argv;
 	int argc;
 	struct mrsh_call_frame *prev;
-
-	enum mrsh_branch_control branch_control;
-	int nloops;
 };
-
-struct mrsh_job;
 
 struct mrsh_state {
 	int exit;
 	uint32_t options; // enum mrsh_option
-	struct mrsh_call_frame *frame;
+	struct mrsh_call_frame *frame; // last call frame
 	bool interactive;
 	int last_status;
 };

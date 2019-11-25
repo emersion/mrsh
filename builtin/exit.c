@@ -26,7 +26,9 @@ int builtin_exit(struct mrsh_state *state, int argc, char *argv[]) {
 		status = (int)status_long;
 	}
 
+	struct mrsh_call_frame_priv *frame_priv = call_frame_get_priv(state->frame);
+
 	state->exit = status;
-	state->frame->branch_control = MRSH_BRANCH_EXIT;
+	frame_priv->branch_control = MRSH_BRANCH_EXIT;
 	return TASK_STATUS_INTERRUPTED;
 }

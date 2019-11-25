@@ -30,11 +30,14 @@ struct mrsh_state *mrsh_state_create(void) {
 	state->exit = -1;
 	state->interactive = isatty(priv->term_fd);
 	state->options = state->interactive ? MRSH_OPT_INTERACTIVE : 0;
-	state->frame = calloc(1, sizeof(struct mrsh_call_frame));
-	if (state->frame == NULL) {
+
+	struct mrsh_call_frame_priv *frame_priv =
+		calloc(1, sizeof(struct mrsh_call_frame_priv));
+	if (frame_priv == NULL) {
 		free(priv);
 		return NULL;
 	}
+	state->frame = &frame_priv->pub;
 
 	return state;
 }
@@ -141,16 +144,19 @@ const char *mrsh_env_get(struct mrsh_state *state,
 	return var ? var->value : NULL;
 }
 
+struct mrsh_call_frame_priv *call_frame_get_priv(struct mrsh_call_frame *frame) {
+	return (struct mrsh_call_frame_priv *)frame;
+}
+
 void mrsh_push_frame(struct mrsh_state *state, int argc, const char *argv[]) {
-	struct mrsh_call_frame *next = calloc(1, sizeof(struct mrsh_call_frame));
-	next->argc = argc;
-	next->argv = malloc(sizeof(char *) * argc);
+	struct mrsh_call_frame_priv *next = calloc(1, sizeof(*next));
+	next->pub.argc = argc;
+	next->pub.argv = malloc(sizeof(char *) * argc);
 	for (int i = 0; i < argc; ++i) {
-		next->argv[i] = strdup(argv[i]);
+		next->pub.argv[i] = strdup(argv[i]);
 	}
-	next->nloops = 0;
-	next->prev = state->frame;
-	state->frame = next;
+	next->pub.prev = state->frame;
+	state->frame = &next->pub;
 }
 
 void mrsh_pop_frame(struct mrsh_state *state) {

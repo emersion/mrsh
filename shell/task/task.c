@@ -129,33 +129,23 @@ static int run_for_clause(struct mrsh_context *ctx, struct mrsh_for_clause *fc) 
 		call_frame_get_priv(ctx->state->frame);
 	int loop_num = ++frame_priv->nloops;
 
-	struct mrsh_array word_fields = {0};
+	struct mrsh_array fields = {0};
 	for (size_t i = 0; i < fc->word_list.len; i++) {
-		// TODO: this mutates the AST
-		struct mrsh_word **word_ptr =
-			(struct mrsh_word **)&fc->word_list.data[i];
-		expand_tilde(ctx->state, word_ptr, false);
-		int ret = run_word(ctx, word_ptr);
+		struct mrsh_word *word = fc->word_list.data[i];
+		int ret = expand_word(ctx, word, &fields);
 		if (ret < 0) {
 			return ret;
 		}
-		mrsh_array_add(&word_fields, *word_ptr);
 	}
-
-	struct mrsh_array expanded_fields = {0};
-	if (!expand_pathnames(&expanded_fields, &word_fields)) {
-		return TASK_STATUS_ERROR;
-	}
-	mrsh_array_finish(&word_fields);
 
 	int loop_ret = 0;
 	size_t word_index = 0;
 	while (ctx->state->exit == -1) {
-		if (word_index == expanded_fields.len) {
+		if (word_index == fields.len) {
 			break;
 		}
 
-		mrsh_env_set(ctx->state, fc->name, expanded_fields.data[word_index],
+		mrsh_env_set(ctx->state, fc->name, fields.data[word_index],
 			MRSH_VAR_ATTRIB_NONE);
 		word_index++;
 
@@ -189,10 +179,10 @@ interrupt:
 		}
 	}
 
-	for (size_t i = 0; i < expanded_fields.len; i++) {
-		free(expanded_fields.data[i]);
+	for (size_t i = 0; i < fields.len; i++) {
+		free(fields.data[i]);
 	}
-	mrsh_array_finish(&expanded_fields);
+	mrsh_array_finish(&fields);
 
 	--frame_priv->nloops;
 	return loop_ret;

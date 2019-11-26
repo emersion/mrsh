@@ -25,6 +25,10 @@ struct mrsh_context;
 
 /* Perform parameter expansion, command substitution and arithmetic expansion. */
 int run_word(struct mrsh_context *ctx, struct mrsh_word **word_ptr);
+/* Perform all word expansions, as specified in section 2.6. Fills `fields`
+ * with `char *` elements. Not suitable for assignments. */
+int expand_word(struct mrsh_context *ctx, const struct mrsh_word *word,
+	struct mrsh_array *fields);
 int run_simple_command(struct mrsh_context *ctx, struct mrsh_simple_command *sc);
 int run_command(struct mrsh_context *ctx, struct mrsh_command *cmd);
 int run_and_or_list(struct mrsh_context *ctx, struct mrsh_and_or_list *and_or_list);

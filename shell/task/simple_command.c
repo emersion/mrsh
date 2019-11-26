@@ -227,32 +227,6 @@ static int expand_assignments(struct mrsh_context *ctx,
 	return 0;
 }
 
-static void get_args(struct mrsh_array *args, struct mrsh_simple_command *sc,
-		struct mrsh_context *ctx) {
-	struct mrsh_array fields = {0};
-	const char *ifs = mrsh_env_get(ctx->state, "IFS", NULL);
-	split_fields(&fields, sc->name, ifs);
-	for (size_t i = 0; i < sc->arguments.len; ++i) {
-		struct mrsh_word *word = sc->arguments.data[i];
-		split_fields(&fields, word, ifs);
-	}
-	assert(fields.len > 0);
-
-	if (ctx->state->options & MRSH_OPT_NOGLOB) {
-		get_fields_str(args, &fields);
-	} else {
-		expand_pathnames(args, &fields);
-	}
-
-	for (size_t i = 0; i < fields.len; ++i) {
-		mrsh_word_destroy(fields.data[i]);
-	}
-	mrsh_array_finish(&fields);
-
-	assert(args->len > 0);
-	mrsh_array_add(args, NULL);
-}
-
 static struct mrsh_simple_command *copy_simple_command(
 		const struct mrsh_simple_command *sc) {
 	struct mrsh_command *cmd = mrsh_command_copy(&sc->command);
@@ -296,25 +270,24 @@ int run_simple_command(struct mrsh_context *ctx, struct mrsh_simple_command *sc)
 	// we'll mutate the tree
 	sc = copy_simple_command(sc);
 
-	expand_tilde(state, &sc->name, false);
-	int ret = run_word(ctx, &sc->name);
+	struct mrsh_array args = {0};
+	int ret = expand_word(ctx, sc->name, &args);
 	if (ret < 0) {
 		return ret;
 	}
+	for (size_t i = 0; i < sc->arguments.len; ++i) {
+		struct mrsh_word *arg = sc->arguments.data[i];
+		ret = expand_word(ctx, arg, &args);
+		if (ret < 0) {
+			return ret;
+		}
+	}
+	assert(args.len > 0);
+	mrsh_array_add(&args, NULL);
 
 	ret = expand_assignments(ctx, &sc->assignments);
 	if (ret < 0) {
 		return ret;
-	}
-
-	for (size_t i = 0; i < sc->arguments.len; ++i) {
-		struct mrsh_word **arg_ptr =
-			(struct mrsh_word **)&sc->arguments.data[i];
-		expand_tilde(state, arg_ptr, false);
-		ret = run_word(ctx, arg_ptr);
-		if (ret < 0) {
-			return ret;
-		}
 	}
 
 	for (size_t i = 0; i < sc->io_redirects.len; ++i) {
@@ -334,9 +307,6 @@ int run_simple_command(struct mrsh_context *ctx, struct mrsh_simple_command *sc)
 			}
 		}
 	}
-
-	struct mrsh_array args = {0};
-	get_args(&args, sc, ctx);
 
 	char **argv = (char **)args.data;
 	int argc = args.len - 1; // argv is NULL-terminated

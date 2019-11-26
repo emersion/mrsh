@@ -591,3 +591,32 @@ static int _run_word(struct mrsh_context *ctx, struct mrsh_word **word_ptr,
 int run_word(struct mrsh_context *ctx, struct mrsh_word **word_ptr) {
 	return _run_word(ctx, word_ptr, false);
 }
+
+int expand_word(struct mrsh_context *ctx, const struct mrsh_word *_word,
+		struct mrsh_array *expanded_fields) {
+	struct mrsh_word *word = mrsh_word_copy(_word);
+	expand_tilde(ctx->state, &word, false);
+
+	int ret = run_word(ctx, &word);
+	if (ret < 0) {
+		return ret;
+	}
+
+	struct mrsh_array fields = {0};
+	const char *ifs = mrsh_env_get(ctx->state, "IFS", NULL);
+	split_fields(&fields, word, ifs);
+	mrsh_word_destroy(word);
+
+	if (ctx->state->options & MRSH_OPT_NOGLOB) {
+		get_fields_str(expanded_fields, &fields);
+	} else {
+		expand_pathnames(expanded_fields, &fields);
+	}
+
+	for (size_t i = 0; i < fields.len; ++i) {
+		mrsh_word_destroy(fields.data[i]);
+	}
+	mrsh_array_finish(&fields);
+
+	return ret;
+}

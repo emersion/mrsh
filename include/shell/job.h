@@ -84,6 +84,10 @@ bool init_job_child_process(struct mrsh_state *state);
  */
 void update_job(struct mrsh_state *state, pid_t pid, int stat);
 /**
+ * Refreshes status for all jobs.
+ */
+bool refresh_jobs_status(struct mrsh_state *state);
+/**
  * Look up a job by its XBD Job Control Job ID.
  *
  * When using this to look up jobs internally, set interactive to false. This

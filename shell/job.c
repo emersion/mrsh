@@ -232,32 +232,48 @@ int job_poll(struct mrsh_job *job) {
 	return proc_status;
 }
 
-static bool _job_wait(struct mrsh_state *state, pid_t pid) {
+static bool _job_wait(struct mrsh_state *state, pid_t pid, int options) {
 	struct mrsh_state_priv *priv = state_get_priv(state);
 
 	assert(pid > 0 && pid != getpid());
 
+	// We only want to be notified about stopped processes in the main
+	// shell. Child processes want to block until their own children have
+	// terminated.
+	if (!priv->child) {
+		options |= WUNTRACED;
+	}
+
 	while (true) {
-		// We only want to be notified about stopped processes in the main
-		// shell. Child processes want to block until their own children have
-		// terminated.
-		//
 		// Here it's important to wait for a specific process: we don't want to
 		// steal one of our grandchildren's status for one of our children.
 		int stat;
-		pid_t ret = waitpid(pid, &stat, priv->child ? 0 : WUNTRACED);
-		if (ret < 0) {
+		pid_t ret = waitpid(pid, &stat, options);
+		if (ret == 0) { // no status available
+			assert(options & WNOHANG);
+			return true;
+		} else if (ret < 0) {
 			if (errno == EINTR) {
 				continue;
 			}
 			perror("waitpid");
 			return false;
 		}
-		assert(ret > 0);
+		assert(ret == pid);
 
 		update_job(state, ret, stat);
 		return true;
 	}
+}
+
+static struct mrsh_process *job_get_running_process(struct mrsh_job *job) {
+	for (size_t j = 0; j < job->processes.len; ++j) {
+		struct mrsh_process *proc = job->processes.data[j];
+		if (process_poll(proc) == TASK_STATUS_WAIT) {
+			return proc;
+		}
+	}
+	return NULL;
 }
 
 int job_wait(struct mrsh_job *job) {
@@ -267,16 +283,9 @@ int job_wait(struct mrsh_job *job) {
 			return status;
 		}
 
-		struct mrsh_process *wait_proc = NULL;
-		for (size_t j = 0; j < job->processes.len; ++j) {
-			struct mrsh_process *proc = job->processes.data[j];
-			if (process_poll(proc) == TASK_STATUS_WAIT) {
-				wait_proc = proc;
-				break;
-			}
-		}
+		struct mrsh_process *wait_proc = job_get_running_process(job);
 		assert(wait_proc != NULL);
-		if (!_job_wait(job->state, wait_proc->pid)) {
+		if (!_job_wait(job->state, wait_proc->pid, 0)) {
 			return TASK_STATUS_ERROR;
 		}
 	}
@@ -289,10 +298,27 @@ int job_wait_process(struct mrsh_process *proc) {
 			return status;
 		}
 
-		if (!_job_wait(proc->state, proc->pid)) {
+		if (!_job_wait(proc->state, proc->pid, 0)) {
 			return TASK_STATUS_ERROR;
 		}
 	}
+}
+
+bool refresh_jobs_status(struct mrsh_state *state) {
+	struct mrsh_state_priv *priv = state_get_priv(state);
+
+	for (size_t i = 0; i < priv->jobs.len; ++i) {
+		struct mrsh_job *job = priv->jobs.data[i];
+		struct mrsh_process *proc = job_get_running_process(job);
+		if (proc == NULL) {
+			continue;
+		}
+		if (!_job_wait(job->state, proc->pid, WNOHANG)) {
+			return false;
+		}
+	}
+
+	return true;
 }
 
 bool init_job_child_process(struct mrsh_state *state) {

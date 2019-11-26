@@ -403,6 +403,8 @@ static void destroy_terminated_jobs(struct mrsh_state *state) {
 		*previous = job_by_id(state, "%-", false);
 	bool r = rand() % 2 == 0;
 
+	refresh_jobs_status(state);
+
 	for (size_t i = 0; i < priv->jobs.len; ++i) {
 		struct mrsh_job *job = priv->jobs.data[i];
 

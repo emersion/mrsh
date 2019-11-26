@@ -610,7 +610,9 @@ int expand_word(struct mrsh_context *ctx, const struct mrsh_word *_word,
 	if (ctx->state->options & MRSH_OPT_NOGLOB) {
 		get_fields_str(expanded_fields, &fields);
 	} else {
-		expand_pathnames(expanded_fields, &fields);
+		if (!expand_pathnames(expanded_fields, &fields)) {
+			return TASK_STATUS_ERROR;
+		}
 	}
 
 	for (size_t i = 0; i < fields.len; ++i) {

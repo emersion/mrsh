@@ -28,6 +28,9 @@ struct mrsh_job {
 	struct termios term_modes; // only valid if stopped
 	struct mrsh_state *state;
 	struct mrsh_array processes; // struct mrsh_process *
+
+	bool pending_notification; // need to print a job status notification
+	int last_status;
 };
 
 /**
@@ -88,5 +91,9 @@ void update_job(struct mrsh_state *state, pid_t pid, int stat);
  */
 struct mrsh_job *job_by_id(struct mrsh_state *state,
 		const char *id, bool interactive);
+/**
+ * Return a string describing the process' state. `r` is a random boolean.
+ */
+const char *job_state_str(struct mrsh_job *job, bool r);
 
 #endif

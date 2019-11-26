@@ -104,6 +104,7 @@ struct mrsh_job *job_create(struct mrsh_state *state,
 	job->node = mrsh_node_copy(node);
 	job->pgid = -1;
 	job->job_id = id;
+	job->last_status = TASK_STATUS_WAIT;
 	mrsh_array_add(&priv->jobs, job);
 	return job;
 }
@@ -144,6 +145,20 @@ void job_add_process(struct mrsh_job *job, struct mrsh_process *proc) {
 		return;
 	}
 	mrsh_array_add(&job->processes, proc);
+}
+
+static void queue_job_notifications(struct mrsh_state *state) {
+	struct mrsh_state_priv *priv = state_get_priv(state);
+
+	for (size_t i = 0; i < priv->jobs.len; ++i) {
+		struct mrsh_job *job = priv->jobs.data[i];
+		int status = job_poll(job);
+		if (status != job->last_status && job->pgid > 0 &&
+				priv->foreground_job != job) {
+			job->pending_notification = true;
+		}
+		job->last_status = status;
+	}
 }
 
 bool job_set_foreground(struct mrsh_job *job, bool foreground, bool cont) {
@@ -190,6 +205,8 @@ bool job_set_foreground(struct mrsh_job *job, bool foreground, bool cont) {
 			proc->stopped = false;
 		}
 	}
+
+	queue_job_notifications(state);
 
 	return true;
 }
@@ -313,6 +330,8 @@ void update_job(struct mrsh_state *state, pid_t pid, int stat) {
 			}
 		}
 	}
+
+	queue_job_notifications(state);
 }
 
 // https://pubs.opengroup.org/onlinepubs/9699919799/basedefs/V1_chap03.html#tag_03_204
@@ -419,4 +438,38 @@ struct mrsh_job *job_by_id(struct mrsh_state *state,
 		fprintf(stderr, "No such job '%s'\n", id);
 	}
 	return NULL;
+}
+
+const char *job_state_str(struct mrsh_job *job, bool r) {
+	int status = job_poll(job);
+	switch (status) {
+	case TASK_STATUS_WAIT:
+		return "Running";
+	case TASK_STATUS_ERROR:
+		return "Error";
+	case TASK_STATUS_STOPPED:
+		if (job->processes.len > 0) {
+			struct mrsh_process *proc = job->processes.data[0];
+			switch (proc->signal) {
+			case SIGSTOP:
+				return r ? "Stopped (SIGSTOP)" : "Suspended (SIGSTOP)";
+			case SIGTTIN:
+				return r ? "Stopped (SIGTTIN)" : "Suspended (SIGTTIN)";
+			case SIGTTOU:
+				return r ? "Stopped (SIGTTOU)" : "Suspended (SIGTTOU)";
+			}
+		}
+		return r ? "Stopped" : "Suspended";
+	default:
+		if (job->processes.len > 0) {
+			struct mrsh_process *proc = job->processes.data[0];
+			if (proc->stat != 0) {
+				static char stat[128];
+				snprintf(stat, sizeof(stat), "Done(%d)", proc->stat);
+				return stat;
+			}
+		}
+		assert(status >= 0);
+		return "Done";
+	}
 }

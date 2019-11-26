@@ -12,45 +12,11 @@
 
 static const char jobs_usage[] = "usage: jobs [-l|-p] [job_id...]\n";
 
-static char *job_state_str(struct mrsh_job *job, bool r) {
-	int status = job_poll(job);
-	switch (status) {
-	case TASK_STATUS_WAIT:
-		return "Running";
-	case TASK_STATUS_ERROR:
-		return "Error";
-	case TASK_STATUS_STOPPED:
-		if (job->processes.len > 0) {
-			struct mrsh_process *proc = job->processes.data[0];
-			switch (proc->signal) {
-			case SIGSTOP:
-				return r ? "Stopped (SIGSTOP)" : "Suspended (SIGSTOP)";
-			case SIGTTIN:
-				return r ? "Stopped (SIGTTIN)" : "Suspended (SIGTTIN)";
-			case SIGTTOU:
-				return r ? "Stopped (SIGTTOU)" : "Suspended (SIGTTOU)";
-			}
-		}
-		return r ? "Stopped" : "Suspended";
-	default:
-		if (job->processes.len > 0) {
-			struct mrsh_process *proc = job->processes.data[0];
-			if (proc->stat != 0) {
-				static char stat[128];
-				snprintf(stat, sizeof(stat), "Done(%d)", proc->stat);
-				return stat;
-			}
-		}
-		assert(status >= 0);
-		return "Done";
-	}
-}
-
 struct jobs_context {
 	struct mrsh_job *current, *previous;
 	bool pids;
 	bool pgids;
-	int r;
+	bool r;
 };
 
 static void show_job(struct mrsh_job *job, const struct jobs_context *ctx) {

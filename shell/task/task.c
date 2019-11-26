@@ -382,16 +382,44 @@ int run_command_list_array(struct mrsh_context *ctx, struct mrsh_array *array) {
 	return ret;
 }
 
+static void show_job(struct mrsh_job *job, struct mrsh_job *current,
+		struct mrsh_job *previous, bool r) {
+	char curprev = ' ';
+	if (job == current) {
+		curprev = '+';
+	} else if (job == previous) {
+		curprev = '-';
+	}
+	char *cmd = mrsh_node_format(job->node);
+	fprintf(stderr, "[%d] %c %s %s\n", job->job_id, curprev,
+		job_state_str(job, r), cmd);
+	free(cmd);
+}
+
 static void destroy_terminated_jobs(struct mrsh_state *state) {
 	struct mrsh_state_priv *priv = state_get_priv(state);
 
+	struct mrsh_job *current = job_by_id(state, "%+", false),
+		*previous = job_by_id(state, "%-", false);
+	bool r = rand() % 2 == 0;
+
 	for (size_t i = 0; i < priv->jobs.len; ++i) {
 		struct mrsh_job *job = priv->jobs.data[i];
-		if (job_poll(job) >= 0) {
+
+		int status = job_poll(job);
+
+		if (state->options & MRSH_OPT_NOTIFY && job->pending_notification) {
+			show_job(job, current, previous, r);
+			job->pending_notification = false;
+		}
+
+		if (status >= 0) {
 			job_destroy(job);
 			--i;
 		}
 	}
+
+	fflush(stderr);
 }
 
 int mrsh_run_program(struct mrsh_state *state, struct mrsh_program *prog) {

@@ -214,14 +214,17 @@ static int run_assignments(struct mrsh_context *ctx, struct mrsh_array *assignme
 	return 0;
 }
 
-static void expand_assignments(struct mrsh_context *ctx,
+static int expand_assignments(struct mrsh_context *ctx,
 		struct mrsh_array *assignments) {
 	for (size_t i = 0; i < assignments->len; ++i) {
 		struct mrsh_assignment *assign = assignments->data[i];
 		expand_tilde(ctx->state, &assign->value, true);
-		run_word(ctx, &assign->value);
-		// TODO: report errors
+		int ret = run_word(ctx, &assign->value);
+		if (ret < 0) {
+			return ret;
+		}
 	}
+	return 0;
 }
 
 static void get_args(struct mrsh_array *args, struct mrsh_simple_command *sc,
@@ -270,15 +273,23 @@ int run_simple_command(struct mrsh_context *ctx, struct mrsh_simple_command *sc)
 			mrsh_array_add(&assignments, mrsh_assignment_copy(assign));
 		}
 
-		expand_assignments(ctx, &assignments);
-		int ret = run_assignments(ctx, &assignments);
+		int ret = expand_assignments(ctx, &assignments);
+		if (ret < 0) {
+			return ret;
+		}
+
+		ret = run_assignments(ctx, &assignments);
+		if (ret < 0) {
+			return ret;
+		}
 
 		for (size_t i = 0; i < assignments.len; ++i) {
 			struct mrsh_assignment *assign = assignments.data[i];
 			mrsh_assignment_destroy(assign);
 		}
 		mrsh_array_finish(&assignments);
-		return ret;
+
+		return 0;
 	}
 
 	// Copy the command from the AST, because during expansion and substitution
@@ -290,7 +301,11 @@ int run_simple_command(struct mrsh_context *ctx, struct mrsh_simple_command *sc)
 	if (ret < 0) {
 		return ret;
 	}
-	expand_assignments(ctx, &sc->assignments);
+
+	ret = expand_assignments(ctx, &sc->assignments);
+	if (ret < 0) {
+		return ret;
+	}
 
 	for (size_t i = 0; i < sc->arguments.len; ++i) {
 		struct mrsh_word **arg_ptr =

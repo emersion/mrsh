@@ -85,6 +85,7 @@ static void call_frame_destroy(struct mrsh_call_frame *frame) {
 
 void mrsh_state_destroy(struct mrsh_state *state) {
 	struct mrsh_state_priv *priv = state_get_priv(state);
+	broadcast_sighup(state);
 	mrsh_hashtable_for_each(&priv->variables, state_var_finish_iterator, NULL);
 	mrsh_hashtable_finish(&priv->variables);
 	mrsh_hashtable_for_each(&priv->functions, state_fn_finish_iterator, NULL);

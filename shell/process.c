@@ -1,5 +1,7 @@
+#define _POSIX_C_SOURCE 1
 #include <assert.h>
 #include <mrsh/array.h>
+#include <signal.h>
 #include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
@@ -76,5 +78,16 @@ void update_process(struct mrsh_state *state, pid_t pid, int stat) {
 		proc->signal = WSTOPSIG(stat);
 	} else {
 		assert(false);
+	}
+}
+
+void broadcast_sighup(struct mrsh_state *state) {
+	struct mrsh_state_priv *priv = state_get_priv(state);
+
+	for (size_t i = 0; i < priv->processes.len; ++i) {
+		struct mrsh_process *proc = priv->processes.data[i];
+		if (kill(proc->pid, SIGHUP) != 0) {
+			perror("kill");
+		}
 	}
 }

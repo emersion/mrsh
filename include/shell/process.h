@@ -38,5 +38,9 @@ int process_poll(struct mrsh_process *process);
  * Update the shell's state with a child process status.
  */
 void update_process(struct mrsh_state *state, pid_t pid, int stat);
+/**
+ * Send SIGHUP to all child processes.
+ */
+void broadcast_sighup(struct mrsh_state *state);
 
 #endif

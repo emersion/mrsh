@@ -13,8 +13,8 @@ done
 echo $i
 
 echo "No-op for loop"
-for i; do
-	echo
+for i in; do
+	echo invalid
 done
 echo $i
 

@@ -80,10 +80,6 @@ bool job_set_foreground(struct mrsh_job *job, bool foreground, bool cont);
  */
 bool init_job_child_process(struct mrsh_state *state);
 /**
- * Update the shell's state with a child process status.
- */
-void update_job(struct mrsh_state *state, pid_t pid, int stat);
-/**
  * Refreshes status for all jobs.
  */
 bool refresh_jobs_status(struct mrsh_state *state);

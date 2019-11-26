@@ -232,6 +232,8 @@ int job_poll(struct mrsh_job *job) {
 	return proc_status;
 }
 
+static void update_job(struct mrsh_state *state, pid_t pid, int stat);
+
 static bool _job_wait(struct mrsh_state *state, pid_t pid, int options) {
 	struct mrsh_state_priv *priv = state_get_priv(state);
 
@@ -340,7 +342,7 @@ bool init_job_child_process(struct mrsh_state *state) {
 	return true;
 }
 
-void update_job(struct mrsh_state *state, pid_t pid, int stat) {
+static void update_job(struct mrsh_state *state, pid_t pid, int stat) {
 	struct mrsh_state_priv *priv = state_get_priv(state);
 
 	update_process(state, pid, stat);

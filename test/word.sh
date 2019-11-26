@@ -43,6 +43,12 @@ echo "1  $@  2"
 nargs "1  $@  2"
 echo ${null:-"$@"}
 nargs ${null:-"$@"}
+(
+	IFS=':'
+	asdf='a:s:d:f'
+	echo $asdf
+	nargs $asdf
+)
 
 echo "a
 b"

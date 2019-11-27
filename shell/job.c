@@ -82,6 +82,7 @@ bool mrsh_set_job_control(struct mrsh_state *state, bool enabled) {
 			return false;
 		}
 	} else {
+		assert(priv->saved_sigactions != NULL);
 		for (size_t i = 0; i < IGNORED_SIGNALS_LEN; ++i) {
 			if (sigaction(ignored_signals[i],
 					&priv->saved_sigactions[i], NULL) != 0) {
@@ -92,7 +93,6 @@ bool mrsh_set_job_control(struct mrsh_state *state, bool enabled) {
 
 		free(priv->saved_sigactions);
 		priv->saved_sigactions = NULL;
-		return false; // TODO
 	}
 
 	priv->job_control = enabled;
@@ -342,21 +342,7 @@ bool refresh_jobs_status(struct mrsh_state *state) {
 }
 
 bool init_job_child_process(struct mrsh_state *state) {
-	struct mrsh_state_priv *priv = state_get_priv(state);
-
-	if (!priv->job_control) {
-		return true;
-	}
-
-	for (size_t i = 0; i < IGNORED_SIGNALS_LEN; ++i) {
-		if (sigaction(ignored_signals[i],
-				&priv->saved_sigactions[i], NULL) != 0) {
-			perror("sigaction");
-			return false;
-		}
-	}
-
-	return true;
+	return mrsh_set_job_control(state, false);
 }
 
 static void update_job(struct mrsh_state *state, pid_t pid, int stat) {

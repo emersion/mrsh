@@ -86,6 +86,9 @@ void broadcast_sighup(struct mrsh_state *state) {
 
 	for (size_t i = 0; i < priv->processes.len; ++i) {
 		struct mrsh_process *proc = priv->processes.data[i];
+		if (process_poll(proc) >= 0) {
+			continue;
+		}
 		if (kill(proc->pid, SIGHUP) != 0) {
 			perror("kill");
 		}

@@ -165,18 +165,15 @@ void job_add_process(struct mrsh_job *job, struct mrsh_process *proc) {
 	mrsh_array_add(&job->processes, proc);
 }
 
-static void queue_job_notifications(struct mrsh_state *state) {
-	struct mrsh_state_priv *priv = state_get_priv(state);
+static void job_queue_notification(struct mrsh_job *job) {
+	struct mrsh_state_priv *priv = state_get_priv(job->state);
 
-	for (size_t i = 0; i < priv->jobs.len; ++i) {
-		struct mrsh_job *job = priv->jobs.data[i];
-		int status = job_poll(job);
-		if (status != job->last_status && job->pgid > 0 &&
-				priv->foreground_job != job) {
-			job->pending_notification = true;
-		}
-		job->last_status = status;
+	int status = job_poll(job);
+	if (status != job->last_status && job->pgid > 0 &&
+			priv->foreground_job != job) {
+		job->pending_notification = true;
 	}
+	job->last_status = status;
 }
 
 bool job_set_foreground(struct mrsh_job *job, bool foreground, bool cont) {
@@ -224,7 +221,7 @@ bool job_set_foreground(struct mrsh_job *job, bool foreground, bool cont) {
 		}
 	}
 
-	queue_job_notifications(state);
+	job_queue_notification(job);
 
 	return true;
 }
@@ -350,19 +347,24 @@ static void update_job(struct mrsh_state *state, pid_t pid, int stat) {
 
 	update_process(state, pid, stat);
 
+	if (!priv->job_control) {
+		return;
+	}
+
 	// Put stopped and terminated jobs in the background. We don't want to do so
 	// if we're not the main shell, because we only have a partial view of the
 	// jobs (we only know about our own child processes).
-	if (!priv->child) {
-		for (size_t i = 0; i < priv->jobs.len; ++i) {
-			struct mrsh_job *job = priv->jobs.data[i];
-			if (job_poll(job) != TASK_STATUS_WAIT && job->pgid > 0) {
-				job_set_foreground(job, false, false);
-			}
+	for (size_t i = 0; i < priv->jobs.len; ++i) {
+		struct mrsh_job *job = priv->jobs.data[i];
+
+		int status = job_poll(job);
+		if (status >= 0) {
+			job_queue_notification(job);
+		}
+		if (status != TASK_STATUS_WAIT && job->pgid > 0) {
+			job_set_foreground(job, false, false);
 		}
 	}
-
-	queue_job_notifications(state);
 }
 
 // https://pubs.opengroup.org/onlinepubs/9699919799/basedefs/V1_chap03.html#tag_03_204

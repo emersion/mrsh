@@ -43,11 +43,19 @@ bool mrsh_set_job_control(struct mrsh_state *state, bool enabled) {
 			kill(-pgid, SIGTTIN);
 		}
 
+		assert(priv->saved_sigactions == NULL);
+		priv->saved_sigactions =
+			malloc(IGNORED_SIGNALS_LEN * sizeof(struct sigaction));
+		if (priv->saved_sigactions == NULL) {
+			return false;
+		}
+
 		// Ignore interactive and job-control signals
 		struct sigaction sa = { .sa_handler = SIG_IGN };
 		sigemptyset(&sa.sa_mask);
 		for (size_t i = 0; i < IGNORED_SIGNALS_LEN; ++i) {
-			if (sigaction(ignored_signals[i], &sa, NULL) != 0) {
+			if (sigaction(ignored_signals[i], &sa,
+					&priv->saved_sigactions[i]) != 0) {
 				perror("sigaction");
 				return false;
 			}
@@ -74,6 +82,16 @@ bool mrsh_set_job_control(struct mrsh_state *state, bool enabled) {
 			return false;
 		}
 	} else {
+		for (size_t i = 0; i < IGNORED_SIGNALS_LEN; ++i) {
+			if (sigaction(ignored_signals[i],
+					&priv->saved_sigactions[i], NULL) != 0) {
+				perror("sigaction");
+				return false;
+			}
+		}
+
+		free(priv->saved_sigactions);
+		priv->saved_sigactions = NULL;
 		return false; // TODO
 	}
 
@@ -330,10 +348,9 @@ bool init_job_child_process(struct mrsh_state *state) {
 		return true;
 	}
 
-	struct sigaction sa = { .sa_handler = SIG_DFL };
-	sigemptyset(&sa.sa_mask);
 	for (size_t i = 0; i < IGNORED_SIGNALS_LEN; ++i) {
-		if (sigaction(ignored_signals[i], &sa, NULL) != 0) {
+		if (sigaction(ignored_signals[i],
+				&priv->saved_sigactions[i], NULL) != 0) {
 			perror("sigaction");
 			return false;
 		}

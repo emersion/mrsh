@@ -41,6 +41,7 @@ struct mrsh_state_priv {
 	bool job_control;
 	pid_t pgid;
 	struct termios term_modes;
+	struct sigaction *saved_sigactions;
 	struct mrsh_array jobs; // struct mrsh_job *
 	struct mrsh_job *foreground_job;
 

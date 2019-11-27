@@ -182,6 +182,11 @@ bool job_set_foreground(struct mrsh_job *job, bool foreground, bool cont) {
 
 	assert(job->pgid > 0);
 
+	if (!priv->job_control) {
+		fprintf(stderr, "job_set_foreground called with job control disabled\n");
+		return false;
+	}
+
 	// Don't try to continue the job if it's not stopped
 	if (job_poll(job) != TASK_STATUS_STOPPED) {
 		cont = false;
@@ -273,7 +278,7 @@ static bool _job_wait(struct mrsh_state *state, pid_t pid, int options) {
 			if (errno == EINTR) {
 				continue;
 			}
-			perror("waitpid");
+			fprintf(stderr, "waitpid(%d): %s\n", pid, strerror(errno));
 			return false;
 		}
 		assert(ret == pid);
@@ -504,5 +509,20 @@ const char *job_state_str(struct mrsh_job *job, bool r) {
 		}
 		assert(status >= 0);
 		return "Done";
+	}
+}
+
+void broadcast_sighup_to_jobs(struct mrsh_state *state) {
+	struct mrsh_state_priv *priv = state_get_priv(state);
+	assert(priv->job_control);
+
+	for (size_t i = 0; i < priv->jobs.len; ++i) {
+		struct mrsh_job *job = priv->jobs.data[i];
+		if (job_poll(job) >= 0) {
+			continue;
+		}
+		if (kill(-job->pgid, SIGHUP) != 0) {
+			perror("kill");
+		}
 	}
 }

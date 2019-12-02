@@ -98,7 +98,6 @@ static int run_process(struct mrsh_context *ctx, struct mrsh_simple_command *sc,
 					strerror(errno));
 				exit(1);
 			}
-			close(fd);
 		}
 
 		execv(path, argv);
@@ -119,6 +118,7 @@ struct saved_fd {
 
 static bool dup_and_save_fd(int fd, int redir_fd, struct saved_fd *saved) {
 	saved->redir_fd = redir_fd;
+	saved->dup_fd = -1;
 
 	if (fd == redir_fd) {
 		return true;
@@ -136,7 +136,6 @@ static bool dup_and_save_fd(int fd, int redir_fd, struct saved_fd *saved) {
 			strerror(errno));
 		return false;
 	}
-	close(fd);
 
 	return true;
 }

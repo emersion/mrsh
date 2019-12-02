@@ -12,6 +12,7 @@ test_files = [
 	'function.sh',
 	'loop.sh',
 	'pipeline.sh',
+	'readonly.sh',
 	'return.sh',
 	'subshell.sh',
 	'syntax.sh',

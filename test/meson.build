@@ -13,6 +13,7 @@ test_files = [
 	'loop.sh',
 	'pipeline.sh',
 	'readonly.sh',
+	'redir.sh',
 	'return.sh',
 	'subshell.sh',
 	'syntax.sh',

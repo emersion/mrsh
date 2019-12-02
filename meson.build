@@ -41,6 +41,9 @@ if get_option('readline-provider') == 'readline'
 	if readline.found()
 		add_project_arguments('-DHAVE_READLINE', language: 'c')
 	endif
+  if cc.has_function('rl_replace_line')
+		add_project_arguments('-DHAVE_READLINE_REPLACE_LINE', language: 'c')
+  endif
 else # editline
 	readline = dependency('libedit', required: get_option('readline'))
 	if readline.found()

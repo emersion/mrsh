@@ -42,10 +42,7 @@ if get_option('readline-provider') == 'readline'
 		add_project_arguments('-DHAVE_READLINE', language: 'c')
 	endif
 
-  rl_replace_line_test = '''#include<readline/readline.h>
-int main() { rl_replace_line; }
-'''
-  if cc.compiles(rl_replace_line_test, name : 'rl_replace_line is defined')
+  if cc.has_function('rl_replace_line', prefix: '#include <readline/readline.h>', args: ['-lreadline'])
 		add_project_arguments('-DHAVE_READLINE_REPLACE_LINE', language: 'c')
   endif
 else # editline

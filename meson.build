@@ -42,9 +42,9 @@ if get_option('readline-provider') == 'readline'
 		add_project_arguments('-DHAVE_READLINE', language: 'c')
 	endif
 
-  if cc.has_function('rl_replace_line', prefix: '#include <readline/readline.h>', dependencies: [readline])
+	if cc.has_function('rl_replace_line', prefix: '#include <stdio.h>\n #include <readline/readline.h>', dependencies: [readline])
 		add_project_arguments('-DHAVE_READLINE_REPLACE_LINE', language: 'c')
-  endif
+	endif
 else # editline
 	readline = dependency('libedit', required: get_option('readline'))
 	if readline.found()

@@ -18,6 +18,13 @@
 #include "frontend.h"
 
 #if defined(HAVE_READLINE)
+#if !defined(HAVE_READLINE_REPLACE_LINE)
+static void rl_replace_line(const char *text,
+                            int clear_undo) {
+    return;
+}
+#endif
+
 static void sigint_handler(int n) {
 	/* Signal safety is done here on a best-effort basis. rl_redisplay is not
 	 * signal safe, but under these circumstances it's very likely that the

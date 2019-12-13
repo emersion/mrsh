@@ -9,13 +9,14 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include "builtin.h"
+#include "parser.h"
 
 static char *expand_str(struct mrsh_state *state, const char *src) {
 	struct mrsh_parser *parser = mrsh_parser_with_data(src, strlen(src));
 	if (parser == NULL) {
 		return NULL;
 	}
-	struct mrsh_word *word = mrsh_parse_word(parser);
+	struct mrsh_word *word = parameter_expansion_word(parser);
 	if (word == NULL) {
 		struct mrsh_position err_pos;
 		const char *err_msg = mrsh_parser_error(parser, &err_pos);

@@ -834,7 +834,70 @@ struct mrsh_word *arithmetic_word(struct mrsh_parser *parser, char end) {
 	}
 }
 
-struct mrsh_word *mrsh_parse_word(struct mrsh_parser *parser) {
-	parser_begin(parser);
-	return word_list(parser, 0, word);
+/**
+ * Parses a word, only recognizing parameter expansion. Quoting and operators
+ * are ignored. */
+struct mrsh_word *parameter_expansion_word(struct mrsh_parser *parser) {
+	struct mrsh_array children = {0};
+	struct mrsh_buffer buf = {0};
+	struct mrsh_position child_begin = {0};
+
+	while (true) {
+		if (!mrsh_position_valid(&child_begin)) {
+			child_begin = parser->pos;
+		}
+
+		char c = parser_peek_char(parser);
+		if (c == '\0') {
+			break;
+		}
+
+		if (c == '$') {
+			push_buffer_word_string(parser, &children, &buf, &child_begin);
+			struct mrsh_word *t = expect_dollar(parser);
+			if (t == NULL) {
+				return NULL;
+			}
+			mrsh_array_add(&children, t);
+			continue;
+		}
+
+		if (c == '`') {
+			push_buffer_word_string(parser, &children, &buf, &child_begin);
+			struct mrsh_word *t = back_quotes(parser);
+			if (t == NULL) {
+				return NULL;
+			}
+			mrsh_array_add(&children, t);
+			continue;
+		}
+
+		if (c == '\\') {
+			// Unquoted backslash
+			parser_read_char(parser);
+			c = parser_peek_char(parser);
+			if (c == '\n') {
+				// Continuation line
+				read_continuation_line(parser);
+				continue;
+			}
+		}
+
+		parser_read_char(parser);
+		mrsh_buffer_append_char(&buf, c);
+	}
+
+	push_buffer_word_string(parser, &children, &buf, &child_begin);
+	mrsh_buffer_finish(&buf);
+
+	consume_symbol(parser);
+
+	if (children.len == 1) {
+		struct mrsh_word *word = children.data[0];
+		mrsh_array_finish(&children); // TODO: don't allocate this array
+		return word;
+	} else {
+		struct mrsh_word_list *wl = mrsh_word_list_create(&children, false);
+		return &wl->word;
+	}
 }

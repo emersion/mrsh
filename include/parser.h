@@ -93,5 +93,6 @@ struct mrsh_word *expect_dollar(struct mrsh_parser *parser);
 struct mrsh_word *back_quotes(struct mrsh_parser *parser);
 struct mrsh_word *word(struct mrsh_parser *parser, char end);
 struct mrsh_word *arithmetic_word(struct mrsh_parser *parser, char end);
+struct mrsh_word *parameter_expansion_word(struct mrsh_parser *parser);
 
 #endif

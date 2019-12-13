@@ -233,6 +233,8 @@ then
 		readline=readline
 		use_readline=1
 		append_cflags -DHAVE_READLINE
+		# TODO: check for rl_replace_line
+		append_cflags -DHAVE_READLINE_REPLACE_LINE
 		echo yes
 	else
 		echo no

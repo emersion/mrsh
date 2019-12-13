@@ -10,27 +10,49 @@
 #include <unistd.h>
 #include "builtin.h"
 
-static char *expand_parameter(struct mrsh_state *state, const char *src) {
+static char *expand_str(struct mrsh_state *state, const char *src) {
 	struct mrsh_parser *parser = mrsh_parser_with_data(src, strlen(src));
 	if (parser == NULL) {
 		return NULL;
 	}
 	struct mrsh_word *word = mrsh_parse_word(parser);
-	mrsh_parser_destroy(parser);
 	if (word == NULL) {
+		struct mrsh_position err_pos;
+		const char *err_msg = mrsh_parser_error(parser, &err_pos);
+		if (err_msg != NULL) {
+			fprintf(stderr, "%d:%d: syntax error: %s\n",
+				err_pos.line, err_pos.column, err_msg);
+		} else {
+			fprintf(stderr, "expand_str: unknown error\n");
+		}
+		mrsh_parser_destroy(parser);
 		return NULL;
 	}
+	mrsh_parser_destroy(parser);
 	mrsh_run_word(state, &word);
 	char *str = mrsh_word_str(word);
 	mrsh_word_destroy(word);
 	return str;
 }
 
+static char *expand_ps(struct mrsh_state *state, const char *name) {
+	const char *ps = mrsh_env_get(state, name, NULL);
+	if (ps == NULL) {
+		return NULL;
+	}
+	char *str = expand_str(state, ps);
+	if (str == NULL) {
+		fprintf(stderr, "failed to expand '%s'\n", name);
+		// On error, fallback to the default PSn value
+	}
+	return str;
+}
+
 char *mrsh_get_ps1(struct mrsh_state *state, int next_history_id) {
 	// TODO: Replace ! with next history ID
-	const char *ps1 = mrsh_env_get(state, "PS1", NULL);
-	if (ps1 != NULL) {
-		return expand_parameter(state, ps1);
+	char *str = expand_ps(state, "PS1");
+	if (str != NULL) {
+		return str;
 	}
 	char *p = malloc(3);
 	sprintf(p, "%s", getuid() ? "$ " : "# ");
@@ -39,17 +61,17 @@ char *mrsh_get_ps1(struct mrsh_state *state, int next_history_id) {
 
 char *mrsh_get_ps2(struct mrsh_state *state) {
 	// TODO: Replace ! with next history ID
-	const char *ps2 = mrsh_env_get(state, "PS2", NULL);
-	if (ps2 != NULL) {
-		return expand_parameter(state, ps2);
+	char *str = expand_ps(state, "PS2");
+	if (str != NULL) {
+		return str;
 	}
 	return strdup("> ");
 }
 
 char *mrsh_get_ps4(struct mrsh_state *state) {
-	const char *ps4 = mrsh_env_get(state, "PS4", NULL);
-	if (ps4 != NULL) {
-		return expand_parameter(state, ps4);
+	char *str = expand_ps(state, "PS4");
+	if (str != NULL) {
+		return str;
 	}
 	return strdup("+ ");
 }
@@ -118,7 +140,7 @@ void mrsh_source_env(struct mrsh_state *state) {
 	if (getuid() != geteuid() || getgid() != getegid()) {
 		return;
 	}
-	path = expand_parameter(state, path);
+	path = expand_str(state, path);
 	if (path[0] != '/') {
 		fprintf(stderr, "Error: $ENV is not an absolute path; "
 				"this is undefined behavior.\n");

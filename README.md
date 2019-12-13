@@ -14,8 +14,8 @@ This project is a [work in progress].
 
 Both Meson and POSIX make are supported. To use Meson:
 
-    meson build
-    ninja -C build
+    meson build/
+    ninja -C build/
     build/mrsh
 
 To use POSIX make:

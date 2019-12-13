@@ -12,9 +12,17 @@ This project is a [work in progress].
 
 ## Build
 
+Both Meson and POSIX make are supported. To use Meson:
+
     meson build
     ninja -C build
     build/mrsh
+
+To use POSIX make:
+
+    ./configure
+    make
+    ./mrsh
 
 ## Contributing
 

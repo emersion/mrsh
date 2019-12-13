@@ -396,7 +396,7 @@ static void show_job(struct mrsh_job *job, struct mrsh_job *current,
 	free(cmd);
 }
 
-static void destroy_terminated_jobs(struct mrsh_state *state) {
+void mrsh_destroy_terminated_jobs(struct mrsh_state *state) {
 	struct mrsh_state_priv *priv = state_get_priv(state);
 
 	struct mrsh_job *current = job_by_id(state, "%+", false),
@@ -426,9 +426,7 @@ static void destroy_terminated_jobs(struct mrsh_state *state) {
 
 int mrsh_run_program(struct mrsh_state *state, struct mrsh_program *prog) {
 	struct mrsh_context ctx = { .state = state };
-	int ret = run_command_list_array(&ctx, &prog->body);
-	destroy_terminated_jobs(state);
-	return ret;
+	return run_command_list_array(&ctx, &prog->body);
 }
 
 int mrsh_run_word(struct mrsh_state *state, struct mrsh_word **word) {

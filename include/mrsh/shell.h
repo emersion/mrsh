@@ -99,5 +99,10 @@ bool mrsh_run_arithm_expr(struct mrsh_state *state,
  * groups and the terminal accordingly.
  */
 bool mrsh_set_job_control(struct mrsh_state *state, bool enabled);
+/**
+ * Destroy terminated jobs and print job notifications. This function should be
+ * called after mrsh_run_program.
+ */
+void mrsh_destroy_terminated_jobs(struct mrsh_state *state);
 
 #endif

@@ -129,6 +129,7 @@ int main(int argc, char *argv[]) {
 				mrsh_program_print(prog);
 			} else {
 				mrsh_run_program(state, prog);
+				mrsh_destroy_terminated_jobs(state);
 			}
 			mrsh_buffer_finish(&read_buffer);
 		}

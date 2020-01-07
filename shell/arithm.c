@@ -38,9 +38,19 @@ static bool run_arithm_binop(struct mrsh_state *state,
 		*result = left * right;
 		return true;
 	case MRSH_ARITHM_BINOP_SLASH:
+		if (right == 0) {
+			fprintf(stderr, "%s: division by zero: %ld/%ld\n",
+				state->frame->argv[0], left, right);
+			return false;
+		}
 		*result = left / right;
 		return true;
 	case MRSH_ARITHM_BINOP_PERCENT:
+		if (right == 0) {
+			fprintf(stderr, "%s: division by zero: %ld%%%ld\n",
+				state->frame->argv[0], left, right);
+			return false;
+		}
 		*result = left % right;
 		return true;
 	case MRSH_ARITHM_BINOP_PLUS:

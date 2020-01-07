@@ -144,30 +144,49 @@ static bool run_arithm_cond(struct mrsh_state *state,
 }
 
 static long run_arithm_assign_op(enum mrsh_arithm_assign_op op,
-		long cur, long val) {
+		long cur, long val, long *result) {
 	switch (op) {
 	case MRSH_ARITHM_ASSIGN_NONE:
-		return val;
+		*result = val;
+		return true;
 	case MRSH_ARITHM_ASSIGN_ASTERISK:
-		return cur * val;
+		*result = cur * val;
+		return true;
 	case MRSH_ARITHM_ASSIGN_SLASH:
-		return cur / val;
+		if (val == 0) {
+			fprintf(stderr, "division by zero: %ld/%ld\n", cur, val);
+			return false;
+		}
+		*result = cur / val;
+		return true;
 	case MRSH_ARITHM_ASSIGN_PERCENT:
-		return cur % val;
+		if (val == 0) {
+			fprintf(stderr, "division by zero: %ld%%%ld\n", cur, val);
+			return false;
+		}
+		*result = cur % val;
+		return true;
 	case MRSH_ARITHM_ASSIGN_PLUS:
-		return cur + val;
+		*result = cur + val;
+		return true;
 	case MRSH_ARITHM_ASSIGN_MINUS:
-		return cur - val;
+		*result = cur - val;
+		return true;
 	case MRSH_ARITHM_ASSIGN_DLESS:
-		return cur << val;
+		*result = cur << val;
+		return true;
 	case MRSH_ARITHM_ASSIGN_DGREAT:
-		return cur >> val;
+		*result = cur >> val;
+		return true;
 	case MRSH_ARITHM_ASSIGN_AND:
-		return cur & val;
+		*result = cur & val;
+		return true;
 	case MRSH_ARITHM_ASSIGN_CIRC:
-		return cur ^ val;
+		*result = cur ^ val;
+		return true;
 	case MRSH_ARITHM_ASSIGN_OR:
-		return cur | val;
+		*result = cur | val;
+		return true;
 	}
 	assert(false);
 }
@@ -185,7 +204,9 @@ static bool run_arithm_assign(struct mrsh_state *state,
 			return false;
 		}
 	}
-	*result = run_arithm_assign_op(assign->op, cur, val);
+	if (!run_arithm_assign_op(assign->op, cur, val, result)) {
+		return false;
+	}
 
 	char buf[32];
 	snprintf(buf, sizeof(buf), "%ld", *result);

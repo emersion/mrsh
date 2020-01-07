@@ -64,6 +64,24 @@ static int parse_sig(const char *str) {
 		return 0;
 	}
 
+	// XSI-conformant systems need to recognize a few more numeric signal
+	// numbers
+	if (strcmp(str, "1") == 0) {
+		return SIGHUP;
+	} else if (strcmp(str, "2") == 0) {
+		return SIGINT;
+	} else if (strcmp(str, "3") == 0) {
+		return SIGQUIT;
+	} else if (strcmp(str, "6") == 0) {
+		return SIGABRT;
+	} else if (strcmp(str, "9") == 0) {
+		return SIGKILL;
+	} else if (strcmp(str, "14") == 0) {
+		return SIGALRM;
+	} else if (strcmp(str, "15") == 0) {
+		return SIGTERM;
+	}
+
 	for (size_t i = 0; i < sizeof(sig_names) / sizeof(sig_names[0]); i++) {
 		if (sig_names[i] == NULL) {
 			continue;

@@ -18,5 +18,6 @@ enum mrsh_trap_action {
 bool set_trap(struct mrsh_state *state, int sig, enum mrsh_trap_action action,
 	struct mrsh_program *program);
 bool run_pending_traps(struct mrsh_state *state);
+bool run_exit_trap(struct mrsh_state *state);
 
 #endif

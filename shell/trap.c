@@ -78,3 +78,8 @@ bool run_pending_traps(struct mrsh_state *state) {
 	in_trap = false;
 	return true;
 }
+
+bool run_exit_trap(struct mrsh_state *state) {
+	pending_sigs[0]++;
+	return run_pending_traps(state);
+}

@@ -38,4 +38,10 @@ void mrsh_source_profile(struct mrsh_state *state);
 /** Sources $ENV. It is recommended to source this in interactive shells. */
 void mrsh_source_env(struct mrsh_state *state);
 
+/**
+ * Run the trap registered on EXIT. It is recommended to call this function
+ * right before exiting the shell.
+ */
+bool mrsh_run_exit_trap(struct mrsh_state *state);
+
 #endif

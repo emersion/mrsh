@@ -10,6 +10,7 @@
 #include <unistd.h>
 #include "builtin.h"
 #include "parser.h"
+#include "shell/trap.h"
 
 static char *expand_str(struct mrsh_state *state, const char *src) {
 	struct mrsh_parser *parser = mrsh_parser_with_data(src, strlen(src));
@@ -150,4 +151,8 @@ void mrsh_source_env(struct mrsh_state *state) {
 		source_file(state, path);
 	}
 	free(path);
+}
+
+bool mrsh_run_exit_trap(struct mrsh_state *state) {
+	return run_exit_trap(state);
 }

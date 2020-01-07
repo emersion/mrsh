@@ -141,6 +141,9 @@ int main(int argc, char *argv[]) {
 	}
 
 	int exit = state->exit;
+
+	mrsh_run_exit_trap(state);
+
 	mrsh_buffer_finish(&read_buffer);
 	mrsh_parser_destroy(parser);
 	mrsh_buffer_finish(&parser_buffer);

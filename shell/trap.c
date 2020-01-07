@@ -49,12 +49,12 @@ bool run_pending_traps(struct mrsh_state *state) {
 	struct mrsh_state_priv *priv = state_get_priv(state);
 	static bool in_trap = false;
 
-	// TODO: save and restore $?
-
 	if (in_trap) {
 		return true;
 	}
 	in_trap = true;
+
+	int last_status = state->last_status;
 
 	for (size_t i = 0; i < MRSH_NSIG; i++) {
 		struct mrsh_trap *trap = &priv->traps[i];
@@ -70,6 +70,7 @@ bool run_pending_traps(struct mrsh_state *state) {
 			}
 
 			pending_sigs[i]--;
+			state->last_status = last_status; // Restore "$?"
 		}
 
 		pending_sigs[i] = 0;

@@ -106,6 +106,8 @@ static int run_word_command(struct mrsh_context *ctx, struct mrsh_word **word_pt
 		dup2(fds[1], STDOUT_FILENO);
 		close(fds[1]);
 
+		init_job_child_process(ctx->state);
+
 		// When a subshell is entered, traps that are not being ignored shall
 		// be set to the default actions, except in the case of a command
 		// substitution containing only a single trap command, when the traps

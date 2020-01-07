@@ -145,7 +145,6 @@ bool job_set_foreground(struct mrsh_job *job, bool foreground, bool cont) {
 	assert(job->pgid > 0);
 
 	if (!priv->job_control) {
-		fprintf(stderr, "job_set_foreground called with job control disabled\n");
 		return false;
 	}
 

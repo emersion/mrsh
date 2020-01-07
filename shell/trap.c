@@ -17,7 +17,24 @@ bool set_trap(struct mrsh_state *state, int sig, enum mrsh_trap_action action,
 
 	assert(action == MRSH_TRAP_CATCH || program == NULL);
 
+	struct mrsh_trap *trap = &priv->traps[sig];
+
 	if (sig != 0) {
+		if (!trap->set && !state->interactive) {
+			// Signals that were ignored on entry to a non-interactive shell
+			// cannot be trapped or reset
+			struct sigaction sa;
+			if (sigaction(sig, NULL, &sa) != 0) {
+				perror("failed to get current signal action: sigaction");
+				return false;
+			}
+			if (sa.sa_handler == SIG_IGN) {
+				fprintf(stderr, "cannot trap signal %d: "
+					"ignored on non-interactive shell entry\n", sig);
+				return false;
+			}
+		}
+
 		struct sigaction sa = {0};
 		switch (action) {
 		case MRSH_TRAP_DEFAULT:
@@ -31,12 +48,11 @@ bool set_trap(struct mrsh_state *state, int sig, enum mrsh_trap_action action,
 			break;
 		}
 		if (sigaction(sig, &sa, NULL) < 0) {
-			perror("sigaction");
+			perror("failed to set signal action: sigaction");
 			return false;
 		}
 	}
 
-	struct mrsh_trap *trap = &priv->traps[sig];
 	trap->set = true;
 	trap->action = action;
 	mrsh_program_destroy(trap->program);

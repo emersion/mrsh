@@ -5,6 +5,7 @@
 #include <termios.h>
 #include "job.h"
 #include "process.h"
+#include "shell/trap.h"
 
 struct mrsh_variable {
 	char *value;
@@ -29,6 +30,12 @@ struct mrsh_call_frame_priv {
 	int nloops;
 };
 
+struct mrsh_trap {
+	bool set;
+	enum mrsh_trap_action action;
+	struct mrsh_program *program;
+};
+
 struct mrsh_state_priv {
 	struct mrsh_state pub;
 
@@ -44,6 +51,8 @@ struct mrsh_state_priv {
 	struct sigaction *saved_sigactions;
 	struct mrsh_array jobs; // struct mrsh_job *
 	struct mrsh_job *foreground_job;
+
+	struct mrsh_trap traps[MRSH_NSIG];
 
 	// TODO: move this to context
 	bool child; // true if we're not the main shell process

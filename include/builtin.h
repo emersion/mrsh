@@ -31,6 +31,7 @@ int builtin_return(struct mrsh_state *state, int argc, char *argv[]);
 int builtin_set(struct mrsh_state *state, int argc, char *argv[]);
 int builtin_shift(struct mrsh_state *state, int argc, char *argv[]);
 int builtin_times(struct mrsh_state *state, int argc, char *argv[]);
+int builtin_trap(struct mrsh_state *state, int argc, char *argv[]);
 int builtin_true(struct mrsh_state *state, int argc, char *argv[]);
 int builtin_type(struct mrsh_state *state, int argc, char *argv[]);
 int builtin_ulimit(struct mrsh_state *state, int argc, char *argv[]);

@@ -55,6 +55,7 @@ libmrsh() {
 		'builtin/set.c' \
 		'builtin/shift.c' \
 		'builtin/times.c' \
+		'builtin/trap.c' \
 		'builtin/true.c' \
 		'builtin/type.c' \
 		'builtin/ulimit.c' \
@@ -80,6 +81,7 @@ libmrsh() {
 		'shell/task/simple_command.c' \
 		'shell/task/task.c' \
 		'shell/task/word.c' \
+		'shell/trap.c' \
 		'shell/word.c'
 }
 

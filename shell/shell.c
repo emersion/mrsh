@@ -110,6 +110,9 @@ void mrsh_state_destroy(struct mrsh_state *state) {
 		call_frame_destroy(frame);
 		frame = prev;
 	}
+	for (size_t i = 0; i < MRSH_NSIG; i++) {
+		mrsh_program_destroy(priv->traps[i].program);
+	}
 	free(state);
 }
 

@@ -38,6 +38,7 @@ static const struct builtin builtins[] = {
 	{ "set", builtin_set, true },
 	{ "shift", builtin_shift, true },
 	{ "times", builtin_times, true },
+	{ "trap", builtin_trap, false },
 	{ "true", builtin_true, false },
 	{ "type", builtin_type, false },
 	{ "ulimit", builtin_ulimit, false },

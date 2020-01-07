@@ -10,6 +10,7 @@
 #include <unistd.h>
 #include "shell/shell.h"
 #include "shell/task.h"
+#include "shell/trap.h"
 
 static int run_subshell(struct mrsh_context *ctx, struct mrsh_array *array) {
 	struct mrsh_state_priv *priv = state_get_priv(ctx->state);
@@ -426,7 +427,9 @@ void mrsh_destroy_terminated_jobs(struct mrsh_state *state) {
 
 int mrsh_run_program(struct mrsh_state *state, struct mrsh_program *prog) {
 	struct mrsh_context ctx = { .state = state };
-	return run_command_list_array(&ctx, &prog->body);
+	int ret = run_command_list_array(&ctx, &prog->body);
+	run_pending_traps(state);
+	return ret;
 }
 
 int mrsh_run_word(struct mrsh_state *state, struct mrsh_word **word) {

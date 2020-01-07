@@ -1,3 +1,4 @@
+#define _XOPEN_SOURCE 1 // for SIGPOLL and SIGVTALRM
 #include <assert.h>
 #include <mrsh/getopt.h>
 #include <mrsh/parser.h>
@@ -35,7 +36,11 @@ static const char *sig_names[] = {
 	[SIGTTOU] = "TTOU",
 	[SIGUSR1] = "USR1",
 	[SIGUSR2] = "USR2",
+	// Some BSDs have decided against implementing SIGPOLL for functional and
+	// security reasons
+#ifdef SIGPOLL
 	[SIGPOLL] = "POLL",
+#endif
 	[SIGPROF] = "PROF",
 	[SIGSYS] = "SYS",
 	[SIGTRAP] = "TRAP",

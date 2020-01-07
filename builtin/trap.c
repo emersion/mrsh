@@ -123,8 +123,7 @@ static void print_traps(struct mrsh_state *state) {
 			break;
 		case MRSH_TRAP_CATCH:;
 			char *cmd = mrsh_node_format(&trap->program->node);
-			// TODO: quoting
-			printf("'%s'", cmd);
+			print_escaped(cmd);
 			free(cmd);
 			break;
 		}

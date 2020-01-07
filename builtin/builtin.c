@@ -117,7 +117,7 @@ void print_escaped(const char *value) {
 			break;
 		}
 	}
-	if (value[i] == '\0') {
+	if (value[i] == '\0' && i > 0) {
 		printf("%s", value);
 	} else {
 		printf("'");

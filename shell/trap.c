@@ -4,6 +4,16 @@
 #include "shell/shell.h"
 #include "shell/trap.h"
 
+static const int ignored_job_control_sigs[] = {
+	SIGINT,
+	SIGQUIT,
+	SIGTSTP,
+	SIGTTIN,
+	SIGTTOU,
+};
+static const size_t ignored_job_control_sigs_len =
+	sizeof(ignored_job_control_sigs) / sizeof(ignored_job_control_sigs[0]);
+
 static int pending_sigs[MRSH_NSIG] = {0};
 
 static void handle_signal(int sig) {
@@ -35,6 +45,16 @@ bool set_trap(struct mrsh_state *state, int sig, enum mrsh_trap_action action,
 			}
 		}
 
+		if (action == MRSH_TRAP_DEFAULT && priv->job_control) {
+			// When job control is enabled, some signals are ignored by default
+			for (size_t i = 0; i < ignored_job_control_sigs_len; i++) {
+				if (sig == ignored_job_control_sigs[i]) {
+					action = MRSH_TRAP_IGNORE;
+					break;
+				}
+			}
+		}
+
 		struct sigaction sa = {0};
 		switch (action) {
 		case MRSH_TRAP_DEFAULT:
@@ -47,6 +67,7 @@ bool set_trap(struct mrsh_state *state, int sig, enum mrsh_trap_action action,
 			sa.sa_handler = handle_signal;
 			break;
 		}
+
 		if (sigaction(sig, &sa, NULL) < 0) {
 			perror("failed to set signal action: sigaction");
 			return false;
@@ -58,6 +79,18 @@ bool set_trap(struct mrsh_state *state, int sig, enum mrsh_trap_action action,
 	mrsh_program_destroy(trap->program);
 	trap->program = program;
 
+	return true;
+}
+
+bool set_job_control_traps(struct mrsh_state *state) {
+	for (size_t i = 0; i < ignored_job_control_sigs_len; i++) {
+		// set_trap will figure out whether the signal should be ignored or not
+		// depending on state->job_control
+		if (!set_trap(state, ignored_job_control_sigs[i],
+				MRSH_TRAP_DEFAULT, NULL)) {
+			return false;
+		}
+	}
 	return true;
 }
 

@@ -13,17 +13,6 @@
 #include "shell/shell.h"
 #include "shell/task.h"
 
-static const int ignored_signals[] = {
-	SIGINT,
-	SIGQUIT,
-	SIGTSTP,
-	SIGTTIN,
-	SIGTTOU,
-};
-
-static const size_t IGNORED_SIGNALS_LEN =
-	sizeof(ignored_signals) / sizeof(ignored_signals[0]);
-
 bool mrsh_set_job_control(struct mrsh_state *state, bool enabled) {
 	struct mrsh_state_priv *priv = state_get_priv(state);
 
@@ -41,24 +30,6 @@ bool mrsh_set_job_control(struct mrsh_state *state, bool enabled) {
 				break;
 			}
 			kill(-pgid, SIGTTIN);
-		}
-
-		assert(priv->saved_sigactions == NULL);
-		priv->saved_sigactions =
-			malloc(IGNORED_SIGNALS_LEN * sizeof(struct sigaction));
-		if (priv->saved_sigactions == NULL) {
-			return false;
-		}
-
-		// Ignore interactive and job-control signals
-		struct sigaction sa = { .sa_handler = SIG_IGN };
-		sigemptyset(&sa.sa_mask);
-		for (size_t i = 0; i < IGNORED_SIGNALS_LEN; ++i) {
-			if (sigaction(ignored_signals[i], &sa,
-					&priv->saved_sigactions[i]) != 0) {
-				perror("sigaction");
-				return false;
-			}
 		}
 
 		// Put ourselves in our own process group, if we aren't the session
@@ -82,20 +53,11 @@ bool mrsh_set_job_control(struct mrsh_state *state, bool enabled) {
 			return false;
 		}
 	} else {
-		assert(priv->saved_sigactions != NULL);
-		for (size_t i = 0; i < IGNORED_SIGNALS_LEN; ++i) {
-			if (sigaction(ignored_signals[i],
-					&priv->saved_sigactions[i], NULL) != 0) {
-				perror("sigaction");
-				return false;
-			}
-		}
-
-		free(priv->saved_sigactions);
-		priv->saved_sigactions = NULL;
+		// TODO
 	}
 
 	priv->job_control = enabled;
+	set_job_control_traps(state);
 	return true;
 }
 

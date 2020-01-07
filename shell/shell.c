@@ -103,7 +103,6 @@ void mrsh_state_destroy(struct mrsh_state *state) {
 		process_destroy(priv->processes.data[priv->processes.len - 1]);
 	}
 	mrsh_array_finish(&priv->processes);
-	free(priv->saved_sigactions);
 	struct mrsh_call_frame *frame = state->frame;
 	while (frame) {
 		struct mrsh_call_frame *prev = frame->prev;

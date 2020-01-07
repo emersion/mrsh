@@ -36,6 +36,50 @@ static bool buffer_read_from(struct mrsh_buffer *buf, int fd) {
 	return true;
 }
 
+static bool naive_word_streq(struct mrsh_word *word, const char *str) {
+	while (word->type == MRSH_WORD_LIST) {
+		struct mrsh_word_list *wl = mrsh_word_get_list(word);
+		if (wl->children.len != 1) {
+			return false;
+		}
+		word = wl->children.data[0];
+	}
+	if (word->type != MRSH_WORD_STRING) {
+		return false;
+	}
+	struct mrsh_word_string *ws = mrsh_word_get_string(word);
+	return strcmp(ws->str, "trap") == 0;
+}
+
+static bool is_print_traps(struct mrsh_program *program) {
+	if (program->body.len != 1) {
+		return false;
+	}
+	struct mrsh_command_list *cl = program->body.data[0];
+	if (cl->ampersand || cl->and_or_list->type != MRSH_AND_OR_LIST_PIPELINE) {
+		return false;
+	}
+	struct mrsh_pipeline *pipeline =
+		mrsh_and_or_list_get_pipeline(cl->and_or_list);
+	if (pipeline->bang || pipeline->commands.len != 1) {
+		return false;
+	}
+	struct mrsh_command *cmd = pipeline->commands.data[0];
+	if (cmd->type != MRSH_SIMPLE_COMMAND) {
+		return false;
+	}
+	struct mrsh_simple_command *sc = mrsh_command_get_simple_command(cmd);
+	if (sc->name == NULL || !naive_word_streq(sc->name, "trap")) {
+		return false;
+	}
+	if (sc->arguments.len == 1) {
+		struct mrsh_word *arg = sc->arguments.data[0];
+		return naive_word_streq(arg, "--");
+	} else {
+		return sc->arguments.len == 0;
+	}
+}
+
 static void swap_words(struct mrsh_word **word_ptr, struct mrsh_word *new_word) {
 	mrsh_word_destroy(*word_ptr);
 	*word_ptr = new_word;
@@ -61,6 +105,14 @@ static int run_word_command(struct mrsh_context *ctx, struct mrsh_word **word_pt
 
 		dup2(fds[1], STDOUT_FILENO);
 		close(fds[1]);
+
+		// When a subshell is entered, traps that are not being ignored shall
+		// be set to the default actions, except in the case of a command
+		// substitution containing only a single trap command, when the traps
+		// need not be altered.
+		if (!wc->program || !is_print_traps(wc->program)) {
+			reset_caught_traps(ctx->state);
+		}
 
 		if (wc->program != NULL) {
 			mrsh_run_program(ctx->state, wc->program);

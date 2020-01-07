@@ -94,6 +94,21 @@ bool set_job_control_traps(struct mrsh_state *state) {
 	return true;
 }
 
+bool reset_caught_traps(struct mrsh_state *state) {
+	struct mrsh_state_priv *priv = state_get_priv(state);
+
+	for (size_t i = 0; i < MRSH_NSIG; i++) {
+		struct mrsh_trap *trap = &priv->traps[i];
+		if (trap->set && trap->action != MRSH_TRAP_IGNORE) {
+			if (!set_trap(state, i, MRSH_TRAP_DEFAULT, NULL)) {
+				return false;
+			}
+		}
+	}
+
+	return true;
+}
+
 bool run_pending_traps(struct mrsh_state *state) {
 	struct mrsh_state_priv *priv = state_get_priv(state);
 	static bool in_trap = false;

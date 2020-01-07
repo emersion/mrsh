@@ -22,6 +22,8 @@ static int run_subshell(struct mrsh_context *ctx, struct mrsh_array *array) {
 	} else if (pid == 0) {
 		priv->child = true;
 
+		reset_caught_traps(ctx->state);
+
 		if (!(ctx->state->options & MRSH_OPT_MONITOR)) {
 			// If job control is disabled, stdin is /dev/null
 			int fd = open("/dev/null", O_CLOEXEC | O_RDONLY);

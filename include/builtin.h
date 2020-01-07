@@ -18,6 +18,7 @@ int builtin_command(struct mrsh_state *state, int argc, char *argv[]);
 int builtin_colon(struct mrsh_state *state, int argc, char *argv[]);
 int builtin_dot(struct mrsh_state *state, int argc, char *argv[]);
 int builtin_eval(struct mrsh_state *state, int argc, char *argv[]);
+int builtin_exec(struct mrsh_state *state, int argc, char *argv[]);
 int builtin_exit(struct mrsh_state *state, int argc, char *argv[]);
 int builtin_export(struct mrsh_state *state, int argc, char *argv[]);
 int builtin_false(struct mrsh_state *state, int argc, char *argv[]);

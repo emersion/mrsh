@@ -24,6 +24,7 @@ static const struct builtin builtins[] = {
 	{ "command", builtin_command, false },
 	{ "continue", builtin_break, true },
 	{ "eval", builtin_eval, true },
+	{ "exec", builtin_exec, false },
 	{ "exit", builtin_exit, true },
 	{ "export", builtin_export, true },
 	{ "false", builtin_false, false },

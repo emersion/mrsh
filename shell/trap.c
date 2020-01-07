@@ -83,13 +83,27 @@ bool set_trap(struct mrsh_state *state, int sig, enum mrsh_trap_action action,
 }
 
 bool set_job_control_traps(struct mrsh_state *state) {
+	struct mrsh_state_priv *priv = state_get_priv(state);
+
 	for (size_t i = 0; i < ignored_job_control_sigs_len; i++) {
-		// set_trap will figure out whether the signal should be ignored or not
-		// depending on state->job_control
-		if (!set_trap(state, ignored_job_control_sigs[i],
-				MRSH_TRAP_DEFAULT, NULL)) {
+		int sig = ignored_job_control_sigs[i];
+		struct mrsh_trap *trap = &priv->traps[i];
+
+		struct sigaction sa = {0};
+		if (priv->job_control) {
+			sa.sa_handler = SIG_IGN;
+		} else {
+			sa.sa_handler = SIG_DFL;
+		}
+		if (sigaction(sig, &sa, NULL) < 0) {
+			perror("sigaction");
 			return false;
 		}
+
+		trap->set = false;
+		trap->action = MRSH_TRAP_DEFAULT;
+		mrsh_program_destroy(trap->program);
+		trap->program = NULL;
 	}
 	return true;
 }

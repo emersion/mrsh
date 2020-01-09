@@ -32,6 +32,9 @@ bool mrsh_set_job_control(struct mrsh_state *state, bool enabled) {
 			kill(-pgid, SIGTTIN);
 		}
 
+		// Ignore interactive and job-control signals
+		set_job_control_traps(state, true);
+
 		// Put ourselves in our own process group, if we aren't the session
 		// leader
 		priv->pgid = getpid();
@@ -53,11 +56,10 @@ bool mrsh_set_job_control(struct mrsh_state *state, bool enabled) {
 			return false;
 		}
 	} else {
-		// TODO
+		set_job_control_traps(state, false);
 	}
 
 	priv->job_control = enabled;
-	set_job_control_traps(state);
 	return true;
 }
 

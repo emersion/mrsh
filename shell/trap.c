@@ -82,7 +82,7 @@ bool set_trap(struct mrsh_state *state, int sig, enum mrsh_trap_action action,
 	return true;
 }
 
-bool set_job_control_traps(struct mrsh_state *state) {
+bool set_job_control_traps(struct mrsh_state *state, bool enabled) {
 	struct mrsh_state_priv *priv = state_get_priv(state);
 
 	for (size_t i = 0; i < ignored_job_control_sigs_len; i++) {
@@ -90,7 +90,7 @@ bool set_job_control_traps(struct mrsh_state *state) {
 		struct mrsh_trap *trap = &priv->traps[i];
 
 		struct sigaction sa = {0};
-		if (priv->job_control) {
+		if (enabled) {
 			sa.sa_handler = SIG_IGN;
 		} else {
 			sa.sa_handler = SIG_DFL;

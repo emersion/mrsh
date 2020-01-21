@@ -206,8 +206,14 @@ static int set(struct mrsh_state *state, struct mrsh_init_args *init_args,
 }
 
 int builtin_set(struct mrsh_state *state, int argc, char *argv[]) {
-	// TODO: support enabling/disabling job control at runtime
-	return set(state, NULL, argc, argv);
+	int ret = set(state, NULL, argc, argv);
+	if (ret != 0) {
+		return ret;
+	}
+	if (!mrsh_set_job_control(state, state->options & MRSH_OPT_MONITOR)) {
+		return 1;
+	}
+	return 0;
 }
 
 int mrsh_process_args(struct mrsh_state *state, struct mrsh_init_args *args,

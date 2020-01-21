@@ -55,8 +55,6 @@ enum mrsh_option {
 	// -x: The shell shall write to standard error a trace for each command
 	// after it expands the command and before it executes it.
 	MRSH_OPT_XTRACE = 1 << 13,
-	// Defaults for an interactive session
-	MRSH_OPT_INTERACTIVE = MRSH_OPT_MONITOR,
 };
 
 enum mrsh_variable_attrib {

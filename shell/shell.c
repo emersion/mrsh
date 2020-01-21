@@ -28,8 +28,6 @@ struct mrsh_state *mrsh_state_create(void) {
 
 	struct mrsh_state *state = &priv->pub;
 	state->exit = -1;
-	state->interactive = isatty(priv->term_fd);
-	state->options = state->interactive ? MRSH_OPT_INTERACTIVE : 0;
 
 	struct mrsh_call_frame_priv *frame_priv =
 		calloc(1, sizeof(struct mrsh_call_frame_priv));

@@ -6,7 +6,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 #include "builtin.h"
+#include "shell/shell.h"
 
 static const char set_usage[] =
 	"usage: set [(-|+)abCefhmnuvx] [-o option] [args...]\n"
@@ -98,8 +100,8 @@ static void argv_free(int argc, char **argv) {
 	free(argv);
 }
 
-static int set(struct mrsh_state *state, struct mrsh_init_args *init_args,
-		int argc, char *argv[]) {
+static int set(struct mrsh_state *state, int argc, char *argv[],
+		struct mrsh_init_args *init_args, uint32_t *populated_opts) {
 	if (argc == 1 && init_args == NULL) {
 		size_t count;
 		struct mrsh_collect_var *vars = collect_vars(
@@ -145,6 +147,9 @@ static int set(struct mrsh_state *state, struct mrsh_init_args *init_args,
 			} else {
 				state->options &= ~option->value;
 			}
+			if (populated_opts != NULL) {
+				*populated_opts |= option->value;
+			}
 			++i;
 			continue;
 		case 'c':
@@ -152,7 +157,6 @@ static int set(struct mrsh_state *state, struct mrsh_init_args *init_args,
 				fprintf(stderr, set_usage);
 				return 1;
 			}
-			state->interactive = false;
 			init_args->command_str = argv[i + 1];
 			++i;
 			break;
@@ -176,6 +180,9 @@ static int set(struct mrsh_state *state, struct mrsh_init_args *init_args,
 				} else {
 					state->options &= ~option->value;
 				}
+				if (populated_opts != NULL) {
+					*populated_opts |= option->value;
+				}
 			}
 			break;
 		}
@@ -185,10 +192,6 @@ static int set(struct mrsh_state *state, struct mrsh_init_args *init_args,
 		char *argv_0;
 		if (init_args != NULL) {
 			argv_0 = strdup(argv[i++]);
-
-			// TODO: Turn off -m if the user didn't explicitly set it
-			state->interactive = false;
-
 			init_args->command_file = argv_0;
 		} else {
 			argv_0 = strdup(state->frame->argv[0]);
@@ -206,17 +209,36 @@ static int set(struct mrsh_state *state, struct mrsh_init_args *init_args,
 }
 
 int builtin_set(struct mrsh_state *state, int argc, char *argv[]) {
-	int ret = set(state, NULL, argc, argv);
+	uint32_t populated_opts = 0;
+	int ret = set(state, argc, argv, NULL, &populated_opts);
 	if (ret != 0) {
 		return ret;
 	}
-	if (!mrsh_set_job_control(state, state->options & MRSH_OPT_MONITOR)) {
-		return 1;
+
+	if (populated_opts & MRSH_OPT_MONITOR) {
+		if (!mrsh_set_job_control(state, state->options & MRSH_OPT_MONITOR)) {
+			return 1;
+		}
 	}
+
 	return 0;
 }
 
-int mrsh_process_args(struct mrsh_state *state, struct mrsh_init_args *args,
+int mrsh_process_args(struct mrsh_state *state, struct mrsh_init_args *init_args,
 		int argc, char *argv[]) {
-	return set(state, args, argc, argv);
+	struct mrsh_state_priv *priv = state_get_priv(state);
+
+	uint32_t populated_opts = 0;
+	int ret = set(state, argc, argv, init_args, &populated_opts);
+	if (ret != 0) {
+		return ret;
+	}
+
+	state->interactive = isatty(priv->term_fd) &&
+		init_args->command_str == NULL && init_args->command_file == NULL;
+	if (state->interactive && !(populated_opts & MRSH_OPT_MONITOR)) {
+		state->options |= MRSH_OPT_MONITOR;
+	}
+
+	return 0;
 }

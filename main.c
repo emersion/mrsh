@@ -56,7 +56,7 @@ int main(int argc, char *argv[]) {
 	}
 	mrsh_state_set_parser_alias_func(state, parser);
 
-	if (state->interactive) {
+	if (state->options & MRSH_OPT_MONITOR) {
 		if (!mrsh_set_job_control(state, true)) {
 			fprintf(stderr, "failed to enable job control\n");
 		}

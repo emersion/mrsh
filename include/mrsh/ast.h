@@ -331,6 +331,7 @@ struct mrsh_function_definition {
 	struct mrsh_command command;
 	char *name;
 	struct mrsh_command *body;
+	struct mrsh_array io_redirects; // struct mrsh_io_redirect *
 
 	struct mrsh_range name_range;
 	struct mrsh_position lparen_pos, rparen_pos;
@@ -429,7 +430,7 @@ struct mrsh_loop_clause *mrsh_loop_clause_create(enum mrsh_loop_type type,
 struct mrsh_case_clause *mrsh_case_clause_create(struct mrsh_word *word,
 	struct mrsh_array *items);
 struct mrsh_function_definition *mrsh_function_definition_create(char *name,
-	struct mrsh_command *body);
+	struct mrsh_command *body, struct mrsh_array *io_redirects);
 struct mrsh_pipeline *mrsh_pipeline_create(struct mrsh_array *commands,
 	bool bang);
 struct mrsh_binop *mrsh_binop_create(enum mrsh_binop_type type,

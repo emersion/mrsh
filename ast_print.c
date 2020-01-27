@@ -377,6 +377,7 @@ static void print_function_definition(struct mrsh_function_definition *fd,
 		const char *prefix) {
 	printf("function_definition %s ─ ", fd->name);
 	print_command(fd->body, prefix);
+	// TODO: print io_redirects
 }
 
 static void print_command(struct mrsh_command *cmd, const char *prefix) {

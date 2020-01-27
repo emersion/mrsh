@@ -839,10 +839,17 @@ static struct mrsh_function_definition *function_definition(
 		return NULL;
 	}
 
-	// TODO: compound_command redirect_list
+	struct mrsh_array io_redirects = {0};
+	while (true) {
+		struct mrsh_io_redirect *redir = io_redirect(parser);
+		if (redir == NULL) {
+			break;
+		}
+		mrsh_array_add(&io_redirects, redir);
+	}
 
 	struct mrsh_function_definition *fd =
-		mrsh_function_definition_create(name, cmd);
+		mrsh_function_definition_create(name, cmd, &io_redirects);
 	fd->name_range = name_range;
 	fd->lparen_pos = lparen_pos;
 	fd->rparen_pos = rparen_pos;

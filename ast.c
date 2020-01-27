@@ -197,6 +197,11 @@ void mrsh_command_destroy(struct mrsh_command *cmd) {
 			mrsh_command_get_function_definition(cmd);
 		free(fd->name);
 		mrsh_command_destroy(fd->body);
+		for (size_t i = 0; i < fd->io_redirects.len; ++i) {
+			struct mrsh_io_redirect *redir = fd->io_redirects.data[i];
+			mrsh_io_redirect_destroy(redir);
+		}
+		mrsh_array_finish(&fd->io_redirects);
 		free(fd);
 		return;
 	}
@@ -443,13 +448,14 @@ struct mrsh_case_clause *mrsh_case_clause_create(struct mrsh_word *word,
 }
 
 struct mrsh_function_definition *mrsh_function_definition_create(char *name,
-		struct mrsh_command *body) {
+		struct mrsh_command *body, struct mrsh_array *io_redirects) {
 	struct mrsh_function_definition *fd =
 		calloc(1, sizeof(struct mrsh_function_definition));
 	fd->command.node.type = MRSH_NODE_COMMAND;
 	fd->command.type = MRSH_FUNCTION_DEFINITION;
 	fd->name = name;
 	fd->body = body;
+	fd->io_redirects = *io_redirects;
 	return fd;
 }
 
@@ -1126,6 +1132,7 @@ static struct mrsh_case_item *case_item_copy(const struct mrsh_case_item *ci) {
 }
 
 struct mrsh_command *mrsh_command_copy(const struct mrsh_command *cmd) {
+	struct mrsh_array io_redirects = {0};
 	switch (cmd->type) {
 	case MRSH_SIMPLE_COMMAND:;
 		struct mrsh_simple_command *sc = mrsh_command_get_simple_command(cmd);
@@ -1142,7 +1149,6 @@ struct mrsh_command *mrsh_command_copy(const struct mrsh_command *cmd) {
 			mrsh_array_add(&arguments, mrsh_word_copy(arg));
 		}
 
-		struct mrsh_array io_redirects = {0};
 		mrsh_array_reserve(&io_redirects, sc->io_redirects.len);
 		for (size_t i = 0; i < sc->io_redirects.len; ++i) {
 			struct mrsh_io_redirect *redir = sc->io_redirects.data[i];
@@ -1233,9 +1239,15 @@ struct mrsh_command *mrsh_command_copy(const struct mrsh_command *cmd) {
 		struct mrsh_function_definition *fd =
 			mrsh_command_get_function_definition(cmd);
 
+		mrsh_array_reserve(&io_redirects, fd->io_redirects.len);
+		for (size_t i = 0; i < fd->io_redirects.len; ++i) {
+			struct mrsh_io_redirect *redir = fd->io_redirects.data[i];
+			mrsh_array_add(&io_redirects, mrsh_io_redirect_copy(redir));
+		}
+
 		struct mrsh_function_definition *fd_copy =
 			mrsh_function_definition_create(strdup(fd->name),
-				mrsh_command_copy(fd->body));
+				mrsh_command_copy(fd->body), &io_redirects);
 		return &fd_copy->command;
 	}
 	assert(0);

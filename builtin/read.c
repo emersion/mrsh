@@ -97,5 +97,10 @@ int builtin_read(struct mrsh_state *state, int argc, char *argv[]) {
 		free(fields.data[i]);
 	}
 	mrsh_array_finish(&fields);
-	return 0;
+
+	if (c == EOF) {
+		return 1;
+	} else {
+		return 0;
+	}
 }

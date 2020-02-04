@@ -1,4 +1,6 @@
-func() { getopts "abcd" opt; }
+func() (
+	getopts "abcd" opt
+)
 
 func
 func -a

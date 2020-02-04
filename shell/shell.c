@@ -155,7 +155,7 @@ struct mrsh_call_frame_priv *call_frame_get_priv(struct mrsh_call_frame *frame) 
 void push_frame(struct mrsh_state *state, int argc, const char *argv[]) {
 	struct mrsh_call_frame_priv *next = calloc(1, sizeof(*next));
 	next->pub.argc = argc;
-	next->pub.argv = malloc(sizeof(char *) * argc);
+	next->pub.argv = calloc(argc + 1, sizeof(char *));
 	for (int i = 0; i < argc; ++i) {
 		next->pub.argv[i] = strdup(argv[i]);
 	}

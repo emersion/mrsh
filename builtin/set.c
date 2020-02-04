@@ -82,7 +82,7 @@ static const struct option_map *find_long_option(const char *opt) {
 }
 
 static char **argv_dup(char *argv_0, int argc, char *argv[]) {
-	char **_argv = malloc((argc + 1) * sizeof(char *));
+	char **_argv = calloc(argc + 1, sizeof(char *));
 	_argv[0] = argv_0;
 	for (int i = 1; i < argc; ++i) {
 		_argv[i] = strdup(argv[i - 1]);

@@ -1,0 +1,14 @@
+|&;<>()$`\"'
+*?[#˜=%
+arg one: with space; arg two: with	tab
+arg one: without; arg two: newline
+arg one: withoutwhitespace; arg two: arg two
+|&;<>()$`\"
+|&;<>()'"
+2 + 3 = 5
+cmd 1: cmd 1
+cmd 2: cmd 2
+cmd 3: cmd 3
+cmd 4: cmd 4
+$`"\test
+\|\&\;\<\>\(\)\'

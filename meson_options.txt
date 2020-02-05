@@ -26,3 +26,10 @@ option(
 	value: 'sh',
 	description: 'Reference shell used in tests',
 )
+
+option(
+	'test-undefined-behavior',
+	type: 'boolean',
+	value: true,
+	description: 'Run tests that assert undefined behavior fails',
+)

@@ -335,7 +335,13 @@ static struct mrsh_word_command *expect_word_command(
 	assert(symbol(parser, TOKEN));
 	consume_symbol(parser);
 
+	// Alias substitution is not allowed inside command substitution, see
+	// section 2.2.3
+	mrsh_parser_alias_func alias = parser->alias;
+	parser->alias = NULL;
+
 	struct mrsh_program *prog = mrsh_parse_program(parser);
+	parser->alias = alias;
 	if (prog == NULL) {
 		if (!mrsh_parser_error(parser, NULL)) {
 			parser_set_error(parser, "expected a program");

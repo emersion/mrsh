@@ -13,6 +13,10 @@ echo "Pipeline with bang"
 ! false
 echo $?
 
+echo "Pipeline with unknown command"
+idontexist
+echo $? # 127
+
 # https://github.com/emersion/mrsh/issues/100
 echo "Pipeline with subshell"
 (echo "a b"; echo "c d") | sed s/c/C/

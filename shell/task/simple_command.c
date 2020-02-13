@@ -49,7 +49,7 @@ static int run_process(struct mrsh_context *ctx, struct mrsh_simple_command *sc,
 	const char *path = expand_path(ctx->state, argv[0], true, false);
 	if (!path) {
 		fprintf(stderr, "%s: not found\n", argv[0]);
-		return TASK_STATUS_ERROR;
+		return 127;
 	}
 
 	pid_t pid = fork();

@@ -157,7 +157,7 @@ static void _split_fields(struct split_fields_data *data,
 	case MRSH_WORD_STRING:;
 		const struct mrsh_word_string *ws = mrsh_word_get_string(word);
 
-		if (ws->single_quoted) {
+		if (ws->single_quoted || !ws->split_fields) {
 			add_to_cur_field(data, mrsh_word_copy(word));
 			data->in_ifs = data->in_ifs_non_space = false;
 			return;

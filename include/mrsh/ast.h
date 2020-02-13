@@ -63,6 +63,10 @@ struct mrsh_word_string {
 	char *str;
 	bool single_quoted;
 
+	// true if candidate for field splitting (ie. result of parameter
+	// expansion, command substitution or arithmetic expansion)
+	bool split_fields;
+
 	struct mrsh_range range;
 };
 

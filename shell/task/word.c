@@ -146,6 +146,7 @@ static int run_word_command(struct mrsh_context *ctx, struct mrsh_word **word_pt
 
 	struct mrsh_word_string *ws =
 		mrsh_word_string_create(mrsh_buffer_steal(&buf), false);
+	ws->split_fields = true;
 	swap_words(word_ptr, &ws->word);
 	return job_wait_process(process);
 }
@@ -212,15 +213,34 @@ static struct mrsh_word *expand_positional_params(struct mrsh_state *state,
 		if (i > 1 && sep[0] != '\0') {
 			struct mrsh_word_string *ws =
 				mrsh_word_string_create(strdup(sep), false);
+			ws->split_fields = true;
 			mrsh_array_add(&words, &ws->word);
 		}
 		struct mrsh_word_string *ws =
 			mrsh_word_string_create(strdup(arg), quote_args);
+		ws->split_fields = true;
 		mrsh_array_add(&words, &ws->word);
 	}
 
 	struct mrsh_word_list *wl = mrsh_word_list_create(&words, false);
 	return &wl->word;
+}
+
+static void mark_word_split_fields(struct mrsh_word *word) {
+	switch (word->type) {
+	case MRSH_WORD_STRING:;
+		struct mrsh_word_string *ws = mrsh_word_get_string(word);
+		ws->split_fields = true;
+		break;
+	case MRSH_WORD_LIST:;
+		struct mrsh_word_list *wl = mrsh_word_get_list(word);
+		for (size_t i = 0; i < wl->children.len; i++) {
+			mark_word_split_fields(wl->children.data[i]);
+		}
+		break;
+	default:
+		break;
+	}
 }
 
 static struct mrsh_word *create_word_string(const char *str) {
@@ -517,6 +537,7 @@ static int _run_word(struct mrsh_context *ctx, struct mrsh_word **word_ptr,
 			}
 			result = create_word_string("");
 		}
+		mark_word_split_fields(result);
 		if (result->type != MRSH_WORD_STRING) {
 			ret = run_word(ctx, &result);
 			if (ret < 0) {
@@ -563,6 +584,7 @@ static int _run_word(struct mrsh_context *ctx, struct mrsh_word **word_ptr,
 
 				struct mrsh_word_string *ws =
 					mrsh_word_string_create(strdup(buf), false);
+				ws->split_fields = true;
 				swap_words(word_ptr, &ws->word);
 				ret = 0;
 			}

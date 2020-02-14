@@ -503,13 +503,12 @@ struct mrsh_word *back_quotes(struct mrsh_parser *parser) {
 		goto error;
 	}
 	struct mrsh_program *prog = mrsh_parse_program(subparser);
-	if (prog == NULL) {
-		const char *err_msg = mrsh_parser_error(subparser, NULL);
-		if (err_msg != NULL) {
-			// TODO: how should we handle subparser error position?
-			parser_set_error(parser, err_msg);
-			goto error;
-		}
+	const char *err_msg = mrsh_parser_error(subparser, NULL);
+	if (err_msg != NULL) {
+		// TODO: how should we handle subparser error position?
+		parser_set_error(parser, err_msg);
+		mrsh_program_destroy(prog);
+		goto error;
 	}
 	mrsh_parser_destroy(subparser);
 

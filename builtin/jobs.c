@@ -1,10 +1,10 @@
 #include <assert.h>
 #include <limits.h>
-#include <mrsh/getopt.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <signal.h>
 #include "builtin.h"
+#include "mrsh_getopt.h"
 #include "shell/job.h"
 #include "shell/process.h"
 #include "shell/shell.h"
@@ -61,9 +61,9 @@ int builtin_jobs(struct mrsh_state *state, int argc, char *argv[]) {
 		.r = rand() % 2 == 0,
 	};
 
-	mrsh_optind = 0;
+	_mrsh_optind = 0;
 	int opt;
-	while ((opt = mrsh_getopt(argc, argv, ":lp")) != -1) {
+	while ((opt = _mrsh_getopt(argc, argv, ":lp")) != -1) {
 		switch (opt) {
 		case 'l':
 			if (ctx.pids) {
@@ -82,19 +82,19 @@ int builtin_jobs(struct mrsh_state *state, int argc, char *argv[]) {
 			ctx.pids = true;
 			break;
 		default:
-			fprintf(stderr, "jobs: unknown option -- %c\n", mrsh_optopt);
+			fprintf(stderr, "jobs: unknown option -- %c\n", _mrsh_optopt);
 			fprintf(stderr, jobs_usage);
 			return EXIT_FAILURE;
 		}
 	}
 
-	if (mrsh_optind == argc) {
+	if (_mrsh_optind == argc) {
 		for (size_t i = 0; i < priv->jobs.len; i++) {
 			struct mrsh_job *job = priv->jobs.data[i];
 			show_job(job, &ctx);
 		}
 	} else {
-		for (int i = mrsh_optind; i < argc; i++) {
+		for (int i = _mrsh_optind; i < argc; i++) {
 			struct mrsh_job *job = job_by_id(state, argv[i], true);
 			if (!job) {
 				return 1;

@@ -1,10 +1,10 @@
 #define _POSIX_C_SOURCE 200809L
-#include <mrsh/getopt.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 #include "builtin.h"
+#include "mrsh_getopt.h"
 #include "parser.h"
 #include "shell/job.h"
 #include "shell/path.h"
@@ -59,7 +59,7 @@ static int verify_command(struct mrsh_state *state, const char *command_name,
 static int run_command(struct mrsh_state *state, int argc, char *argv[],
 		bool default_path) {
 	if (mrsh_has_builtin(argv[0])) {
-		return mrsh_run_builtin(state, argc - mrsh_optind, &argv[mrsh_optind]);
+		return mrsh_run_builtin(state, argc - _mrsh_optind, &argv[_mrsh_optind]);
 	}
 
 	const char *path = expand_path(state, argv[0], true, default_path);
@@ -86,11 +86,11 @@ static int run_command(struct mrsh_state *state, int argc, char *argv[],
 }
 
 int builtin_command(struct mrsh_state *state, int argc, char *argv[]) {
-	mrsh_optind = 0;
+	_mrsh_optind = 0;
 	int opt;
 
 	bool verify = false, default_path = false;
-	while ((opt = mrsh_getopt(argc, argv, ":vVp")) != -1) {
+	while ((opt = _mrsh_getopt(argc, argv, ":vVp")) != -1) {
 		switch (opt) {
 		case 'v':
 			verify = true;
@@ -103,25 +103,25 @@ int builtin_command(struct mrsh_state *state, int argc, char *argv[]) {
 			default_path = true;
 			break;
 		default:
-			fprintf(stderr, "command: unknown option -- %c\n", mrsh_optopt);
+			fprintf(stderr, "command: unknown option -- %c\n", _mrsh_optopt);
 			fprintf(stderr, command_usage);
 			return 1;
 		}
 	}
 
-	if (mrsh_optind >= argc) {
+	if (_mrsh_optind >= argc) {
 		fprintf(stderr, command_usage);
 		return 1;
 	}
 
 	if (verify) {
-		if (mrsh_optind != argc - 1) {
+		if (_mrsh_optind != argc - 1) {
 			fprintf(stderr, command_usage);
 			return 1;
 		}
-		return verify_command(state, argv[mrsh_optind], default_path);
+		return verify_command(state, argv[_mrsh_optind], default_path);
 	}
 
-	return run_command(state, argc - mrsh_optind, &argv[mrsh_optind],
+	return run_command(state, argc - _mrsh_optind, &argv[_mrsh_optind],
 		default_path);
 }

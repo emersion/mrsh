@@ -1,9 +1,9 @@
 #define _POSIX_C_SOURCE 200809L
 #include <mrsh/builtin.h>
-#include <mrsh/getopt.h>
 #include <shell/path.h>
 #include <stdlib.h>
 #include "builtin.h"
+#include "mrsh_getopt.h"
 #include "shell/shell.h"
 
 static const char type_usage[] = "usage: type name...\n";
@@ -11,19 +11,19 @@ static const char type_usage[] = "usage: type name...\n";
 int builtin_type(struct mrsh_state *state, int argc, char *argv[]) {
 	struct mrsh_state_priv *priv = state_get_priv(state);
 
-	mrsh_optind = 0;
-	if (mrsh_getopt(argc, argv, ":") != -1) {
-		fprintf(stderr, "type: unknown option -- %c\n", mrsh_optopt);
+	_mrsh_optind = 0;
+	if (_mrsh_getopt(argc, argv, ":") != -1) {
+		fprintf(stderr, "type: unknown option -- %c\n", _mrsh_optopt);
 		fprintf(stderr, type_usage);
 		return 1;
 	}
-	if (mrsh_optind == argc) {
+	if (_mrsh_optind == argc) {
 		fprintf(stderr, type_usage);
 		return 1;
 	}
 
 	bool error = false;
-	for (int i = mrsh_optind; i < argc; ++i) {
+	for (int i = _mrsh_optind; i < argc; ++i) {
 		char *name = argv[i];
 
 		char *alias = mrsh_hashtable_get(&priv->aliases, name);

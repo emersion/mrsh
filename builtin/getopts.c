@@ -2,38 +2,38 @@
 #include <errno.h>
 #include <limits.h>
 #include <mrsh/buffer.h>
-#include <mrsh/getopt.h>
 #include <mrsh/shell.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include "builtin.h"
+#include "mrsh_getopt.h"
 
 static const char getopts_usage[] = "usage: getopts optstring name [arg...]\n";
 
 int builtin_getopts(struct mrsh_state *state, int argc, char *argv[]) {
-	mrsh_optind = 0;
-	if (mrsh_getopt(argc, argv, ":") != -1) {
-		fprintf(stderr, "getopts: unknown option -- %c\n", mrsh_optopt);
+	_mrsh_optind = 0;
+	if (_mrsh_getopt(argc, argv, ":") != -1) {
+		fprintf(stderr, "getopts: unknown option -- %c\n", _mrsh_optopt);
 		fprintf(stderr, getopts_usage);
 		return 1;
 	}
-	if (mrsh_optind + 2 < argc) {
+	if (_mrsh_optind + 2 < argc) {
 		fprintf(stderr, getopts_usage);
 		return 1;
 	}
 
 	int optc;
 	char **optv;
-	if (mrsh_optind + 2 > argc) {
-		optc = argc - mrsh_optind - 2;
-		optv = &argv[mrsh_optind + 2];
+	if (_mrsh_optind + 2 > argc) {
+		optc = argc - _mrsh_optind - 2;
+		optv = &argv[_mrsh_optind + 2];
 	} else {
 		optc = state->frame->argc;
 		optv = state->frame->argv;
 	}
-	char *optstring = argv[mrsh_optind];
-	char *name = argv[mrsh_optind + 1];
+	char *optstring = argv[_mrsh_optind];
+	char *name = argv[_mrsh_optind + 1];
 
 	const char *optind_str = mrsh_env_get(state, "OPTIND", NULL);
 	if (optind_str == NULL) {
@@ -46,29 +46,29 @@ int builtin_getopts(struct mrsh_state *state, int argc, char *argv[]) {
 		fprintf(stderr, "getopts: OPTIND is not a positive integer\n");
 		return 1;
 	}
-	mrsh_optind = (int)optind_long;
+	_mrsh_optind = (int)optind_long;
 
-	mrsh_optopt = 0;
-	int opt = mrsh_getopt(optc, optv, optstring);
+	_mrsh_optopt = 0;
+	int opt = _mrsh_getopt(optc, optv, optstring);
 
 	char optind_fmt[16];
-	snprintf(optind_fmt, sizeof(optind_fmt), "%d", mrsh_optind);
+	snprintf(optind_fmt, sizeof(optind_fmt), "%d", _mrsh_optind);
 	mrsh_env_set(state, "OPTIND", optind_fmt, MRSH_VAR_ATTRIB_NONE);
 
-	if (mrsh_optopt != 0) {
+	if (_mrsh_optopt != 0) {
 		if (opt == ':') {
-			char value[] = {(char)mrsh_optopt, '\0'};
+			char value[] = {(char)_mrsh_optopt, '\0'};
 			mrsh_env_set(state, "OPTARG", value, MRSH_VAR_ATTRIB_NONE);
 		} else if (optstring[0] != ':') {
 			mrsh_env_unset(state, "OPTARG");
 		} else {
 			// either missing option-argument or unknown option character
 			// in the former case, unset OPTARG
-			// in the latter case, set OPTARG to mrsh_optopt
+			// in the latter case, set OPTARG to _mrsh_optopt
 			bool opt_exists = false;
 			size_t len = strlen(optstring);
 			for (size_t i = 0; i < len; ++i) {
-				if (optstring[i] == mrsh_optopt) {
+				if (optstring[i] == _mrsh_optopt) {
 					opt_exists = true;
 					break;
 				}
@@ -76,12 +76,12 @@ int builtin_getopts(struct mrsh_state *state, int argc, char *argv[]) {
 			if (opt_exists) {
 				mrsh_env_unset(state, "OPTARG");
 			} else {
-				char value[] = {(char)mrsh_optopt, '\0'};
+				char value[] = {(char)_mrsh_optopt, '\0'};
 				mrsh_env_set(state, "OPTARG", value, MRSH_VAR_ATTRIB_NONE);
 			}
 		}
-	} else if (mrsh_optarg != NULL) {
-		mrsh_env_set(state, "OPTARG", mrsh_optarg, MRSH_VAR_ATTRIB_NONE);
+	} else if (_mrsh_optarg != NULL) {
+		mrsh_env_set(state, "OPTARG", _mrsh_optarg, MRSH_VAR_ATTRIB_NONE);
 	} else {
 		mrsh_env_unset(state, "OPTARG");
 	}

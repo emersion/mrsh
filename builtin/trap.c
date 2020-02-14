@@ -1,6 +1,5 @@
 #define _XOPEN_SOURCE 1 // for SIGPOLL and SIGVTALRM
 #include <assert.h>
-#include <mrsh/getopt.h>
 #include <mrsh/parser.h>
 #include <mrsh/shell.h>
 #include <signal.h>
@@ -8,6 +7,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "builtin.h"
+#include "mrsh_getopt.h"
 #include "shell/shell.h"
 #include "shell/trap.h"
 
@@ -132,23 +132,23 @@ static void print_traps(struct mrsh_state *state) {
 }
 
 int builtin_trap(struct mrsh_state *state, int argc, char *argv[]) {
-	mrsh_optind = 0;
-	if (mrsh_getopt(argc, argv, ":") != -1) {
-		fprintf(stderr, "trap: unknown option -- %c\n", mrsh_optopt);
+	_mrsh_optind = 0;
+	if (_mrsh_getopt(argc, argv, ":") != -1) {
+		fprintf(stderr, "trap: unknown option -- %c\n", _mrsh_optopt);
 		fprintf(stderr, trap_usage);
 		return 1;
 	}
-	if (mrsh_optind == argc) {
+	if (_mrsh_optind == argc) {
 		print_traps(state);
 		return 0;
 	}
 
 	const char *action_str;
-	if (is_decimal_str(argv[mrsh_optind])) {
+	if (is_decimal_str(argv[_mrsh_optind])) {
 		action_str = "-";
 	} else {
-		action_str = argv[mrsh_optind];
-		mrsh_optind++;
+		action_str = argv[_mrsh_optind];
+		_mrsh_optind++;
 	}
 
 	enum mrsh_trap_action action;
@@ -176,7 +176,7 @@ int builtin_trap(struct mrsh_state *state, int argc, char *argv[]) {
 		mrsh_parser_destroy(parser);
 	}
 
-	for (int i = mrsh_optind; i < argc; i++) {
+	for (int i = _mrsh_optind; i < argc; i++) {
 		int sig = parse_sig(argv[i]);
 		if (sig < 0) {
 			return 1;

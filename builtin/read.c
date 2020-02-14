@@ -1,33 +1,33 @@
 #define _POSIX_C_SOURCE 200809L
 #include <errno.h>
 #include <mrsh/buffer.h>
-#include <mrsh/getopt.h>
 #include <mrsh/shell.h>
 #include <shell/word.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include "builtin.h"
+#include "mrsh_getopt.h"
 
 static const char read_usage[] = "usage: read [-r] var...\n";
 
 int builtin_read(struct mrsh_state *state, int argc, char *argv[]) {
 	bool raw = false;
 
-	mrsh_optind = 0;
+	_mrsh_optind = 0;
 	int opt;
-	while ((opt = mrsh_getopt(argc, argv, ":r")) != -1) {
+	while ((opt = _mrsh_getopt(argc, argv, ":r")) != -1) {
 		switch (opt) {
 		case 'r':
 			raw = true;
 			break;
 		default:
-			fprintf(stderr, "read: unknown option -- %c\n", mrsh_optopt);
+			fprintf(stderr, "read: unknown option -- %c\n", _mrsh_optopt);
 			fprintf(stderr, read_usage);
 			return 1;
 		}
 	}
-	if (mrsh_optind == argc) {
+	if (_mrsh_optind == argc) {
 		fprintf(stderr, read_usage);
 		return 1;
 	}
@@ -68,19 +68,19 @@ int builtin_read(struct mrsh_state *state, int argc, char *argv[]) {
 	mrsh_array_finish(&fields);
 	fields = strs;
 
-	if (fields.len <= (size_t)(argc - mrsh_optind)) {
+	if (fields.len <= (size_t)(argc - _mrsh_optind)) {
 		for (size_t i = 0; i < fields.len; ++i) {
-			mrsh_env_set(state, argv[mrsh_optind + i], (char *)fields.data[i], MRSH_VAR_ATTRIB_NONE);
+			mrsh_env_set(state, argv[_mrsh_optind + i], (char *)fields.data[i], MRSH_VAR_ATTRIB_NONE);
 		}
-		for (size_t i = fields.len; i < (size_t)(argc - mrsh_optind); ++i) {
-			mrsh_env_set(state, argv[mrsh_optind + i], "", MRSH_VAR_ATTRIB_NONE);
+		for (size_t i = fields.len; i < (size_t)(argc - _mrsh_optind); ++i) {
+			mrsh_env_set(state, argv[_mrsh_optind + i], "", MRSH_VAR_ATTRIB_NONE);
 		}
 	} else {
-		for (int i = 0; i < argc - mrsh_optind - 1; ++i) {
-			mrsh_env_set(state, argv[mrsh_optind + i], (char *)fields.data[i], MRSH_VAR_ATTRIB_NONE);
+		for (int i = 0; i < argc - _mrsh_optind - 1; ++i) {
+			mrsh_env_set(state, argv[_mrsh_optind + i], (char *)fields.data[i], MRSH_VAR_ATTRIB_NONE);
 		}
 		struct mrsh_buffer buf_last = {0};
-		for (size_t i = (size_t)(argc - mrsh_optind - 1); i < fields.len; ++i) {
+		for (size_t i = (size_t)(argc - _mrsh_optind - 1); i < fields.len; ++i) {
 			char *field = (char *)fields.data[i];
 			mrsh_buffer_append(&buf_last, field, strlen(field));
 			if (i != fields.len - 1) {

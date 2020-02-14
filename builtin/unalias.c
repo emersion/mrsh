@@ -1,10 +1,10 @@
 #define _POSIX_C_SOURCE 200809L
 #include <mrsh/builtin.h>
-#include <mrsh/getopt.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include "builtin.h"
+#include "mrsh_getopt.h"
 #include "shell/shell.h"
 
 static const char unalias_usage[] = "usage: unalias -a|alias-name...\n";
@@ -19,22 +19,22 @@ int builtin_unalias(struct mrsh_state *state, int argc, char *argv[]) {
 
 	bool all = false;
 
-	mrsh_optind = 0;
+	_mrsh_optind = 0;
 	int opt;
-	while ((opt = mrsh_getopt(argc, argv, ":a")) != -1) {
+	while ((opt = _mrsh_getopt(argc, argv, ":a")) != -1) {
 		switch (opt) {
 		case 'a':
 			all = true;
 			break;
 		default:
-			fprintf(stderr, "unalias: unknown option -- %c\n", mrsh_optopt);
+			fprintf(stderr, "unalias: unknown option -- %c\n", _mrsh_optopt);
 			fprintf(stderr, unalias_usage);
 			return 1;
 		}
 	}
 
 	if (all) {
-		if (mrsh_optind < argc) {
+		if (_mrsh_optind < argc) {
 			fprintf(stderr, unalias_usage);
 			return 1;
 		}
@@ -43,12 +43,12 @@ int builtin_unalias(struct mrsh_state *state, int argc, char *argv[]) {
 		return 0;
 	}
 
-	if (mrsh_optind == argc) {
+	if (_mrsh_optind == argc) {
 		fprintf(stderr, unalias_usage);
 		return 1;
 	}
 
-	for (int i = mrsh_optind; i < argc; ++i) {
+	for (int i = _mrsh_optind; i < argc; ++i) {
 		free(mrsh_hashtable_del(&priv->aliases, argv[i]));
 	}
 	return 0;

@@ -2,7 +2,6 @@
 #include <errno.h>
 #include <inttypes.h>
 #include <limits.h>
-#include <mrsh/getopt.h>
 #include <mrsh/shell.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -10,13 +9,14 @@
 #include <sys/resource.h>
 #include <sys/time.h>
 #include "builtin.h"
+#include "mrsh_getopt.h"
 
 static const char ulimit_usage[] = "usage: ulimit [-f] [blocks]\n";
 
 int builtin_ulimit(struct mrsh_state *state, int argc, char *argv[]) {
-	mrsh_optind = 0;
+	_mrsh_optind = 0;
 	int opt;
-	while ((opt = mrsh_getopt(argc, argv, ":f")) != -1) {
+	while ((opt = _mrsh_getopt(argc, argv, ":f")) != -1) {
 		if (opt == 'f') {
 			// Nothing here
 		} else {
@@ -25,8 +25,8 @@ int builtin_ulimit(struct mrsh_state *state, int argc, char *argv[]) {
 		}
 	}
 
-	if (mrsh_optind == argc - 1) {
-		char *arg = argv[mrsh_optind];
+	if (_mrsh_optind == argc - 1) {
+		char *arg = argv[_mrsh_optind];
 		char *end;
 		long int new_limit = strtol(arg, &end, 10);
 		if (end == arg || end[0] != '\0') {
@@ -41,7 +41,7 @@ int builtin_ulimit(struct mrsh_state *state, int argc, char *argv[]) {
 			perror("setrlimit");
 			return 1;
 		}
-	} else if (mrsh_optind == argc) {
+	} else if (_mrsh_optind == argc) {
 		struct rlimit old = { 0 };
 		if (getrlimit(RLIMIT_FSIZE, &old) != 0) {
 			perror("getrlimit");

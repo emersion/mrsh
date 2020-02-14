@@ -100,7 +100,7 @@ int main(int argc, char *argv[]) {
 		}
 
 		struct mrsh_program *prog = mrsh_parse_line(parser);
-		if (mrsh_parser_continuation_line(parser)) {
+		if (state->interactive && mrsh_parser_continuation_line(parser)) {
 			// Nothing to see here
 		} else if (prog == NULL) {
 			struct mrsh_position err_pos;

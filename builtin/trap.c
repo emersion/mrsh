@@ -163,16 +163,14 @@ int builtin_trap(struct mrsh_state *state, int argc, char *argv[]) {
 		struct mrsh_parser *parser =
 			mrsh_parser_with_data(action_str, strlen(action_str));
 		program = mrsh_parse_program(parser);
-		if (program == NULL) {
-			struct mrsh_position err_pos;
-			const char *err_msg = mrsh_parser_error(parser, &err_pos);
-			if (err_msg != NULL) {
-				fprintf(stderr, "trap: %d:%d: %s\n",
-					err_pos.line, err_pos.column, err_msg);
-			} else {
-				fprintf(stderr, "trap: unknown parse error\n");
-			}
+
+		struct mrsh_position err_pos;
+		const char *err_msg = mrsh_parser_error(parser, &err_pos);
+		if (err_msg != NULL) {
+			fprintf(stderr, "trap: %d:%d: %s\n",
+				err_pos.line, err_pos.column, err_msg);
 			mrsh_parser_destroy(parser);
+			mrsh_program_destroy(program);
 			return 1;
 		}
 		mrsh_parser_destroy(parser);

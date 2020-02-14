@@ -309,12 +309,12 @@ int main(int argc, char *argv[]) {
 
 	struct mrsh_parser *parser = mrsh_parser_with_data(buf.data, buf.len);
 	struct mrsh_program *prog = mrsh_parse_program(parser);
+	const char *err_msg = mrsh_parser_error(parser, NULL);
+	if (err_msg != NULL) {
+		fprintf(stderr, "failed to parse script: %s\n", err_msg);
+		return 1;
+	}
 	if (prog == NULL) {
-		const char *err_msg = mrsh_parser_error(parser, NULL);
-		if (err_msg != NULL) {
-			fprintf(stderr, "failed to parse script: %s\n", err_msg);
-			return 1;
-		}
 		return 0;
 	}
 	mrsh_parser_destroy(parser);

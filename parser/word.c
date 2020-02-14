@@ -342,10 +342,11 @@ static struct mrsh_word_command *expect_word_command(
 
 	struct mrsh_program *prog = mrsh_parse_program(parser);
 	parser->alias = alias;
-	if (prog == NULL) {
-		if (!mrsh_parser_error(parser, NULL)) {
-			parser_set_error(parser, "expected a program");
-		}
+	if (mrsh_parser_error(parser, NULL) != NULL) {
+		mrsh_program_destroy(prog);
+		return NULL;
+	} else if (prog == NULL) {
+		parser_set_error(parser, "expected a program");
 		return NULL;
 	}
 

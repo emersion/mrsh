@@ -31,7 +31,7 @@ int builtin_dot(struct mrsh_state *state, int argc, char *argv[]) {
 	int fd = open(path, O_RDONLY | O_CLOEXEC);
 	if (fd < 0) {
 		fprintf(stderr, "unable to open %s for reading: %s\n",
-				argv[1], strerror(errno));
+			argv[1], strerror(errno));
 		goto error;
 	}
 
@@ -39,18 +39,16 @@ int builtin_dot(struct mrsh_state *state, int argc, char *argv[]) {
 	struct mrsh_program *program = mrsh_parse_program(parser);
 
 	int ret;
-	if (!program) {
-		struct mrsh_position err_pos;
-		const char *err_msg = mrsh_parser_error(parser, &err_pos);
-		if (err_msg != NULL) {
-			fprintf(stderr, "%s %d:%d: %s\n",
-				argv[1], err_pos.line, err_pos.column, err_msg);
-			ret = 1;
-		} else {
-			ret = 0;
-		}
-	} else {
+	struct mrsh_position err_pos;
+	const char *err_msg = mrsh_parser_error(parser, &err_pos);
+	if (err_msg != NULL) {
+		fprintf(stderr, "%s %d:%d: %s\n",
+			argv[1], err_pos.line, err_pos.column, err_msg);
+		ret = 1;
+	} else if (program != NULL) {
 		ret = mrsh_run_program(state, program);
+	} else {
+		ret = 0;
 	}
 
 	mrsh_program_destroy(program);

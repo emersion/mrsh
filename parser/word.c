@@ -169,7 +169,6 @@ char *read_token(struct mrsh_parser *parser, size_t len,
 	}
 
 	consume_symbol(parser);
-
 	return tok;
 }
 
@@ -301,6 +300,9 @@ static struct mrsh_word_parameter *expect_parameter_expression(
 
 	struct mrsh_range name_range;
 	char *name = read_token(parser, name_len, &name_range);
+	if (name == NULL) {
+		return NULL;
+	}
 
 	bool colon = false;
 	struct mrsh_word *arg = NULL;
@@ -450,6 +452,9 @@ struct mrsh_word *expect_dollar(struct mrsh_parser *parser) {
 
 		struct mrsh_range name_range;
 		char *name = read_token(parser, name_len, &name_range);
+		if (name == NULL) {
+			return NULL;
+		}
 
 		wp = mrsh_word_parameter_create(name, MRSH_PARAM_NONE, false, NULL);
 		wp->dollar_pos = dollar_pos;

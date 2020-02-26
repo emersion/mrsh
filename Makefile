@@ -12,7 +12,6 @@ public_includes=\
 		include/mrsh/buffer.h \
 		include/mrsh/builtin.h \
 		include/mrsh/entry.h \
-		include/mrsh/getopt.h \
 		include/mrsh/hashtable.h \
 		include/mrsh/parser.h \
 		include/mrsh/shell.h

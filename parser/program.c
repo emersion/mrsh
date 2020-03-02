@@ -835,7 +835,7 @@ static struct mrsh_function_definition *function_definition(
 
 	struct mrsh_command *cmd = compound_command(parser);
 	if (cmd == NULL) {
-		parser_set_error(parser, "expected a compount command");
+		parser_set_error(parser, "expected a compound command");
 		return NULL;
 	}
 

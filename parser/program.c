@@ -1224,6 +1224,7 @@ static bool expect_here_document(struct mrsh_parser *parser,
 	}
 	mrsh_buffer_finish(&buf);
 
+	consume_symbol(parser);
 	return true;
 }
 

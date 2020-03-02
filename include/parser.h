@@ -80,6 +80,10 @@ void parser_set_error(struct mrsh_parser *parser, const char *msg);
 void parser_begin(struct mrsh_parser *parser);
 bool is_operator_start(char c);
 enum symbol_name get_symbol(struct mrsh_parser *parser);
+/**
+ * Invalidates the current symbol. Should be used each time manual
+ * parser_read calls are performed.
+ */
 void consume_symbol(struct mrsh_parser *parser);
 bool symbol(struct mrsh_parser *parser, enum symbol_name sym);
 bool eof(struct mrsh_parser *parser);

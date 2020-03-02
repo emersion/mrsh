@@ -84,6 +84,7 @@ void mrsh_parser_destroy(struct mrsh_parser *parser) {
 		return;
 	}
 	mrsh_buffer_finish(&parser->buf);
+	mrsh_array_finish(&parser->here_documents);
 	free(parser->error.msg);
 	free(parser);
 }

@@ -362,6 +362,9 @@ static int separator(struct mrsh_parser *parser) {
 
 static struct mrsh_and_or_list *and_or(struct mrsh_parser *parser);
 
+static bool expect_here_document(struct mrsh_parser *parser,
+	struct mrsh_io_redirect *redir, const char *delim);
+
 static struct mrsh_command_list *term(struct mrsh_parser *parser) {
 	struct mrsh_and_or_list *and_or_list = and_or(parser);
 	if (and_or_list == NULL) {
@@ -378,6 +381,21 @@ static struct mrsh_command_list *term(struct mrsh_parser *parser) {
 	}
 	if (sep >= 0) {
 		cmd->separator_pos = separator_pos;
+	}
+
+	if (sep == '\n' && parser->here_documents.len > 0) {
+		for (size_t i = 0; i < parser->here_documents.len; ++i) {
+			struct mrsh_io_redirect *redir = parser->here_documents.data[i];
+
+			char *delim = mrsh_word_str(redir->name);
+			bool ok = expect_here_document(parser, redir, delim);
+			free(delim);
+			if (!ok) {
+				return false;
+			}
+		}
+
+		parser->here_documents.len = 0;
 	}
 
 	return cmd;

@@ -137,6 +137,8 @@ static const char *io_redirect_op_str(enum mrsh_io_redirect_op op) {
 	assert(false);
 }
 
+static void print_word_array(struct mrsh_array *words, const char *prefix);
+
 static void print_io_redirect(struct mrsh_io_redirect *redir,
 		const char *prefix) {
 	printf("io_redirect\n");
@@ -147,12 +149,21 @@ static void print_io_redirect(struct mrsh_io_redirect *redir,
 	print_prefix(prefix, false);
 	printf("op %s\n", io_redirect_op_str(redir->op));
 
-	char sub_prefix[make_sub_prefix(prefix, true, NULL)];
-	make_sub_prefix(prefix, true, sub_prefix);
+	bool name_is_last = redir->here_document.len == 0;
+	char sub_prefix[make_sub_prefix(prefix, name_is_last, NULL)];
+	make_sub_prefix(prefix, name_is_last, sub_prefix);
 
-	print_prefix(prefix, true);
+	print_prefix(prefix, name_is_last);
 	printf("name ─ ");
 	print_word(redir->name, sub_prefix);
+
+	if (redir->here_document.len > 0) {
+		make_sub_prefix(prefix, true, sub_prefix);
+
+		print_prefix(prefix, true);
+		printf("here_document\n");
+		print_word_array(&redir->here_document, sub_prefix);
+	}
 }
 
 static void print_assignment(struct mrsh_assignment *assign,

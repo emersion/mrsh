@@ -1200,6 +1200,9 @@ static bool expect_here_document(struct mrsh_parser *parser,
 		}
 
 		if (strcmp(line, delim) == 0) {
+			if (parser_peek_char(parser) == '\n') {
+				parser_read_char(parser);
+			}
 			break;
 		}
 		if (parser_peek_char(parser) == '\0') {

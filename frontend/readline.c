@@ -38,7 +38,7 @@ static void sigint_handler(int n) {
 #endif
 
 static const char *get_history_path(void) {
-	static char history_path[PATH_MAX + 1];
+	static char history_path[PATH_MAX];
 	snprintf(history_path, sizeof(history_path),
 			"%s/.mrsh_history", getenv("HOME"));
 	return history_path;

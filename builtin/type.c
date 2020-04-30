@@ -32,6 +32,11 @@ int builtin_type(struct mrsh_state *state, int argc, char *argv[]) {
 			continue;
 		}
 
+		if (mrsh_has_special_builtin(name)) {
+			fprintf(stdout, "%s is a special shell builtin\n", name);
+			continue;
+		}
+
 		if (mrsh_has_builtin(name)) {
 			fprintf(stdout, "%s is a shell builtin\n", name);
 			continue;

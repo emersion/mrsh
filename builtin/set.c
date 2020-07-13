@@ -135,7 +135,7 @@ static int set(struct mrsh_state *state, int argc, char *argv[],
 		case 'o':
 			if (i + 1 == argc) {
 				print_options(state);
-				return 0;
+				goto out; // we must populate state->argv
 			}
 			option = find_long_option(argv[i + 1]);
 			if (!option) {
@@ -199,7 +199,9 @@ static int set(struct mrsh_state *state, int argc, char *argv[],
 		argv_free(state->frame->argc, state->frame->argv);
 		state->frame->argc = argc - i + 1;
 		state->frame->argv = argv_dup(argv_0, state->frame->argc, &argv[i]);
-	} else if (init_args != NULL) {
+	} else
+out:
+	  if (init_args != NULL) {
 		// No args given, but we need to initialize state->argv
 		state->frame->argc = 1;
 		state->frame->argv = argv_dup(strdup(argv[0]), 1, argv);

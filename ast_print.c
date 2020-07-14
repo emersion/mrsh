@@ -50,7 +50,7 @@ static const char *word_parameter_op_str(enum mrsh_word_parameter_op op) {
 	case MRSH_PARAM_DHASH:
 		return "##";
 	}
-	assert(false);
+	abort();
 }
 
 static void print_program(struct mrsh_program *prog, const char *prefix);
@@ -134,7 +134,7 @@ static const char *io_redirect_op_str(enum mrsh_io_redirect_op op) {
 	case MRSH_IO_DLESSDASH:
 		return "<<-";
 	}
-	assert(false);
+	abort();
 }
 
 static void print_word_array(struct mrsh_array *words, const char *prefix);
@@ -316,7 +316,7 @@ static const char *loop_type_str(enum mrsh_loop_type type) {
 	case MRSH_LOOP_WHILE:
 		return "while";
 	}
-	assert(false);
+	abort();
 }
 
 static void print_loop_clause(struct mrsh_loop_clause *lc, const char *prefix) {

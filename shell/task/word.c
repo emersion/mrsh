@@ -271,7 +271,7 @@ static bool is_null_word(const struct mrsh_word *word) {
 		}
 		return true;
 	default:
-		assert(false);
+		abort();
 	}
 }
 
@@ -338,7 +338,7 @@ static int apply_parameter_cond_op(struct mrsh_context *ctx,
 		mrsh_word_destroy(value);
 		return 0;
 	default:
-		assert(false); // unreachable
+		abort(); // unreachable
 	}
 }
 
@@ -456,7 +456,7 @@ static int apply_parameter_str_op(struct mrsh_context *ctx,
 		*result = &result_ws->word;
 		return 0;
 	default:
-		assert(false);
+		abort();
 	}
 }
 
@@ -661,7 +661,7 @@ static int _run_word(struct mrsh_context *ctx, struct mrsh_word **word_ptr,
 
 		return 0;
 	}
-	assert(false);
+	abort();
 }
 
 int run_word(struct mrsh_context *ctx, struct mrsh_word **word_ptr) {

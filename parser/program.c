@@ -1168,7 +1168,7 @@ static bool is_word_quoted(struct mrsh_word *word) {
 		}
 		return false;
 	default:
-		assert(false);
+		abort();
 	}
 }
 

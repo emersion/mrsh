@@ -42,7 +42,7 @@ void mrsh_arithm_expr_destroy(struct mrsh_arithm_expr *expr) {
 		free(aa);
 		return;
 	}
-	assert(false);
+	abort();
 }
 
 struct mrsh_arithm_literal *mrsh_arithm_literal_create(long value) {

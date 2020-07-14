@@ -281,7 +281,7 @@ int run_command(struct mrsh_context *ctx, struct mrsh_command *cmd) {
 			mrsh_command_get_function_definition(cmd);
 		return run_function_definition(ctx, fnd);
 	}
-	assert(false);
+	abort();
 }
 
 int run_and_or_list(struct mrsh_context *ctx, struct mrsh_and_or_list *and_or_list) {
@@ -306,7 +306,7 @@ int run_and_or_list(struct mrsh_context *ctx, struct mrsh_and_or_list *and_or_li
 		}
 		return run_and_or_list(ctx, binop->right);
 	}
-	assert(false);
+	abort();
 }
 
 /**

@@ -209,7 +209,7 @@ static void _split_fields(struct split_fields_data *data,
 		}
 		break;
 	default:
-		assert(false);
+		abort();
 	}
 }
 
@@ -290,7 +290,7 @@ static bool needs_pathname_expansion(const struct mrsh_word *word) {
 		}
 		return false;
 	default:
-		assert(false);
+		abort();
 	}
 
 }
@@ -319,7 +319,7 @@ static void _word_to_pattern(struct mrsh_buffer *buf,
 		}
 		break;
 	default:
-		assert(false);
+		abort();
 	}
 }
 

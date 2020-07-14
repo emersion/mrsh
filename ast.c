@@ -39,7 +39,7 @@ void mrsh_node_destroy(struct mrsh_node *node) {
 		mrsh_word_destroy(word);
 		return;
 	}
-	assert(0);
+	abort();
 }
 
 void mrsh_word_destroy(struct mrsh_word *word) {
@@ -79,7 +79,7 @@ void mrsh_word_destroy(struct mrsh_word *word) {
 		free(wl);
 		return;
 	}
-	assert(false);
+	abort();
 }
 
 void mrsh_io_redirect_destroy(struct mrsh_io_redirect *redir) {
@@ -205,7 +205,7 @@ void mrsh_command_destroy(struct mrsh_command *cmd) {
 		free(fd);
 		return;
 	}
-	assert(0);
+	abort();
 }
 
 void mrsh_and_or_list_destroy(struct mrsh_and_or_list *and_or_list) {
@@ -230,7 +230,7 @@ void mrsh_and_or_list_destroy(struct mrsh_and_or_list *and_or_list) {
 		free(binop);
 		return;
 	}
-	assert(0);
+	abort();
 }
 
 struct mrsh_command_list *mrsh_command_list_create(void) {
@@ -575,7 +575,7 @@ void mrsh_node_for_each(struct mrsh_node *node,
 			node_array_for_each(&pipeline->commands, iterator, user_data);
 			return;
 		}
-		assert(false);
+		abort();
 	case MRSH_NODE_COMMAND:;
 		struct mrsh_command *cmd = mrsh_node_get_command(node);
 		switch (cmd->type) {
@@ -625,7 +625,7 @@ void mrsh_node_for_each(struct mrsh_node *node,
 			mrsh_node_for_each(&fn->body->node, iterator, user_data);
 			return;
 		}
-		assert(false);
+		abort();
 	case MRSH_NODE_WORD:;
 		struct mrsh_word *word = mrsh_node_get_word(node);
 		switch (word->type) {
@@ -652,9 +652,9 @@ void mrsh_node_for_each(struct mrsh_node *node,
 			node_array_for_each(&wl->children, iterator, user_data);
 			return;
 		}
-		assert(false);
+		abort();
 	}
-	assert(false);
+	abort();
 }
 
 static void position_next(struct mrsh_position *dst,
@@ -699,7 +699,7 @@ void mrsh_word_range(struct mrsh_word *word, struct mrsh_position *begin,
 		*end = wc->range.end;
 		return;
 	case MRSH_WORD_ARITHMETIC:
-		assert(false); // TODO
+		abort(); // TODO
 	case MRSH_WORD_LIST:;
 		struct mrsh_word_list *wl = mrsh_word_get_list(word);
 		if (wl->children.len == 0) {
@@ -712,7 +712,7 @@ void mrsh_word_range(struct mrsh_word *word, struct mrsh_position *begin,
 		}
 		return;
 	}
-	assert(false);
+	abort();
 }
 
 void mrsh_command_range(struct mrsh_command *cmd, struct mrsh_position *begin,
@@ -801,7 +801,7 @@ void mrsh_command_range(struct mrsh_command *cmd, struct mrsh_position *begin,
 		*begin = fd->name_range.begin;
 		mrsh_command_range(fd->body, NULL, end);
 	}
-	assert(false);
+	abort();
 }
 
 static void buffer_append_str(struct mrsh_buffer *buf, const char *str) {
@@ -817,7 +817,7 @@ static void word_str(const struct mrsh_word *word, struct mrsh_buffer *buf) {
 	case MRSH_WORD_PARAMETER:
 	case MRSH_WORD_COMMAND:
 	case MRSH_WORD_ARITHMETIC:
-		assert(false);
+		abort();
 	case MRSH_WORD_LIST:;
 		const struct mrsh_word_list *wl = mrsh_word_get_list(word);
 		for (size_t i = 0; i < wl->children.len; ++i) {
@@ -826,7 +826,7 @@ static void word_str(const struct mrsh_word *word, struct mrsh_buffer *buf) {
 		}
 		return;
 	}
-	assert(false);
+	abort();
 }
 
 char *mrsh_word_str(const struct mrsh_word *word) {
@@ -843,7 +843,7 @@ static const char *binop_type_str(enum mrsh_binop_type t) {
 	case MRSH_BINOP_OR:
 		return "||";
 	}
-	assert(0);
+	abort();
 }
 
 static void node_format(struct mrsh_node *node, struct mrsh_buffer *buf);
@@ -890,7 +890,7 @@ static void node_format(struct mrsh_node *node, struct mrsh_buffer *buf) {
 			node_array_format(&pipeline->commands, " | ", buf);
 			return;
 		}
-		assert(false);
+		abort();
 	case MRSH_NODE_COMMAND:;
 		struct mrsh_command *cmd = mrsh_node_get_command(node);
 		switch (cmd->type) {
@@ -955,7 +955,7 @@ static void node_format(struct mrsh_node *node, struct mrsh_buffer *buf) {
 			// TODO: io-redirect
 			return;
 		}
-		assert(false);
+		abort();
 	case MRSH_NODE_WORD:;
 		// TODO: quoting
 		struct mrsh_word *word = mrsh_node_get_word(node);
@@ -1001,9 +1001,9 @@ static void node_format(struct mrsh_node *node, struct mrsh_buffer *buf) {
 			}
 			return;
 		}
-		assert(false);
+		abort();
 	}
-	assert(false);
+	abort();
 }
 
 char *mrsh_node_format(struct mrsh_node *node) {
@@ -1036,7 +1036,7 @@ struct mrsh_node *mrsh_node_copy(const struct mrsh_node *node) {
 		struct mrsh_word *word_copy = mrsh_word_copy(word);
 		return &word_copy->node;
 	}
-	assert(0);
+	abort();
 }
 
 struct mrsh_word *mrsh_word_copy(const struct mrsh_word *word) {
@@ -1079,7 +1079,7 @@ struct mrsh_word *mrsh_word_copy(const struct mrsh_word *word) {
 			mrsh_word_list_create(&children, wl->double_quoted);
 		return &wl_copy->word;
 	}
-	assert(0);
+	abort();
 }
 
 struct mrsh_io_redirect *mrsh_io_redirect_copy(
@@ -1250,7 +1250,7 @@ struct mrsh_command *mrsh_command_copy(const struct mrsh_command *cmd) {
 				mrsh_command_copy(fd->body), &io_redirects);
 		return &fd_copy->command;
 	}
-	assert(0);
+	abort();
 }
 
 struct mrsh_and_or_list *mrsh_and_or_list_copy(
@@ -1274,7 +1274,7 @@ struct mrsh_and_or_list *mrsh_and_or_list_copy(
 			mrsh_and_or_list_copy(binop->right));
 		return &binop_copy->and_or_list;
 	}
-	assert(0);
+	abort();
 }
 
 struct mrsh_command_list *mrsh_command_list_copy(

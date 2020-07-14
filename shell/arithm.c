@@ -99,7 +99,7 @@ static bool run_arithm_binop(struct mrsh_state *state,
 		*result = left || right;
 		return true;
 	}
-	assert(false); // Unknown binary arithmetic operation
+	abort(); // Unknown binary arithmetic operation
 }
 
 static bool run_arithm_unop(struct mrsh_state *state,
@@ -122,7 +122,7 @@ static bool run_arithm_unop(struct mrsh_state *state,
 		*result = !val;
 		return true;
 	}
-	assert(false); // Unknown unary arithmetic operation
+	abort(); // Unknown unary arithmetic operation
 }
 
 static bool run_arithm_cond(struct mrsh_state *state,
@@ -188,7 +188,7 @@ static long run_arithm_assign_op(enum mrsh_arithm_assign_op op,
 		*result = cur | val;
 		return true;
 	}
-	assert(false);
+	abort();
 }
 
 static bool run_arithm_assign(struct mrsh_state *state,
@@ -244,5 +244,5 @@ bool mrsh_run_arithm_expr(struct mrsh_state *state,
 			(struct mrsh_arithm_assign *)expr;
 		return run_arithm_assign(state, assign, result);
 	}
-	assert(false);
+	abort();
 }

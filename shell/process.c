@@ -50,7 +50,7 @@ int process_poll(struct mrsh_process *proc) {
 	} else if (WIFSIGNALED(proc->stat)) {
 		return 129; // POSIX requires >128
 	} else {
-		assert(false);
+		abort();
 	}
 }
 
@@ -77,6 +77,6 @@ void update_process(struct mrsh_state *state, pid_t pid, int stat) {
 		proc->stopped = true;
 		proc->signal = WSTOPSIG(stat);
 	} else {
-		assert(false);
+		abort();
 	}
 }

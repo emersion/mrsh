@@ -34,6 +34,7 @@ add_project_arguments(cc.get_supported_arguments([
 	'-Wno-missing-field-initializers',
 	'-Wno-unused-parameter',
 	'-Wno-unused-result', # fuck you glibc, and gcc, and the little dog, too
+	'-Wno-format-overflow', # causes false positives with gcc
 ]), language: 'c')
 
 if get_option('readline-provider') == 'readline'

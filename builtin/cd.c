@@ -1,6 +1,5 @@
 #define _POSIX_C_SOURCE 200809L
 #include <errno.h>
-#include <limits.h>
 #include <mrsh/shell.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -9,6 +8,7 @@
 #include <unistd.h>
 #include "builtin.h"
 #include "mrsh_getopt.h"
+#include "mrsh_limit.h"
 
 static const char cd_usage[] = "usage: cd [-L|-P] [-|directory]\n";
 

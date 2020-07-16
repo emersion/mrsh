@@ -1,5 +1,4 @@
 #define _POSIX_C_SOURCE 200809L
-#include <limits.h>
 #include <mrsh/shell.h>
 #include <string.h>
 #include <stdbool.h>
@@ -7,6 +6,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include "shell/path.h"
+#include "mrsh_limit.h"
 
 const char *expand_path(struct mrsh_state *state, const char *file, bool exec,
 		bool default_path) {

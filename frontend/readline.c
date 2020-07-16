@@ -1,6 +1,5 @@
 // readline/editline interactive line interface
 #define _POSIX_C_SOURCE 200809L
-#include <limits.h>
 #include <mrsh/parser.h>
 #include <mrsh/shell.h>
 #include <stdio.h>
@@ -16,6 +15,7 @@
 #include <histedit.h>
 #endif
 #include "frontend.h"
+#include "mrsh_limit.h"
 
 #if defined(HAVE_READLINE)
 #if !defined(HAVE_READLINE_REPLACE_LINE)

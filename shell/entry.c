@@ -4,13 +4,13 @@
 #include <mrsh/shell.h>
 #include <mrsh/parser.h>
 #include <errno.h>
-#include <limits.h>
 #include <string.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include "builtin.h"
 #include "parser.h"
 #include "shell/trap.h"
+#include "mrsh_limit.h"
 
 static char *expand_str(struct mrsh_state *state, const char *src) {
 	struct mrsh_parser *parser = mrsh_parser_with_data(src, strlen(src));

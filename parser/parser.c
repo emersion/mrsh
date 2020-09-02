@@ -57,7 +57,6 @@ static struct mrsh_parser *parser_create(void) {
 	struct mrsh_parser *parser = calloc(1, sizeof(struct mrsh_parser));
 	parser->fd = -1;
 	parser->pos.line = parser->pos.column = 1;
-	parser->arith_nested_parens = 0;
 	return parser;
 }
 

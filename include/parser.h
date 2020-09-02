@@ -61,6 +61,8 @@ struct mrsh_parser {
 
 	mrsh_parser_alias_func alias;
 	void *alias_user_data;
+
+	int arith_nested_parens;
 };
 
 typedef struct mrsh_word *(*word_func)(struct mrsh_parser *parser, char end);

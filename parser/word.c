@@ -745,7 +745,6 @@ struct mrsh_word *arithmetic_word(struct mrsh_parser *parser, char end) {
 	struct mrsh_array children = {0};
 	struct mrsh_buffer buf = {0};
 	struct mrsh_position child_begin = {0};
-	int nested_parens = 0;
 
 	while (true) {
 		if (!mrsh_position_valid(&child_begin)) {
@@ -756,7 +755,7 @@ struct mrsh_word *arithmetic_word(struct mrsh_parser *parser, char end) {
 		c = next[0];
 		if (c == '\0' || c == '\n' || c == ';'
 				|| isblank(c)
-				|| (strcmp(next, "))") == 0 && nested_parens == 0)) {
+				|| (strcmp(next, "))") == 0 && parser->arith_nested_parens == 0)) {
 			break;
 		}
 
@@ -816,14 +815,14 @@ struct mrsh_word *arithmetic_word(struct mrsh_parser *parser, char end) {
 		}
 
 		if (c == '(') {
-			nested_parens++;
+			parser->arith_nested_parens++;
 		} else if (c == ')') {
-			if (nested_parens == 0) {
+			if (parser->arith_nested_parens == 0) {
 				parser_set_error(parser, "unmatched closing parenthesis "
 					"in arithmetic expression");
 				return NULL;
 			}
-			nested_parens--;
+			parser->arith_nested_parens--;
 		}
 
 		parser_read_char(parser);

@@ -737,7 +737,10 @@ struct mrsh_word *arithmetic_word(struct mrsh_parser *parser, char end) {
 	char c = parser_peek_char(parser);
 	if (c == ')') {
 		parser_peek(parser, next, sizeof(*next) * 2);
-		if (!strcmp(next, "))")) {
+		// If arith_nested_parens != 0, we might be closing an expr.
+		// E.g. $(((1+1 )))
+		//              ^
+		if (!strcmp(next, "))") && parser->arith_nested_parens == 0) {
 			return NULL;
 		}
 	}

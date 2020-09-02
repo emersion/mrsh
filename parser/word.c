@@ -367,6 +367,7 @@ static struct mrsh_word_arithmetic *expect_word_arithmetic(
 	c = parser_read_char(parser);
 	assert(c == '(');
 
+	parser->arith_nested_parens = 0;
 	struct mrsh_word *body = word_list(parser, 0, arithmetic_word);
 	if (body == NULL) {
 		if (!mrsh_parser_error(parser, NULL)) {

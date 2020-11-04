@@ -42,9 +42,10 @@ int builtin_type(struct mrsh_state *state, int argc, char *argv[]) {
 			continue;
 		}
 
-		const char *path = expand_path(state, name, true, false);
-		if (path) {
+		char *path = expand_path(state, name, true, false);
+		if (path != NULL) {
 			fprintf(stdout, "%s is %s\n", name, path);
+			free(path);
 			continue;
 		}
 

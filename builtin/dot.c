@@ -19,7 +19,7 @@ int builtin_dot(struct mrsh_state *state, int argc, char *argv[]) {
 		return 1;
 	}
 
-	const char *path = expand_path(state, argv[1], false, false);
+	char *path = expand_path(state, argv[1], false, false);
 	if (!path) {
 		fprintf(stderr, "%s: not found\n", argv[1]);
 		if (!state->interactive) {
@@ -34,6 +34,7 @@ int builtin_dot(struct mrsh_state *state, int argc, char *argv[]) {
 			argv[1], strerror(errno));
 		goto error;
 	}
+	free(path);
 
 	struct mrsh_parser *parser = mrsh_parser_with_fd(fd);
 	struct mrsh_program *program = mrsh_parse_program(parser);

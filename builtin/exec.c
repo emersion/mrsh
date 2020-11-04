@@ -17,7 +17,7 @@ int builtin_exec(struct mrsh_state *state, int argc, char *argv[]) {
 		return 0;
 	}
 
-	const char *path = expand_path(state, argv[_mrsh_optind], false, false);
+	char *path = expand_path(state, argv[_mrsh_optind], false, false);
 	if (path == NULL) {
 		fprintf(stderr, "exec: %s: command not found\n", argv[_mrsh_optind]);
 		return 127;

@@ -1,6 +1,7 @@
 #include <mrsh/builtin.h>
 #include <shell/path.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include "builtin.h"
 #include "mrsh_getopt.h"
@@ -41,11 +42,12 @@ int builtin_hash(struct mrsh_state *state, int argc, char *argv[]) {
 			continue;
 		}
 
-		const char *path = expand_path(state, utility, true, false);
+		char *path = expand_path(state, utility, true, false);
 		if (path == NULL) {
 			fprintf(stderr, "hash: command not found: %s\n", utility);
 			return 1;
 		}
+		free(path);
 	}
 
 	return 0;

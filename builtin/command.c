@@ -47,9 +47,10 @@ static int verify_command(struct mrsh_state *state, const char *command_name,
 		}
 	}
 
-	const char *expanded = expand_path(state, command_name, true, default_path);
+	char *expanded = expand_path(state, command_name, true, default_path);
 	if (expanded != NULL) {
 		printf("%s\n", expanded);
+		free(expanded);
 		return 0;
 	}
 
@@ -62,8 +63,8 @@ static int run_command(struct mrsh_state *state, int argc, char *argv[],
 		return mrsh_run_builtin(state, argc - _mrsh_optind, &argv[_mrsh_optind]);
 	}
 
-	const char *path = expand_path(state, argv[0], true, default_path);
-	if (!path) {
+	char *path = expand_path(state, argv[0], true, default_path);
+	if (path == NULL) {
 		fprintf(stderr, "%s: not found\n", argv[0]);
 		return 127;
 	}
@@ -80,6 +81,8 @@ static int run_command(struct mrsh_state *state, int argc, char *argv[],
 		perror(argv[0]);
 		exit(126);
 	}
+
+	free(path);
 
 	struct mrsh_process *proc = process_create(state, pid);
 	return job_wait_process(proc);

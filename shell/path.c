@@ -8,10 +8,10 @@
 #include "shell/path.h"
 #include "mrsh_limit.h"
 
-const char *expand_path(struct mrsh_state *state, const char *file, bool exec,
+char *expand_path(struct mrsh_state *state, const char *file, bool exec,
 		bool default_path) {
 	if (strchr(file, '/')) {
-		return file;
+		return strdup(file);
 	}
 
 	char *pathe;
@@ -39,19 +39,20 @@ const char *expand_path(struct mrsh_state *state, const char *file, bool exec,
 		}
 	}
 
-	static char path[PATH_MAX + 1];
+	char *path = NULL;
 	char *basedir = strtok(pathe, ":");
-	while (basedir) {
-		int blen = strlen(basedir);
+	while (basedir != NULL) {
+		size_t blen = strlen(basedir);
 		if (blen == 0) {
 			goto next;
 		}
 		bool slash = basedir[blen - 1] == '/';
-		size_t n = snprintf(path, sizeof(path), "%s%s%s",
-				basedir, slash ? "" : "/", file);
-		if (n >= sizeof(path)) {
+		size_t n = snprintf(NULL, 0, "%s%s%s", basedir, slash ? "" : "/", file);
+		path = realloc(path, n + 1);
+		if (path == NULL) {
 			goto next;
 		}
+		snprintf(path, n + 1, "%s%s%s", basedir, slash ? "" : "/", file);
 		if (access(path, exec ? X_OK : R_OK) != -1) {
 			free(pathe);
 			return path;
@@ -59,6 +60,7 @@ const char *expand_path(struct mrsh_state *state, const char *file, bool exec,
 next:
 		basedir = strtok(NULL, ":");
 	}
+	free(path);
 	free(pathe);
 	return NULL;
 }

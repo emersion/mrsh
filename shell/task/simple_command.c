@@ -46,7 +46,7 @@ static int run_process(struct mrsh_context *ctx, struct mrsh_simple_command *sc,
 	// The pipeline is responsible for creating the job
 	assert(ctx->job != NULL);
 
-	const char *path = expand_path(ctx->state, argv[0], true, false);
+	char *path = expand_path(ctx->state, argv[0], true, false);
 	if (!path) {
 		fprintf(stderr, "%s: not found\n", argv[0]);
 		return 127;
@@ -106,6 +106,8 @@ static int run_process(struct mrsh_context *ctx, struct mrsh_simple_command *sc,
 		fprintf(stderr, "%s: %s\n", argv[0], strerror(errno));
 		exit(127);
 	}
+
+	free(path);
 
 	struct mrsh_process *process = init_child(ctx, pid);
 	return job_wait_process(process);

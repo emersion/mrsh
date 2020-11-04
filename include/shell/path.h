@@ -10,7 +10,7 @@
  * used instead of the $PATH variable. Fully qualified paths are returned
  * as-is.
  */
-const char *expand_path(struct mrsh_state *state, const char *file, bool exec,
+char *expand_path(struct mrsh_state *state, const char *file, bool exec,
 	bool default_path);
 
 #endif

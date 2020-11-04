@@ -1,4 +1,6 @@
 #define _POSIX_C_SOURCE 200809L
+#include <errno.h>
+#include <mrsh/buffer.h>
 #include <mrsh/shell.h>
 #include <string.h>
 #include <stdbool.h>
@@ -63,4 +65,21 @@ next:
 	free(path);
 	free(pathe);
 	return NULL;
+}
+
+char *current_working_dir(void) {
+	// POSIX doesn't provide a way to query the CWD size
+	struct mrsh_buffer buf = {0};
+	if (mrsh_buffer_reserve(&buf, 256) == NULL) {
+		return NULL;
+	}
+	while (getcwd(buf.data, buf.cap) == NULL) {
+		if (errno != ERANGE) {
+			return NULL;
+		}
+		if (mrsh_buffer_reserve(&buf, buf.cap * 2) == NULL) {
+			return NULL;
+		}
+	}
+	return mrsh_buffer_steal(&buf);
 }

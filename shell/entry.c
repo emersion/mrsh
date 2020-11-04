@@ -9,6 +9,7 @@
 #include <unistd.h>
 #include "builtin.h"
 #include "parser.h"
+#include "shell/path.h"
 #include "shell/trap.h"
 #include "mrsh_limit.h"
 
@@ -98,13 +99,14 @@ bool mrsh_populate_env(struct mrsh_state *state, char **environ) {
 	// TODO check if path is well-formed, has . or .., and handle symbolic links
 	const char *pwd = mrsh_env_get(state, "PWD", NULL);
 	if (pwd == NULL || strlen(pwd) >= PATH_MAX) {
-		char cwd[PATH_MAX];
-		if (getcwd(cwd, PATH_MAX) == NULL) {
-			perror("getcwd");
+		char *cwd = current_working_dir();
+		if (cwd == NULL) {
+			perror("current_working_dir failed");
 			return false;
 		}
 		mrsh_env_set(state, "PWD", cwd,
 				MRSH_VAR_ATTRIB_EXPORT | MRSH_VAR_ATTRIB_READONLY);
+		free(cwd);
 	} else {
 		mrsh_env_set(state, "PWD", pwd,
 				MRSH_VAR_ATTRIB_EXPORT | MRSH_VAR_ATTRIB_READONLY);

@@ -12,5 +12,7 @@
  */
 char *expand_path(struct mrsh_state *state, const char *file, bool exec,
 	bool default_path);
+/* Like getcwd, but returns allocated memory */
+char *current_working_dir(void);
 
 #endif

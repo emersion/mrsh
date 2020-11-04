@@ -9,6 +9,7 @@
 #include "builtin.h"
 #include "mrsh_getopt.h"
 #include "mrsh_limit.h"
+#include "shell/path.h"
 
 static const char cd_usage[] = "usage: cd [-L|-P] [-|directory]\n";
 
@@ -19,14 +20,14 @@ static int cd(struct mrsh_state *state, const char *path) {
 		fprintf(stderr, "cd: %s\n", strerror(errno));
 		return 1;
 	}
-	char cwd[PATH_MAX];
-	if (getcwd(cwd, PATH_MAX) == NULL) {
-		fprintf(stderr, "cd: Cannot set new PWD as the path "
-			"is too long\n");
+	char *cwd = current_working_dir();
+	if (cwd == NULL) {
+		perror("current_working_dir failed");
 		return 1;
 	}
 	mrsh_env_set(state, "OLDPWD", oldPWD, MRSH_VAR_ATTRIB_NONE);
 	mrsh_env_set(state, "PWD", cwd, MRSH_VAR_ATTRIB_EXPORT);
+	free(cwd);
 	return 0;
 }
 

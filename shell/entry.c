@@ -98,7 +98,7 @@ bool mrsh_populate_env(struct mrsh_state *state, char **environ) {
 
 	// TODO check if path is well-formed, has . or .., and handle symbolic links
 	const char *pwd = mrsh_env_get(state, "PWD", NULL);
-	if (pwd == NULL || strlen(pwd) >= PATH_MAX) {
+	if (pwd == NULL) {
 		char *cwd = current_working_dir();
 		if (cwd == NULL) {
 			perror("current_working_dir failed");
@@ -127,13 +127,22 @@ static void source_file(struct mrsh_state *state, char *path) {
 void mrsh_source_profile(struct mrsh_state *state) {
 	source_file(state, "/etc/profile");
 
-	char path[PATH_MAX];
-	int n = snprintf(path, sizeof(path), "%s/.profile", getenv("HOME"));
-	if (n == sizeof(path)) {
-		fprintf(stderr, "Warning: $HOME/.profile is longer than PATH_MAX\n");
+	const char *home = getenv("HOME");
+	int n = snprintf(NULL, 0, "%s/.profile", home);
+	if (n < 0) {
+		perror("snprintf failed");
 		return;
 	}
+	char *path = malloc(n + 1);
+	if (path == NULL) {
+		perror("malloc failed");
+		return;
+	}
+	snprintf(path, n + 1, "%s/.profile", home);
+
 	source_file(state, path);
+
+	free(path);
 }
 
 void mrsh_source_env(struct mrsh_state *state) {

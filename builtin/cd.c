@@ -101,33 +101,37 @@ int builtin_cd(struct mrsh_state *state, int argc, char *argv[]) {
 		while (c != NULL) {
 			char *next = strchr(c, ':');
 			char *slash = strrchr(c, '/');
-			if (next) {
+			if (next != NULL) {
 				*next = '\0';
 				++next;
 			}
-			if (*c == '\0') {
+			if (c[0] == '\0') {
 				// path is empty
 				c = ".";
 				slash = NULL;
 			}
-			int len;
-			char path[PATH_MAX];
-			if (slash == NULL || slash[1] != '\0') {
-				// the last character is not a slash
-				len = snprintf(path, PATH_MAX, "%s/%s", c, curpath);
-			} else {
-				len = snprintf(path, PATH_MAX, "%s%s", c, curpath);
-			}
-			if (len >= PATH_MAX) {
-				fprintf(stderr, "cd: Cannot search $CDPATH "
-					"directory \"%s\" since it exceeds the "
-					"maximum path length\n", c);
+
+			const char *sep = (slash == NULL || slash[1] != '\0') ? "/" : "";
+			int len = snprintf(NULL, 0, "%s%s%s", c, sep, curpath);
+			if (len < 0) {
+				perror("snprintf failed");
 				continue;
 			}
+			char *path = malloc(len + 1);
+			if (path == NULL) {
+				perror("malloc failed");
+				continue;
+			}
+			snprintf(path, len + 1, "%s%s%s", c, sep, curpath);
+
 			if (isdir(path)) {
 				free(cdpath);
-				return cd(state, path);
+				int ret = cd(state, path);
+				free(path);
+				return ret;
 			}
+
+			free(path);
 			c = next;
 		}
 		free(cdpath);

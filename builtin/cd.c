@@ -8,7 +8,6 @@
 #include <unistd.h>
 #include "builtin.h"
 #include "mrsh_getopt.h"
-#include "mrsh_limit.h"
 #include "shell/path.h"
 
 static const char cd_usage[] = "usage: cd [-L|-P] [-|directory]\n";

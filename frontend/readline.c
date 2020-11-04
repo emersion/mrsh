@@ -15,7 +15,6 @@
 #include <histedit.h>
 #endif
 #include "frontend.h"
-#include "mrsh_limit.h"
 
 #if defined(HAVE_READLINE)
 #if !defined(HAVE_READLINE_REPLACE_LINE)

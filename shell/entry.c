@@ -11,7 +11,6 @@
 #include "parser.h"
 #include "shell/path.h"
 #include "shell/trap.h"
-#include "mrsh_limit.h"
 
 static char *expand_str(struct mrsh_state *state, const char *src) {
 	struct mrsh_parser *parser = mrsh_parser_with_data(src, strlen(src));

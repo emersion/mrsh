@@ -37,16 +37,22 @@ static void sigint_handler(int n) {
 }
 #endif
 
-static const char *get_history_path(void) {
-	static char history_path[PATH_MAX];
-	snprintf(history_path, sizeof(history_path),
-			"%s/.mrsh_history", getenv("HOME"));
-	return history_path;
+static char *get_history_path(void) {
+	const char *home = getenv("HOME");
+	int len = snprintf(NULL, 0, "%s/.mrsh_history", home);
+	char *path = malloc(len + 1);
+	if (path == NULL) {
+		return NULL;
+	}
+	snprintf(path, len + 1, "%s/.mrsh_history", home);
+	return path;
 }
 
 void interactive_init(struct mrsh_state *state) {
 	rl_initialize();
-	read_history(get_history_path());
+	char *history_path = get_history_path();
+	read_history(history_path);
+	free(history_path);
 }
 
 size_t interactive_next(struct mrsh_state *state,
@@ -67,7 +73,9 @@ size_t interactive_next(struct mrsh_state *state,
 	size_t len = strlen(rline);
 	if (!(state->options & MRSH_OPT_NOLOG)) {
 		add_history(rline);
-		write_history(get_history_path());
+		char *history_path = get_history_path();
+		write_history(history_path);
+		free(history_path);
 	}
 	*line = malloc(len + 2);
 	strcpy(*line, rline);

@@ -179,7 +179,7 @@ test_ldflags() {
 	fi
 }
 
-mkdir -p $outdir
+mkdir -p "$outdir"
 
 for flag in \
 	-g -std=c99 -pedantic -Werror -Wundef -Wlogical-op \
@@ -263,7 +263,7 @@ then
 	append_libs $($pkg_config --libs $readline)
 fi
 
-printf "Creating $outdir/config.mk... "
+printf "Creating %s/config.mk... " "$outdir"
 cat <<EOF > "$outdir"/config.mk
 SOVERSION=$SOVERSION
 CC=$CC
@@ -286,4 +286,4 @@ mrsh >>"$outdir"/config.mk
 highlight >>"$outdir"/config.mk
 echo done
 
-touch $outdir/cppcache
+touch "$outdir"/cppcache

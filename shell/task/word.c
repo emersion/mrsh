@@ -103,8 +103,10 @@ static int run_word_command(struct mrsh_context *ctx, struct mrsh_word **word_pt
 	} else if (pid == 0) {
 		close(fds[0]);
 
-		dup2(fds[1], STDOUT_FILENO);
-		close(fds[1]);
+		if (fds[1] != STDOUT_FILENO) {
+			dup2(fds[1], STDOUT_FILENO);
+			close(fds[1]);
+		}
 
 		init_job_child_process(ctx->state);
 

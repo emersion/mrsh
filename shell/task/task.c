@@ -32,8 +32,10 @@ static int run_subshell(struct mrsh_context *ctx, struct mrsh_array *array) {
 					strerror(errno));
 				exit(1);
 			}
-			dup2(fd, STDIN_FILENO);
-			close(fd);
+			if (fd != STDIN_FILENO) {
+				dup2(fd, STDIN_FILENO);
+				close(fd);
+			}
 		}
 
 		int ret = run_command_list_array(ctx, array);
@@ -358,8 +360,10 @@ int run_command_list_array(struct mrsh_context *ctx, struct mrsh_array *array) {
 							strerror(errno));
 						exit(1);
 					}
-					dup2(fd, STDIN_FILENO);
-					close(fd);
+					if (fd != STDIN_FILENO) {
+						dup2(fd, STDIN_FILENO);
+						close(fd);
+					}
 				}
 
 				int ret = run_and_or_list(&child_ctx, list->and_or_list);

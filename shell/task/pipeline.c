@@ -74,7 +74,7 @@ int run_pipeline(struct mrsh_context *ctx, struct mrsh_pipeline *pl) {
 				close(next_stdin);
 			}
 
-			if (i > 0) {
+			if (i > 0 && cur_stdin != STDIN_FILENO) {
 				if (dup2(cur_stdin, STDIN_FILENO) < 0) {
 					fprintf(stderr, "failed to duplicate stdin: %s\n",
 						strerror(errno));
@@ -83,7 +83,7 @@ int run_pipeline(struct mrsh_context *ctx, struct mrsh_pipeline *pl) {
 				close(cur_stdin);
 			}
 
-			if (i < pl->commands.len - 1) {
+			if (i < pl->commands.len - 1 && cur_stdout != STDOUT_FILENO) {
 				if (dup2(cur_stdout, STDOUT_FILENO) < 0) {
 					fprintf(stderr, "failed to duplicate stdout: %s\n",
 						strerror(errno));

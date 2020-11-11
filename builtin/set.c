@@ -193,8 +193,11 @@ static int set(struct mrsh_state *state, int argc, char *argv[],
 		if (init_args != NULL) {
 			argv_0 = strdup(argv[i++]);
 			init_args->command_file = argv_0;
-		} else {
+		} else if (state->frame->argv) {
 			argv_0 = strdup(state->frame->argv[0]);
+		} else {
+			fprintf(stderr, set_usage);
+			return 1;
 		}
 		argv_free(state->frame->argc, state->frame->argv);
 		state->frame->argc = argc - i + 1;

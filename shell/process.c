@@ -77,9 +77,11 @@ void update_process(struct mrsh_state *state, pid_t pid, int stat) {
 	} else if (WIFSTOPPED(stat)) {
 		proc->stopped = true;
 		proc->signal = WSTOPSIG(stat);
+#ifdef WCONTINUED
 	} else if (WIFCONTINUED(stat)) {
 		proc->stopped = false;
 		proc->signal = SIGCONT;
+#endif
 	} else {
 		abort();
 	}

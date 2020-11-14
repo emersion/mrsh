@@ -226,7 +226,11 @@ static bool _job_wait(struct mrsh_state *state, pid_t pid, int options) {
 	// shell. Child processes want to block until their own children have
 	// terminated.
 	if (!priv->child) {
+#ifdef WCONTINUED
 		options |= WUNTRACED | WCONTINUED;
+#else
+		options |= WUNTRACED;
+#endif
 	}
 
 	while (true) {

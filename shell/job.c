@@ -226,7 +226,7 @@ static bool _job_wait(struct mrsh_state *state, pid_t pid, int options) {
 	// shell. Child processes want to block until their own children have
 	// terminated.
 	if (!priv->child) {
-		options |= WUNTRACED;
+		options |= WUNTRACED | WCONTINUED;
 	}
 
 	while (true) {
@@ -294,12 +294,14 @@ bool refresh_jobs_status(struct mrsh_state *state) {
 
 	for (size_t i = 0; i < priv->jobs.len; ++i) {
 		struct mrsh_job *job = priv->jobs.data[i];
-		struct mrsh_process *proc = job_get_running_process(job);
-		if (proc == NULL) {
-			continue;
-		}
-		if (!_job_wait(job->state, proc->pid, WNOHANG)) {
-			return false;
+		for (size_t j = 0; j < job->processes.len; ++j) {
+			struct mrsh_process *proc = job->processes.data[j];
+			int status = process_poll(proc);
+			if (status == TASK_STATUS_WAIT || status == TASK_STATUS_STOPPED) {
+				if (!_job_wait(job->state, proc->pid, WNOHANG)) {
+					return false;
+				}
+			}
 		}
 	}
 
@@ -326,9 +328,7 @@ static void update_job(struct mrsh_state *state, pid_t pid, int stat) {
 		struct mrsh_job *job = priv->jobs.data[i];
 
 		int status = job_poll(job);
-		if (status >= 0) {
-			job_queue_notification(job);
-		}
+		job_queue_notification(job);
 		if (status != TASK_STATUS_WAIT && job->pgid > 0) {
 			job_set_foreground(job, false, false);
 		}

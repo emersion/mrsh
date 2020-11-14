@@ -62,6 +62,22 @@ static int run_process(struct mrsh_context *ctx, struct mrsh_simple_command *sc,
 			init_job_child_process(state);
 		}
 
+		// XXX Does this need to happen other places?
+		// Maybe we need a fork abstraction that handles job control??
+		if (ctx->background && !(state->options & MRSH_OPT_MONITOR)) {
+			// If job control is disabled, stdin is /dev/null
+			int fd = open("/dev/null", O_CLOEXEC | O_RDONLY);
+			if (fd < 0) {
+				fprintf(stderr, "failed to open /dev/null: %s\n",
+						strerror(errno));
+				exit(1);
+			}
+			if (fd != STDIN_FILENO) {
+				dup2(fd, STDIN_FILENO);
+				close(fd);
+			}
+		}
+
 		for (size_t i = 0; i < sc->assignments.len; ++i) {
 			struct mrsh_assignment *assign = sc->assignments.data[i];
 			uint32_t prev_attribs;
@@ -110,6 +126,9 @@ static int run_process(struct mrsh_context *ctx, struct mrsh_simple_command *sc,
 	free(path);
 
 	struct mrsh_process *process = init_child(ctx, pid);
+	if (ctx->background) {
+		return TASK_STATUS_WAIT;
+	}
 	return job_wait_process(process);
 }
 

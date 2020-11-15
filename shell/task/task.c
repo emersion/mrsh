@@ -20,13 +20,17 @@ static int run_subshell(struct mrsh_context *ctx, struct mrsh_array *array) {
 		perror("fork");
 		return TASK_STATUS_ERROR;
 	} else if (pid == 0) {
+		ctx->background = false;
 		priv->child = true;
 
-		reset_caught_traps(ctx->state);
-
-		if (!(ctx->state->options & MRSH_OPT_MONITOR)) {
+		if (ctx->state->options & MRSH_OPT_MONITOR) {
+			// XXX create a shared init_child func, maybe job_init_child()??
+			struct mrsh_process *proc = process_create(ctx->state, getpid());
+			job_add_process(ctx->job, proc);
+			init_job_child_process(ctx->state);
+		} else {
 			// If job control is disabled, stdin is /dev/null
-			int fd = open("/dev/null", O_CLOEXEC | O_RDONLY);
+			int fd = open("/dev/null", O_RDONLY);
 			if (fd < 0) {
 				fprintf(stderr, "failed to open /dev/null: %s\n",
 					strerror(errno));
@@ -50,6 +54,12 @@ static int run_subshell(struct mrsh_context *ctx, struct mrsh_array *array) {
 	}
 
 	struct mrsh_process *proc = process_create(ctx->state, pid);
+	if (ctx->background) {
+		if (ctx->state->options & MRSH_OPT_MONITOR) {
+			job_add_process(ctx->job, proc);
+		}
+		return TASK_STATUS_WAIT;
+	}
 	return job_wait_process(proc);
 }
 
@@ -317,19 +327,19 @@ int run_command_list_array(struct mrsh_context *ctx, struct mrsh_array *array) {
 	int ret = 0;
 	for (size_t i = 0; i < array->len; ++i) {
 		struct mrsh_command_list *list = array->data[i];
-		struct mrsh_context child_ctx;
 		if (list->ampersand) {
-			child_ctx = *ctx; // copy original context
+			struct mrsh_context child_ctx = *ctx;
 			child_ctx.background = true;
 			if (child_ctx.job == NULL) {
 				child_ctx.job = job_create(state, &list->node);
 			}
-			ctx = &child_ctx;
+			run_and_or_list(&child_ctx, list->and_or_list);
+			continue;
 		}
 
 		ret = run_and_or_list(ctx, list->and_or_list);
 		if (ret < 0) {
-			return ret; // XXX don't set state->last_status ??
+			return ret;
 		}
 		state->last_status = ret;
 	}

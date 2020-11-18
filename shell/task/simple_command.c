@@ -52,65 +52,68 @@ static int run_process(struct mrsh_context *ctx, struct mrsh_simple_command *sc,
 		return 127;
 	}
 
-	pid_t pid = fork();
-	if (pid < 0) {
-		perror("fork");
-		return TASK_STATUS_ERROR;
-	} else if (pid == 0) {
-		init_child(ctx, getpid());
-		if (state->options & MRSH_OPT_MONITOR) {
-			init_job_child_process(state);
+	// Fork if we are not already in a background child process
+	if (!ctx->background || !priv->child) {
+		pid_t pid = fork();
+		if (pid < 0) {
+			perror("fork");
+			return TASK_STATUS_ERROR;
+		} else if (pid == 0) {
+			init_child(ctx, getpid());
+			if (state->options & MRSH_OPT_MONITOR) {
+				init_job_child_process(state);
+			}
+		} else {
+			free(path);
+
+			struct mrsh_process *process = init_child(ctx, pid);
+			return job_wait_process(process);
 		}
-
-		for (size_t i = 0; i < sc->assignments.len; ++i) {
-			struct mrsh_assignment *assign = sc->assignments.data[i];
-			uint32_t prev_attribs;
-			if (mrsh_env_get(state, assign->name, &prev_attribs)
-					&& (prev_attribs & MRSH_VAR_ATTRIB_READONLY)) {
-				fprintf(stderr, "cannot modify readonly variable %s\n",
-						assign->name);
-				exit(1);
-			}
-			char *value = mrsh_word_str(assign->value);
-			setenv(assign->name, value, true);
-			free(value);
-		}
-
-		mrsh_hashtable_for_each(&priv->variables,
-			populate_env_iterator, NULL);
-
-		for (size_t i = 0; i < sc->io_redirects.len; ++i) {
-			struct mrsh_io_redirect *redir = sc->io_redirects.data[i];
-
-			int redir_fd;
-			int fd = process_redir(redir, &redir_fd);
-			if (fd < 0) {
-				exit(1);
-			}
-
-			if (fd == redir_fd) {
-				continue;
-			}
-
-			int ret = dup2(fd, redir_fd);
-			if (ret < 0) {
-				fprintf(stderr, "cannot duplicate file descriptor: %s\n",
-					strerror(errno));
-				exit(1);
-			}
-		}
-
-		execv(path, argv);
-
-		// Something went wrong
-		fprintf(stderr, "%s: %s\n", argv[0], strerror(errno));
-		exit(127);
 	}
 
-	free(path);
+	for (size_t i = 0; i < sc->assignments.len; ++i) {
+		struct mrsh_assignment *assign = sc->assignments.data[i];
+		uint32_t prev_attribs;
+		if (mrsh_env_get(state, assign->name, &prev_attribs)
+				&& (prev_attribs & MRSH_VAR_ATTRIB_READONLY)) {
+			fprintf(stderr, "cannot modify readonly variable %s\n",
+					assign->name);
+			exit(1);
+		}
+		char *value = mrsh_word_str(assign->value);
+		setenv(assign->name, value, true);
+		free(value);
+	}
 
-	struct mrsh_process *process = init_child(ctx, pid);
-	return job_wait_process(process);
+	mrsh_hashtable_for_each(&priv->variables,
+		populate_env_iterator, NULL);
+
+	for (size_t i = 0; i < sc->io_redirects.len; ++i) {
+		struct mrsh_io_redirect *redir = sc->io_redirects.data[i];
+
+		int redir_fd;
+		int fd = process_redir(redir, &redir_fd);
+		if (fd < 0) {
+			exit(1);
+		}
+
+		if (fd == redir_fd) {
+			continue;
+		}
+
+		int ret = dup2(fd, redir_fd);
+		if (ret < 0) {
+			fprintf(stderr, "cannot duplicate file descriptor: %s\n",
+				strerror(errno));
+			exit(1);
+		}
+	}
+
+	execv(path, argv);
+
+	// Something went wrong
+	fprintf(stderr, "%s: %s\n", argv[0], strerror(errno));
+	exit(127);
 }
 
 struct saved_fd {

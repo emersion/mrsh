@@ -80,6 +80,14 @@ install: mrsh libmrsh.so.$(SOVERSION) $(OUTDIR)/mrsh.pc
 	done
 	install -m644 $(OUTDIR)/mrsh.pc $(PCDIR)/mrsh.pc
 
+uninstall:
+	rm -f $(BINDIR)/mrsh
+	rm -f $(LIBDIR)/libmrsh.so.$(SOVERSION)
+	for inc in $(public_includes); do \
+		rm -f $(INCDIR)/mrsh/$$(basename $$inc); \
+	done
+	rm -f $(PCDIR)/mrsh.pc
+
 clean:
 	rm -rf \
 		$(libmrsh_objects) \

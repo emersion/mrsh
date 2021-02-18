@@ -53,18 +53,53 @@ static bool parse_str(struct mrsh_parser *parser, const char *str) {
 	return true;
 }
 
-static size_t peek_literal(struct mrsh_parser *parser) {
-	size_t i = 0;
+static int ishexdigit(char c) {
+	return isdigit(c) || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f');
+}
+
+static size_t peek_hex_literal(struct mrsh_parser *parser) {
+	size_t i = 2; // We already know '0x' prefix is there
+
 	while (true) {
 		parser_peek(parser, NULL, i + 1);
 
 		char c = parser->buf.data[i];
-		// TODO: 0x, 0b prefixes
+		if (!ishexdigit(c)) {
+			break;
+		}
+
+		++i;
+	}
+
+	return i;
+}
+
+static size_t peek_literal(struct mrsh_parser *parser) {
+	size_t i = 0;
+
+	parser_peek(parser, NULL, 1);
+
+	char c = parser->buf.data[0];
+	if (c == '0') {
+		++i;
+		parser_peek(parser, NULL, 2);
+
+		c = parser->buf.data[1];
+		// TODO: 0b prefix
+		if (c == 'x' || c == 'X') {
+			return peek_hex_literal(parser);
+		}
+	}
+
+	while (true) {
 		if (!isdigit(c)) {
 			break;
 		}
 
 		++i;
+		parser_peek(parser, NULL, i + 1);
+
+		c = parser->buf.data[i];
 	}
 
 	return i;

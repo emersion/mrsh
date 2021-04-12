@@ -58,11 +58,11 @@ $(OUTDIR)/mrsh.pc:
 
 mrsh: $(OUTDIR)/libmrsh.a $(mrsh_objects)
 	@printf 'CCLD\t$@\n'
-	@$(CC) -o $@ $(LIBS) $(mrsh_objects) -L$(OUTDIR) -lmrsh
+	@$(CC) -o $@ $(LDFLAGS) $(LIBS) $(mrsh_objects) -L$(OUTDIR) -lmrsh
 
 highlight: $(OUTDIR)/libmrsh.a $(highlight_objects)
 	@printf 'CCLD\t$@\n'
-	@$(CC) -o $@ $(LIBS) $(highlight_objects) -L$(OUTDIR) -lmrsh
+	@$(CC) -o $@ $(LDFLAGS) $(LIBS) $(highlight_objects) -L$(OUTDIR) -lmrsh
 
 check: mrsh $(tests)
 	@for t in $(tests); do \

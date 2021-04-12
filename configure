@@ -10,6 +10,8 @@ LIBS=
 use_readline=-1
 readline=readline
 
+static=
+
 for arg
 do
 	case "$arg" in
@@ -22,6 +24,12 @@ do
 		--with-readline=*)
 			use_readline=1
 			readline=${arg#*=}
+			;;
+		--static)
+			static=$arg
+			;;
+		--dynamic)
+			static=
 			;;
 	esac
 done
@@ -181,6 +189,11 @@ test_ldflags() {
 
 mkdir -p "$outdir"
 
+if [ -n "$static" ]
+then
+	test_ldflags $static
+fi
+
 for flag in \
 	-g -std=c99 -pedantic -Werror -Wundef -Wlogical-op \
 	-Wmissing-include-dirs -Wold-style-definition -Wpointer-arith -Winit-self \
@@ -259,8 +272,8 @@ fi
 
 if [ $use_readline -eq 1 ]
 then
-	append_cflags $($pkg_config --cflags-only-I $readline)
-	append_libs $($pkg_config --libs $readline)
+	append_cflags $($pkg_config $static --cflags-only-I $readline)
+	append_libs $($pkg_config $static --libs $readline)
 fi
 
 printf "Creating %s/config.mk... " "$outdir"

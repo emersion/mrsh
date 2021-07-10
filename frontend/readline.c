@@ -68,7 +68,7 @@ static char *get_history_path(void) {
 	char *home;
 	int len = sizeof("/history");
 	if (xdg_state_home) {
-		len += snprintf(NULL, 0, "%s/mrsh", xdg_data_home);
+		len += snprintf(NULL, 0, "%s/mrsh", xdg_state_home);
 	} else {
 		home = getenv("HOME");
 		len += snprintf(NULL, 0, "%s/.local/state/mrsh", home);
@@ -80,7 +80,7 @@ static char *get_history_path(void) {
 	}
 
 	if (xdg_state_home) {
-		len += snprintf(path, len, "%s/mrsh", xdg_data_home);
+		len += snprintf(path, len, "%s/mrsh", xdg_state_home);
 	} else {
 		home = getenv("HOME");
 		len += snprintf(path, len, "%s/.local/state/mrsh", home);

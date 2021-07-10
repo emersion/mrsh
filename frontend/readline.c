@@ -64,14 +64,14 @@ static int mkdir_all(const char *path) {
 }
 
 static char *get_history_path(void) {
-	char *xdg_data_home = getenv("XDG_DATA_HOME");
+	char *xdg_state_home = getenv("XDG_STATE_HOME");
 	char *home;
 	int len = sizeof("/history");
-	if (xdg_data_home) {
+	if (xdg_state_home) {
 		len += snprintf(NULL, 0, "%s/mrsh", xdg_data_home);
 	} else {
 		home = getenv("HOME");
-		len += snprintf(NULL, 0, "%s/.local/share/mrsh", home);
+		len += snprintf(NULL, 0, "%s/.local/state/mrsh", home);
 	}
 
 	char *path = malloc(len);
@@ -79,11 +79,11 @@ static char *get_history_path(void) {
 		return NULL;
 	}
 
-	if (xdg_data_home) {
+	if (xdg_state_home) {
 		len += snprintf(path, len, "%s/mrsh", xdg_data_home);
 	} else {
 		home = getenv("HOME");
-		len += snprintf(path, len, "%s/.local/share/mrsh", home);
+		len += snprintf(path, len, "%s/.local/state/mrsh", home);
 	}
 
 	mkdir_all(path);

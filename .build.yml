@@ -1,8 +1,8 @@
-image: alpine/edge
+image: alpine/latest
 packages:
   - rsync
 secrets:
-  - 5874ac5a-905e-4596-a117-fed1401c60ce
+  - 77c7956b-003e-44f7-bb5c-2944b2047654 # SSH deploy key
 sources:
   - https://git.sr.ht/~emersion/mrsh#website
 tasks:
@@ -10,7 +10,7 @@ tasks:
       cd mrsh
       sshopts="-o StrictHostKeyChecking=no"
       rsync --rsh="ssh $sshopts" -rP \
-          --exclude '.git/*' \
+          --exclude .git \
           --delete \
           --delete-excluded \
-          . deploy@emersion.fr:/srv/http/mrsh
+          . deploy@sheeta.emersion.fr:/srv/http/mrsh

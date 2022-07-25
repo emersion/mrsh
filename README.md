@@ -2,7 +2,7 @@
 
 A minimal [POSIX] shell.
 
-[![](https://builds.sr.ht/~emersion/mrsh.svg)](https://builds.sr.ht/~emersion/mrsh)
+[![builds.sr.ht status](https://builds.sr.ht/~emersion/mrsh/commits/master.svg)](https://builds.sr.ht/~emersion/mrsh/commits/master?)
 
 * POSIX compliant, no less, no more
 * Simple, readable code without magic

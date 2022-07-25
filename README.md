@@ -1,4 +1,4 @@
-# [mrsh]
+# mrsh
 
 A minimal [POSIX] shell.
 
@@ -33,7 +33,6 @@ list][ML].
 
 MIT
 
-[mrsh]: https://mrsh.sh
 [POSIX]: http://pubs.opengroup.org/onlinepubs/9699919799/utilities/V3_chap02.html
 [work in progress]: https://github.com/emersion/mrsh/issues/8
 [GitHub]: https://github.com/emersion/mrsh

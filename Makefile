@@ -17,15 +17,19 @@ public_includes=\
 		include/mrsh/shell.h
 
 tests=\
-		test/conformance/if.sh \
+		test/args.sh \
 		test/arithm.sh \
 		test/async.sh \
 		test/case.sh \
 		test/command.sh \
 		test/for.sh \
 		test/function.sh \
+		test/if.sh \
 		test/loop.sh \
 		test/pipeline.sh \
+		test/read.sh \
+		test/readonly.sh \
+		test/redir.sh \
 		test/return.sh \
 		test/subshell.sh \
 		test/syntax.sh \

@@ -9,6 +9,7 @@ test_files = [
 	'command.sh',
 	'for.sh',
 	'function.sh',
+	'if.sh',
 	'loop.sh',
 	'pipeline.sh',
 	'read.sh',

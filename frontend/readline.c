@@ -7,6 +7,12 @@
 #include <string.h>
 #include <signal.h>
 #include <unistd.h>
+
+#undef __generic
+#include <libgen.h>
+
+#include <sys/stat.h>
+#include <sys/types.h>
 #if defined(HAVE_READLINE)
 #include <readline/history.h>
 #include <readline/readline.h>
@@ -36,14 +42,53 @@ static void sigint_handler(int n) {
 }
 #endif
 
+static int mkdir_all(const char *path) {
+	struct stat st = {0};
+	if (stat(path, &st) == 0 && S_ISDIR(st.st_mode)) {
+		return 0;
+	}
+
+	char *subpath = strdup(path);
+	subpath = dirname(subpath);
+
+	if (strlen(subpath) > 1) {
+		int ret_val = mkdir_all(subpath);
+		if (ret_val != 0) {
+			return ret_val;
+		}
+	}
+
+	int ret_val = mkdir(path, 0700);
+	free(subpath);
+	return ret_val;
+}
+
 static char *get_history_path(void) {
-	const char *home = getenv("HOME");
-	int len = snprintf(NULL, 0, "%s/.mrsh_history", home);
-	char *path = malloc(len + 1);
+	char *xdg_state_home = getenv("XDG_STATE_HOME");
+	char *home;
+	int len = sizeof("/history");
+	if (xdg_state_home) {
+		len += snprintf(NULL, 0, "%s/mrsh", xdg_state_home);
+	} else {
+		home = getenv("HOME");
+		len += snprintf(NULL, 0, "%s/.local/state/mrsh", home);
+	}
+
+	char *path = malloc(len);
 	if (path == NULL) {
 		return NULL;
 	}
-	snprintf(path, len + 1, "%s/.mrsh_history", home);
+
+	if (xdg_state_home) {
+		len += snprintf(path, len, "%s/mrsh", xdg_state_home);
+	} else {
+		home = getenv("HOME");
+		len += snprintf(path, len, "%s/.local/state/mrsh", home);
+	}
+
+	mkdir_all(path);
+
+	strncat(path, "/history", len - strlen(path) - 1);
 	return path;
 }
 

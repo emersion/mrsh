@@ -1,6 +1,9 @@
 #!/bin/sh -eu
 
 echo "1 =" $((1))
+echo "0x0 = " $((0x0))
+echo "0x100 = " $((0x100))
+echo "0xabcd = " $((0xabcd))
 echo "2*5 =" $((2*5))
 echo "2/5 =" $((2/5))
 echo "2%5 =" $((2%5))
